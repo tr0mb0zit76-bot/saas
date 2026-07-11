@@ -107,3 +107,21 @@ pwsh -File scripts/bootstrap-from-v5.ps1 -WhatIf
 ## ADR
 
 Архитектурные решения: `docs/architecture/decisions/ADR-*.md`
+
+## Cursor Cloud specific instructions
+
+Repo state (Phase 0): this is a **docs/planning + automation-scripts repository only** — there is
+no Laravel application code yet (`composer.json`, `package.json`, `artisan`, `app/` do not exist).
+The Laravel stack listed above is the *target* and gets bootstrapped later from `v5.local`, which is
+a local Windows checkout **not available in the cloud VM**.
+
+- The only runnable code is the two PowerShell scripts in `scripts/`. The update script installs
+  `pwsh` (PowerShell 7) so they can run on Linux. No package-manager dependencies exist to install.
+- There is no build/lint/test tooling. The closest "lint" is a syntax check via the PowerShell
+  parser: `pwsh -NoProfile -Command 'Get-ChildItem scripts/*.ps1 | ForEach-Object { $e=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$null,[ref]$e); if($e){$e} }'`
+- Both scripts default to **Windows paths** (`C:\...`). On Linux/cloud you must override them:
+  - `pwsh -File scripts/sync-docs-to-yandex.ps1 -ExchangeRoot /tmp/vault` — syncs `docs/` into an
+    `Exchange/saas/` vault tree. Runs fully cross-platform.
+  - `pwsh -File scripts/bootstrap-from-v5.ps1 -V5Root <path> -WhatIf` — preview only. Without an
+    actual `v5.local` source it errors (`$ErrorActionPreference='Stop'`), so cloud agents can only
+    validate the `-WhatIf` dry run, not a real bootstrap.
