@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Tenant extends Model
 {
@@ -44,6 +45,18 @@ class Tenant extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /** @return HasOne<TenantSubscription, $this> */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(TenantSubscription::class);
+    }
+
+    /** @return HasMany<TenantInvoice, $this> */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(TenantInvoice::class);
     }
 
     public function planKey(): string

@@ -50,6 +50,7 @@
                         <th class="px-3 py-2">Название</th>
                         <th class="px-3 py-2">Тариф</th>
                         <th class="px-3 py-2">Статус</th>
+                        <th class="px-3 py-2">Оплата до</th>
                         <th class="px-3 py-2">Пользователи</th>
                         <th class="px-3 py-2">Действия</th>
                     </tr>
@@ -74,10 +75,14 @@
                                 <option v-for="status in statusOptions" :key="status.value" :value="status.value">{{ status.label }}</option>
                             </select>
                         </td>
+                        <td class="px-3 py-2 text-xs text-zinc-500">{{ tenant.billing_period_end || '—' }}</td>
                         <td class="px-3 py-2">{{ tenant.users_count }}</td>
-                        <td class="px-3 py-2">
+                        <td class="px-3 py-2 space-x-2">
                             <button type="button" :class="crmBtnNeutral" :disabled="savingId === tenant.id" @click="saveTenant(tenant.id)">
                                 Сохранить
+                            </button>
+                            <button type="button" :class="crmBtnCreate" @click="markPaid(tenant.id)">
+                                Оплачено
                             </button>
                         </td>
                     </tr>
@@ -143,6 +148,12 @@ function saveTenant(tenantId) {
         onFinish: () => {
             savingId.value = null;
         },
+    });
+}
+
+function markPaid(tenantId) {
+    router.post(route('platform.tenants.mark-paid', tenantId), {}, {
+        preserveScroll: true,
     });
 }
 </script>

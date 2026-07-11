@@ -16,6 +16,7 @@ Schedule::command('mail:sync')
     ->withoutOverlapping(60);
 Schedule::command('contractors:sync-operational-status')->dailyAt('02:30');
 Schedule::command('import-cost:sync-references')->weeklyOn(1, '03:15');
+Schedule::command('saas:expire-trials')->dailyAt('06:00');
 
 $dispositionTimezone = config('disposition.timezone', 'Europe/Samara');
 

@@ -890,6 +890,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/tenants', [PlatformTenantController::class, 'index'])->name('tenants.index');
         Route::post('/tenants', [PlatformTenantController::class, 'store'])->name('tenants.store');
         Route::patch('/tenants/{tenant}', [PlatformTenantController::class, 'update'])->name('tenants.update');
+        Route::post('/tenants/{tenant}/mark-paid', [PlatformTenantController::class, 'markPaid'])->name('tenants.mark-paid');
     });
 
     Route::prefix('cabinet-notifications')->name('cabinet-notifications.')->group(function () {

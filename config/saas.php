@@ -11,4 +11,6 @@ return [
         static fn (string $email): string => strtolower(trim($email)),
         explode(',', (string) env('SAAS_PLATFORM_ADMIN_EMAILS', 'admin@saas.local')),
     ))),
+
+    'trial_days' => (int) env('SAAS_TRIAL_DAYS', 14),
 ];

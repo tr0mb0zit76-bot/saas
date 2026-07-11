@@ -1,32 +1,37 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-11 · **Фаза:** M7 · **Ветка:** `main` (+ `cursor/super-admin-skeleton-4010`)
+**Обновлено:** 2026-07-11 · **Фаза:** M7 (pilots ready) · **Ветка:** `main`
 
 ---
 
 ## Продукт: Traklo Pro
 
 - **Pilot:** чистый demo-tenant
-- **Billing:** счета / УПД (ADR-009)
-- **Storage:** S3 prod, `tenant_local` lab — [[traklo-pro-storage]]
+- **Billing:** счета / УПД вручную (ADR-009) — skeleton готов
+- **Storage:** S3 prod, `tenant_local` lab
 - **Mobile:** один APK + subdomain
 
 ---
 
-## Сделано
+## Сделано (в `main`)
 
-### M6–M7 (merged в `main`, PR #4)
+### Tenancy & security
 - Tier A/B `tenant_id`, fail-closed scope, feature gating, TenantStorage
-- Composite unique `(tenant_id, email)` и `(tenant_id, role name)`
-- 14+ SaaS tests
+- Composite unique email/roles per tenant
+- Platform admin: `/platform/tenants`
 
-### Super-admin skeleton (ветка `cursor/super-admin-skeleton-4010`)
-- `/platform/tenants` — список, создание, смена plan/status
-- `SAAS_PLATFORM_ADMIN_EMAILS` (default: `admin@saas.local`)
-- Vue: `Platform/Tenants/Index.vue`
-- Меню: «Арендаторы SaaS» в Настройках (только platform admin)
-- CrmLayout: скрытие пунктов меню по `tenant.features`
-- `BelongsToTenant` на Tier A child models (tasks, leads, contractors…)
+### TenantProvisioner
+- При создании tenant: storage + 7 default roles (admin, manager, …)
+- `TenantSubscription` sync (trial 14 дней по умолчанию)
+
+### Billing skeleton (ADR-009)
+- Таблицы: `tenant_subscriptions`, `tenant_invoices`
+- `TenantBillingService::markInvoicePaid()` — продление периода + запись invoice
+- `saas:expire-trials` — daily cron, suspend просроченных trial
+- Platform UI: колонка «Оплата до», кнопка **Оплачено**
+- Trial tenants: доступны через subdomain (`IdentifyTenant` allows `trial`)
+
+### Tests — **17 passed** in `tests/Feature/Saas`
 
 ---
 
@@ -35,7 +40,6 @@
 ```powershell
 cd C:\OSPanel\home\saas\saas.local
 git pull origin main
-git pull origin cursor/super-admin-skeleton-4010   # после merge PR
 composer install --no-interaction
 php artisan migrate --force
 npm run build
@@ -48,20 +52,23 @@ TENANT_STORAGE_DISK=tenant_local
 TENANT_STORAGE_FOR_DOCUMENTS=true
 SAAS_DEFAULT_TENANT_SLUG=demo
 SAAS_PLATFORM_ADMIN_EMAILS=admin@saas.local
+SAAS_TRIAL_DAYS=14
 ```
 
-Login: `admin@saas.local` / `password` → **Настройки → Арендаторы SaaS**
+Login: `admin@saas.local` / `password`  
+Platform: **Настройки → Арендаторы SaaS**
 
 ---
 
 ## Следующие шаги
 
-1. Merge PR super-admin → main
-2. Seed ролей при создании tenant (TenantProvisioner)
-3. Billing skeleton (invoice period, ADR-009)
+1. Tenant onboarding wizard (admin user + invite email при create)
+2. PDF/УПД export для `tenant_invoices`
+3. Usage limits enforcement (users, orders/month)
+4. Pilot с первым внешним экспедитором
 
 ---
 
 ## От вас ничего не требуется
 
-Всё на GitHub; `git pull origin main` на home-pc.
+`git pull origin main` + `migrate` на home-pc.
