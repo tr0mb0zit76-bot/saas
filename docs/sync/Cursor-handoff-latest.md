@@ -17,7 +17,11 @@ ADR: `004`–`010` в `docs/architecture/decisions/`
 
 **Pilot:** чистый demo-tenant, не prod Автоальянс.
 
-**Billing MVP:** счета + УПД вручную (ADR-009), без онлайн-эквайринга на старте.
+**Billing MVP:** счета + УПД вручную (ADR-009).
+
+**Storage:** S3-first (`TenantStorage`, ADR-005). Lab = local disk, prod = Yandex OS / S3. Nextcloud — legacy v5 only.
+
+**Scale:** ADR-011 (AI data tenant_id), ADR-012 (DB phases P0–P4).
 
 ---
 
