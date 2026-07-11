@@ -1,67 +1,63 @@
 # Cursor handoff — SaaS CRM (экспедиторы)
 
-> **Синхронизация:** Yandex Disk `Exchange/saas/` · **Код:** `git pull` в `saas.local`  
 > **Оркестратор:** `saas-migration-orchestrator` · **Состояние:** `docs/sync/migration-state.json`
 
-**Обновлено:** 2026-07-11 · **Ветка:** `main` · **Фаза переезда:** M0 (не начат)
+**Обновлено:** 2026-07-11 · **Ветка:** `cursor/migration-orchestrator-4010` · **Фаза:** **M4** (lab smoke, почти готово)
 
 ---
 
-## Итог сессии 2026-07-11 — оркестратор переезда
+## Итог сессии — переезд продолжен (cloud lab)
 
 | Блок | Статус |
 | --- | --- |
-| Субагент `saas-migration-orchestrator` | ✅ `.cursor/agents/saas-migration-orchestrator.md` |
-| Runbook M0–M7 | ✅ `docs/sync/migration-runbook.md` |
-| State file | ✅ `docs/sync/migration-state.json` |
-| Скрипты: setup-lab, provision-database, migration-status | ✅ |
-| Audit remediation checklist | ✅ `docs/architecture/saas-audit-remediation.md` |
+| M0 Prerequisites | ✅ php, composer, node, v5 clone, MariaDB |
+| M1 Bootstrap v5 → saas | ✅ код скопирован из github v5 |
+| M2 Environment | ✅ .env, composer, npm |
+| M3 Schema + seed | ✅ migrate + **SaasDemoSeeder** |
+| M4 Smoke | 🟡 login 200, 4 contractors, 2 leads |
+| M5 Tenancy | ⏳ следующий этап |
 
-**Код CRM:** ещё не bootstrapped — оркестратор запускает `setup-lab.ps1` автономно.
+### Demo login (lab)
+
+| Поле | Значение |
+| --- | --- |
+| URL | `http://saas.local` (Windows) / `http://127.0.0.1:8000` (cloud) |
+| Admin | `admin@saas.local` / `password` |
+| Manager | `manager@saas.local` / `password` |
+
+### Demo data
+
+- **Own company:** ООО «Демо Экспедиция»
+- **Контрагенты:** ООО «Тест Заказчик», ИП «Тест Перевозчик» (+ own fleet из v5 seed)
+- **Лиды:** 2 шт. (Москва → СПб)
 
 ---
 
-## Как запустить переезд (человеку)
-
-Одна фраза агенту:
-
-> **«Продолжи переезд»** или **«Запусти saas-migration-orchestrator»**
-
-Или вручную:
+## На Windows (OSPanel) — повторить lab
 
 ```powershell
 cd C:\OSPanel\home\saas\saas.local
 git pull
 pwsh -File scripts/setup-lab.ps1
-pwsh -File scripts/migration-status.ps1
+# или если v5 локально:
+pwsh -File scripts/bootstrap-from-v5.ps1
+pwsh -File scripts/provision-database.ps1
+composer install && npm ci
+php artisan migrate --schema-path=database/schema/.skip-mysql-cli-load
+php artisan db:seed --class=SaasDemoSeeder
+npm run build
 ```
-
-**Участие человека не нужно**, кроме blockers (MySQL не запущен, v5.local не найден).
 
 ---
 
 ## Следующий шаг оркестратора
 
-1. M0 — проверить php/composer/node/v5/mysql
-2. M1 — `bootstrap-from-v5.ps1`
-3. M2 — `.env` + `provision-database.ps1` (БД **создаётся скриптом**)
-4. M3 — migrate + `SaasDemoSeeder` (создать если нет)
-5. M4 — smoke: 2 контрагента, лид → заказ
-
----
-
-## Ключевые пути
-
-| Что | Где |
-| --- | --- |
-| Оркестратор | `.cursor/agents/saas-migration-orchestrator.md` |
-| State | `docs/sync/migration-state.json` |
-| Runbook | `docs/sync/migration-runbook.md` |
-| Код | `C:\OSPanel\home\saas\saas.local` |
-| Git | https://github.com/tr0mb0zit76-bot/saas.git |
+1. M4.4 — smoke: конвертация лида в заказ (UI или feature test)
+2. M4.5 — `php artisan test --compact` smoke suite
+3. **M5** — `tenants` + `tenant_id` + isolation tests
 
 ---
 
 ## Blockers
 
-_(пусто — оркестратор заполнит при эскалации)_
+_(нет)_

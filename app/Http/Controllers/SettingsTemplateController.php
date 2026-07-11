@@ -1,0 +1,706 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StorePrintFormTemplateRequest;
+use App\Http\Requests\UpdatePrintFormBasicTermsRequest;
+use App\Http\Requests\UpdatePrintFormTemplateRequest;
+use App\Models\Contractor;
+use App\Models\Lead;
+use App\Models\Order;
+use App\Models\PrintFormBasicTerm;
+use App\Models\PrintFormTemplate;
+use App\Services\DocxPlaceholderExtractor;
+use App\Services\LeadPrintFormDraftService;
+use App\Services\OrderPrintFormDraftService;
+use App\Services\PrintForm\PrintFormBasicTermsService;
+use App\Services\PrintFormDraftResponseBuilder;
+use App\Services\PrintFormTemplateOrderEligibility;
+use App\Services\PrintFormVariableCatalog;
+use App\Support\DocumentPreview;
+use App\Support\OrderPrintFormContext;
+use App\Support\PrintFormBasicTermsTableCloner;
+use App\Support\PrintFormImageOverlayPlaceholders;
+use App\Support\PrintFormPlaceholderPathResolver;
+use App\Support\PrintFormTemplateTransportScope;
+use App\Support\RoleAccess;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class SettingsTemplateController extends Controller
+{
+    public function __construct(
+        private readonly DocxPlaceholderExtractor $placeholderExtractor,
+        private readonly PrintFormVariableCatalog $variableCatalog,
+        private readonly OrderPrintFormDraftService $orderDraftService,
+        private readonly LeadPrintFormDraftService $leadDraftService,
+        private readonly PrintFormDraftResponseBuilder $draftResponseBuilder,
+        private readonly PrintFormPlaceholderPathResolver $placeholderPathResolver,
+        private readonly PrintFormBasicTermsService $basicTermsService,
+    ) {}
+
+    public function index(Request $request): Response
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+
+        $templates = collect();
+
+        if (Schema::hasTable('print_form_templates')) {
+            $templates = PrintFormTemplate::query()
+                ->when(
+                    Schema::hasColumn('print_form_templates', 'contractor_id')
+                        || Schema::hasColumn('print_form_templates', 'own_company_id'),
+                    function ($query): void {
+                        $relations = [];
+                        if (Schema::hasColumn('print_form_templates', 'contractor_id')) {
+                            $relations[] = 'contractor:id,name';
+                        }
+                        if (Schema::hasColumn('print_form_templates', 'own_company_id')) {
+                            $relations[] = 'ownCompany:id,name';
+                        }
+                        if ($relations !== []) {
+                            $query->with($relations);
+                        }
+                    },
+                )
+                ->orderByDesc('is_default')
+                ->orderBy('document_type')
+                ->orderBy('name')
+                ->get()
+                ->map(function (PrintFormTemplate $template): array {
+                    $placeholders = $this->placeholderExtractor->placeholdersForTemplate($template);
+                    $storedMapping = is_array(data_get($template->settings, 'variable_mapping'))
+                        ? data_get($template->settings, 'variable_mapping')
+                        : [];
+
+                    return [
+                        'id' => $template->id,
+                        'code' => $template->code,
+                        'name' => $template->name,
+                        'entity_type' => $template->entity_type ?? 'order',
+                        'document_type' => $template->document_type,
+                        'document_group' => $template->document_group,
+                        'party' => $template->party,
+                        'source_type' => $template->source_type ?? 'system',
+                        'contractor_id' => $template->contractor_id,
+                        'contractor_name' => $template->contractor?->name,
+                        'own_company_id' => Schema::hasColumn('print_form_templates', 'own_company_id')
+                            ? $template->own_company_id
+                            : null,
+                        'own_company_name' => Schema::hasColumn('print_form_templates', 'own_company_id')
+                            ? $template->ownCompany?->name
+                            : null,
+                        'transport_scope' => Schema::hasColumn('print_form_templates', 'transport_scope')
+                            ? ($template->transport_scope ?? PrintFormTemplateTransportScope::ANY)
+                            : PrintFormTemplateTransportScope::ANY,
+                        'transport_scope_label' => PrintFormTemplateTransportScope::label(
+                            Schema::hasColumn('print_form_templates', 'transport_scope')
+                                ? $template->transport_scope
+                                : PrintFormTemplateTransportScope::ANY,
+                        ),
+                        'is_default' => (bool) $template->is_default,
+                        'requires_internal_signature' => (bool) $template->requires_internal_signature,
+                        'requires_counterparty_signature' => (bool) $template->requires_counterparty_signature,
+                        'is_active' => (bool) $template->is_active,
+                        'version' => (int) $template->version,
+                        'original_filename' => $template->original_filename,
+                        'has_source_file' => filled($template->file_path),
+                        'pipeline_status' => data_get($template->settings, 'pipeline_status', 'draft'),
+                        'variables' => $placeholders,
+                        'variable_mapping' => $this->placeholderPathResolver->effectiveVariableMapping(
+                            $placeholders,
+                            $storedMapping,
+                            (string) ($template->entity_type ?? 'order'),
+                            ($template->entity_type ?? 'order') === 'order' ? $template->party : null,
+                        ),
+                        'internal_signature_placeholder' => data_get(
+                            $template->settings,
+                            'image_overlays.internal_signature.placeholder',
+                            PrintFormImageOverlayPlaceholders::DEFAULT_SIGNATURE,
+                        ),
+                        'internal_stamp_placeholder' => data_get(
+                            $template->settings,
+                            'image_overlays.internal_stamp.placeholder',
+                            PrintFormImageOverlayPlaceholders::DEFAULT_STAMP,
+                        ),
+                        'signature_image_width_mm' => (float) data_get($template->settings, 'image_overlays.internal_signature.width_mm', 42),
+                        'signature_image_height_mm' => (float) data_get($template->settings, 'image_overlays.internal_signature.height_mm', 18),
+                        'signature_image_offset_x_mm' => (float) data_get($template->settings, 'image_overlays.internal_signature.offset_x_mm', 0),
+                        'signature_image_offset_y_mm' => (float) data_get($template->settings, 'image_overlays.internal_signature.offset_y_mm', 0),
+                        'stamp_image_width_mm' => (float) data_get($template->settings, 'image_overlays.internal_stamp.width_mm', 30),
+                        'stamp_image_height_mm' => (float) data_get($template->settings, 'image_overlays.internal_stamp.height_mm', 30),
+                        'stamp_image_offset_x_mm' => (float) data_get($template->settings, 'image_overlays.internal_stamp.offset_x_mm', 0),
+                        'stamp_image_offset_y_mm' => (float) data_get($template->settings, 'image_overlays.internal_stamp.offset_y_mm', 0),
+                        'apply_crm_overlay_offsets' => (bool) data_get($template->settings, 'image_overlays.apply_crm_overlay_offsets', true),
+                        'has_signature_image' => filled(data_get($template->settings, 'image_overlays.internal_signature.path')),
+                        'has_stamp_image' => filled(data_get($template->settings, 'image_overlays.internal_stamp.path')),
+                        'signature_image_preview_url' => filled(data_get($template->settings, 'image_overlays.internal_signature.path'))
+                            ? route('settings.templates.overlay-asset', ['printFormTemplate' => $template->id, 'overlayKey' => 'internal_signature'])
+                            : null,
+                        'stamp_image_preview_url' => filled(data_get($template->settings, 'image_overlays.internal_stamp.path'))
+                            ? route('settings.templates.overlay-asset', ['printFormTemplate' => $template->id, 'overlayKey' => 'internal_stamp'])
+                            : null,
+                        'updated_at' => $template->updated_at?->toIso8601String(),
+                    ];
+                })
+                ->values();
+        }
+
+        $contractorOptions = collect();
+
+        if (Schema::hasTable('contractors')) {
+            $contractorOptions = Contractor::query()
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Contractor $contractor): array => [
+                    'id' => $contractor->id,
+                    'name' => $contractor->name,
+                ])
+                ->values();
+        }
+
+        $ownCompanyOptions = collect();
+
+        if (Schema::hasTable('contractors') && Schema::hasColumn('contractors', 'is_own_company')) {
+            $ownCompanyOptions = Contractor::query()
+                ->where('is_own_company', true)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Contractor $contractor): array => [
+                    'id' => $contractor->id,
+                    'name' => $contractor->name,
+                ])
+                ->values();
+        }
+
+        $pageTab = $request->string('tab')->toString() === 'basic-terms' ? 'basic-terms' : 'templates';
+        $basicTermsParty = $request->string('party')->toString();
+        $basicTermsParty = in_array($basicTermsParty, [PrintFormBasicTerm::PARTY_CUSTOMER, PrintFormBasicTerm::PARTY_CARRIER], true)
+            ? $basicTermsParty
+            : PrintFormBasicTerm::PARTY_CUSTOMER;
+        $basicTermsContractorId = $request->filled('contractor_id')
+            ? (int) $request->input('contractor_id')
+            : null;
+
+        if ($basicTermsContractorId !== null && $basicTermsContractorId <= 0) {
+            $basicTermsContractorId = null;
+        }
+
+        return Inertia::render('Settings/Templates', [
+            'pageTab' => $pageTab,
+            'templates' => $templates,
+            'contractorOptions' => $contractorOptions,
+            'ownCompanyOptions' => $ownCompanyOptions,
+            'entityTypeOptions' => PrintFormTemplate::entityTypeOptions(),
+            'documentTypeOptions' => PrintFormTemplate::documentTypeOptions(),
+            'documentGroupOptions' => PrintFormTemplate::documentGroupOptions(),
+            'partyOptions' => PrintFormTemplate::partyOptions(),
+            'sourceTypeOptions' => PrintFormTemplate::sourceTypeOptions(),
+            'transportScopeOptions' => PrintFormTemplate::transportScopeOptions(),
+            'orderVariableOptions' => $this->variableCatalog->orderOptions(),
+            'leadVariableOptions' => $this->variableCatalog->leadOptions(),
+            'documentPreview' => DocumentPreview::inertiaMeta(),
+            'basicTermsEditor' => [
+                'enabled' => $this->basicTermsService->tablesReady(),
+                'activeParty' => $basicTermsParty,
+                'activeContractorId' => $basicTermsContractorId,
+                'rows' => $this->basicTermsService->listRows($basicTermsParty, $basicTermsContractorId),
+                'partyOptions' => [
+                    ['value' => PrintFormBasicTerm::PARTY_CUSTOMER, 'label' => 'Заказчик'],
+                    ['value' => PrintFormBasicTerm::PARTY_CARRIER, 'label' => 'Перевозчик'],
+                ],
+                'placeholderHelp' => [
+                    PrintFormBasicTerm::PARTY_CUSTOMER => PrintFormBasicTermsTableCloner::placeholderHelpForParty(PrintFormBasicTerm::PARTY_CUSTOMER),
+                    PrintFormBasicTerm::PARTY_CARRIER => PrintFormBasicTermsTableCloner::placeholderHelpForParty(PrintFormBasicTerm::PARTY_CARRIER),
+                ],
+                'globalRowCounts' => [
+                    PrintFormBasicTerm::PARTY_CUSTOMER => count($this->basicTermsService->listRows(PrintFormBasicTerm::PARTY_CUSTOMER)),
+                    PrintFormBasicTerm::PARTY_CARRIER => count($this->basicTermsService->listRows(PrintFormBasicTerm::PARTY_CARRIER)),
+                ],
+            ],
+        ]);
+    }
+
+    public function updateBasicTerms(UpdatePrintFormBasicTermsRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+        $party = (string) $validated['party'];
+        $contractorId = isset($validated['contractor_id']) ? (int) $validated['contractor_id'] : null;
+
+        $this->basicTermsService->sync(
+            $party,
+            $contractorId > 0 ? $contractorId : null,
+            is_array($validated['items'] ?? null) ? $validated['items'] : [],
+        );
+
+        $scopeLabel = $contractorId > 0
+            ? 'для выбранного контрагента'
+            : 'общие';
+
+        $partyLabel = $party === PrintFormBasicTerm::PARTY_CARRIER ? 'перевозчика' : 'заказчика';
+
+        return redirect()
+            ->route('settings.templates.index', array_filter([
+                'tab' => 'basic-terms',
+                'party' => $party,
+                'contractor_id' => $contractorId > 0 ? $contractorId : null,
+            ]))
+            ->with('success', "Базовые условия {$partyLabel} ({$scopeLabel}) сохранены.");
+    }
+
+    public function store(StorePrintFormTemplateRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $template = PrintFormTemplate::query()->create([
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'entity_type' => $validated['entity_type'],
+            'document_type' => $validated['document_type'],
+            'document_group' => $validated['document_group'],
+            'party' => $validated['party'],
+            'source_type' => $validated['source_type'],
+            'contractor_id' => $validated['contractor_id'] ?? null,
+            'own_company_id' => $validated['own_company_id'] ?? null,
+            'transport_scope' => $validated['transport_scope'] ?? PrintFormTemplateTransportScope::ANY,
+            'is_default' => (bool) ($validated['is_default'] ?? false),
+            'requires_internal_signature' => (bool) ($validated['requires_internal_signature'] ?? true),
+            'requires_counterparty_signature' => (bool) ($validated['requires_counterparty_signature'] ?? false),
+            'is_active' => (bool) ($validated['is_active'] ?? true),
+            'version' => 1,
+            'vue_component' => $validated['source_type'] === 'system' ? 'SystemPrintFormTemplate' : 'ExternalDocxTemplate',
+            'pdf_view' => null,
+            'settings' => [
+                'variables' => [],
+                'variable_mapping' => $this->normalizeVariableMappings($validated['variable_mappings'] ?? []),
+                'image_overlays' => $this->normalizeImageOverlaySettings($validated),
+                'pipeline_status' => 'uploaded',
+            ],
+            'created_by' => $request->user()?->id,
+            'updated_by' => $request->user()?->id,
+        ]);
+
+        $this->persistSourceFile($template, $request->file('source_file'));
+        $this->persistImageOverlayFiles(
+            $template,
+            $request->file('signature_image_file'),
+            $request->file('stamp_image_file')
+        );
+
+        if ($template->is_default) {
+            $this->syncScopedDefault($template);
+        }
+
+        return to_route('settings.templates.index');
+    }
+
+    public function update(UpdatePrintFormTemplateRequest $request, PrintFormTemplate $printFormTemplate): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $printFormTemplate->update([
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'entity_type' => $validated['entity_type'],
+            'document_type' => $validated['document_type'],
+            'document_group' => $validated['document_group'],
+            'party' => $validated['party'],
+            'source_type' => $validated['source_type'],
+            'contractor_id' => $validated['contractor_id'] ?? null,
+            'own_company_id' => $validated['own_company_id'] ?? null,
+            'transport_scope' => $validated['transport_scope'] ?? PrintFormTemplateTransportScope::ANY,
+            'is_default' => (bool) ($validated['is_default'] ?? false),
+            'requires_internal_signature' => (bool) ($validated['requires_internal_signature'] ?? true),
+            'requires_counterparty_signature' => (bool) ($validated['requires_counterparty_signature'] ?? false),
+            'is_active' => (bool) ($validated['is_active'] ?? true),
+            'vue_component' => $validated['source_type'] === 'system' ? 'SystemPrintFormTemplate' : 'ExternalDocxTemplate',
+            'updated_by' => $request->user()?->id,
+        ]);
+
+        $this->syncVariableMappings($printFormTemplate, $validated['variable_mappings'] ?? []);
+        $this->syncImageOverlaySettings($printFormTemplate, $validated);
+
+        $this->persistSourceFile($printFormTemplate, $request->file('source_file'));
+        $this->persistImageOverlayFiles(
+            $printFormTemplate,
+            $request->file('signature_image_file'),
+            $request->file('stamp_image_file')
+        );
+
+        if ($printFormTemplate->is_default) {
+            $this->syncScopedDefault($printFormTemplate);
+        }
+
+        return to_route('settings.templates.index');
+    }
+
+    public function generateOrderDraft(Request $request, PrintFormTemplate $printFormTemplate): \Symfony\Component\HttpFoundation\Response
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+        abort_if($printFormTemplate->entity_type !== 'order', 422, 'Черновик можно сформировать только для шаблона заказа.');
+        abort_if(blank($printFormTemplate->file_path), 422, 'У шаблона не загружен исходный DOCX-файл.');
+
+        $validated = $request->validate([
+            'order_id' => ['required', 'integer', 'exists:orders,id'],
+        ]);
+
+        $printFormTemplate->refresh();
+
+        $order = Order::query()->findOrFail($validated['order_id']);
+        $generatedFile = $this->orderDraftService->generate(
+            $printFormTemplate,
+            $order,
+            ! $request->boolean('exclude_overlays'),
+            OrderPrintFormContext::forTemplatePreview((int) $order->id),
+        );
+
+        return $this->draftResponseBuilder->fromGeneratedFile($request, $generatedFile);
+    }
+
+    public function generateLeadDraft(Request $request, PrintFormTemplate $printFormTemplate): \Symfony\Component\HttpFoundation\Response
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+        abort_if($printFormTemplate->entity_type !== 'lead', 422, 'Черновик можно сформировать только для шаблона лида.');
+        abort_if(blank($printFormTemplate->file_path), 422, 'У шаблона не загружен исходный DOCX-файл.');
+
+        $validated = $request->validate([
+            'lead_id' => ['required', 'integer', 'exists:leads,id'],
+        ]);
+
+        $printFormTemplate->refresh();
+
+        $lead = Lead::query()->findOrFail($validated['lead_id']);
+        $generatedFile = $this->leadDraftService->generate(
+            $printFormTemplate,
+            $lead,
+            ! $request->boolean('exclude_overlays')
+        );
+
+        return $this->draftResponseBuilder->fromGeneratedFile($request, $generatedFile);
+    }
+
+    private function draftPreviewCacheBuster(PrintFormTemplate $template): int
+    {
+        return (int) ($template->updated_at?->getTimestamp() ?? time());
+    }
+
+    public function overlayAsset(Request $request, PrintFormTemplate $printFormTemplate, string $overlayKey): \Symfony\Component\HttpFoundation\Response
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+        abort_unless(in_array($overlayKey, ['internal_signature', 'internal_stamp'], true), 404);
+
+        $path = data_get($printFormTemplate->settings, 'image_overlays.'.$overlayKey.'.path');
+        $disk = (string) data_get($printFormTemplate->settings, 'image_overlays.'.$overlayKey.'.disk', 'local');
+
+        abort_if(! is_string($path) || $path === '' || ! Storage::disk($disk)->exists($path), 404);
+
+        $contents = Storage::disk($disk)->get($path);
+        $mime = Storage::disk($disk)->mimeType($path) ?: 'application/octet-stream';
+
+        return response($contents, 200, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'private, max-age=60',
+            'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+        ]);
+    }
+
+    public function destroy(Request $request, PrintFormTemplate $printFormTemplate): RedirectResponse
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+
+        $templateId = $printFormTemplate->id;
+
+        if (filled($printFormTemplate->file_path) && filled($printFormTemplate->file_disk)) {
+            Storage::disk($printFormTemplate->file_disk)->delete($printFormTemplate->file_path);
+        }
+
+        $this->deleteImageOverlayAsset($printFormTemplate, 'internal_signature');
+        $this->deleteImageOverlayAsset($printFormTemplate, 'internal_stamp');
+
+        $localDisk = Storage::disk('local');
+        foreach ([
+            'print-form-templates/'.$templateId,
+            'print-form-template-assets/'.$templateId,
+            'generated-documents/drafts/'.$templateId,
+        ] as $directory) {
+            if ($localDisk->exists($directory)) {
+                $localDisk->deleteDirectory($directory);
+            }
+        }
+
+        $printFormTemplate->delete();
+
+        return to_route('settings.templates.index');
+    }
+
+    private function persistSourceFile(PrintFormTemplate $template, mixed $uploadedFile): void
+    {
+        if ($uploadedFile === null) {
+            return;
+        }
+
+        $hadSourceFile = filled($template->file_path) && filled($template->file_disk);
+
+        if ($hadSourceFile) {
+            Storage::disk($template->file_disk)->delete($template->file_path);
+        }
+
+        $currentVersion = max(1, (int) $template->version);
+        $nextVersion = $hadSourceFile ? $currentVersion + 1 : $currentVersion;
+
+        $extension = $uploadedFile->getClientOriginalExtension() ?: 'docx';
+        $fileName = Str::slug($template->code).'-v'.$nextVersion.'.'.$extension;
+        $path = $uploadedFile->storeAs('print-form-templates/'.$template->id, $fileName, 'local');
+
+        $settings = is_array($template->settings) ? $template->settings : [];
+        $settings['pipeline_status'] = 'uploaded';
+
+        $variables = $this->placeholderExtractor->extractFromDisk('local', $path);
+        $settings['variables'] = $variables;
+        $settings['variable_mapping'] = $this->filterVariableMapping($settings['variable_mapping'] ?? [], $variables);
+        $settings['variable_count'] = count($variables);
+        $settings['parsed_at'] = now()->toIso8601String();
+        $settings['pipeline_status'] = $variables === [] ? 'uploaded_without_placeholders' : 'placeholders_ready';
+
+        $template->forceFill([
+            'file_disk' => 'local',
+            'file_path' => $path,
+            'original_filename' => $uploadedFile->getClientOriginalName(),
+            'settings' => $settings,
+            'version' => $nextVersion,
+        ])->save();
+    }
+
+    /**
+     * @param  list<array{placeholder?: string, source_path?: ?string}>  $rows
+     * @return array<string, string>
+     */
+    private function normalizeVariableMappings(array $rows): array
+    {
+        return collect($rows)
+            ->mapWithKeys(function (array $row): array {
+                $placeholder = trim((string) ($row['placeholder'] ?? ''));
+                $sourcePath = trim((string) ($row['source_path'] ?? ''));
+
+                if ($placeholder === '' || $sourcePath === '') {
+                    return [];
+                }
+
+                return [$placeholder => $sourcePath];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $mapping
+     * @param  list<string>  $variables
+     * @return array<string, string>
+     */
+    private function filterVariableMapping(array $mapping, array $variables): array
+    {
+        $normalized = [];
+
+        foreach ($mapping as $key => $value) {
+            if (is_int($key) && is_array($value)) {
+                $placeholder = trim((string) ($value['placeholder'] ?? ''));
+                $sourcePath = trim((string) ($value['source_path'] ?? ''));
+                if ($placeholder !== '' && $sourcePath !== '') {
+                    $normalized[$placeholder] = $sourcePath;
+                }
+
+                continue;
+            }
+
+            if (is_string($key) && is_string($value)) {
+                $trimmed = trim($value);
+                if ($trimmed !== '') {
+                    $normalized[$key] = $trimmed;
+                }
+            }
+        }
+
+        return collect($normalized)
+            ->filter(fn (mixed $value, string $key): bool => in_array($key, $variables, true)
+                && is_string($value)
+                && $value !== ''
+                && $value !== $key)
+            ->all();
+    }
+
+    /**
+     * @param  list<array{placeholder?: string, source_path?: ?string}>  $rows
+     */
+    private function syncVariableMappings(PrintFormTemplate $template, array $rows): void
+    {
+        $settings = is_array($template->settings) ? $template->settings : [];
+        $variables = collect($settings['variables'] ?? [])->filter(fn (mixed $value): bool => is_string($value))->values()->all();
+
+        $settings['variable_mapping'] = $this->filterVariableMapping(
+            $this->normalizeVariableMappings($rows),
+            $variables
+        );
+
+        $template->forceFill([
+            'settings' => $settings,
+        ])->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, array<string, float|string|null>>
+     */
+    private function normalizeImageOverlaySettings(array $validated): array
+    {
+        $signaturePlaceholder = trim((string) ($validated['internal_signature_placeholder'] ?? PrintFormImageOverlayPlaceholders::DEFAULT_SIGNATURE));
+        $stampPlaceholder = trim((string) ($validated['internal_stamp_placeholder'] ?? PrintFormImageOverlayPlaceholders::DEFAULT_STAMP));
+
+        return [
+            'apply_crm_overlay_offsets' => (bool) ($validated['apply_crm_overlay_offsets'] ?? true),
+            'internal_signature' => [
+                'placeholder' => $signaturePlaceholder !== '' ? $signaturePlaceholder : PrintFormImageOverlayPlaceholders::DEFAULT_SIGNATURE,
+                'width_mm' => (float) ($validated['signature_image_width_mm'] ?? 42),
+                'height_mm' => (float) ($validated['signature_image_height_mm'] ?? 18),
+                'offset_x_mm' => (float) ($validated['signature_image_offset_x_mm'] ?? 0),
+                'offset_y_mm' => (float) ($validated['signature_image_offset_y_mm'] ?? 0),
+                'path' => null,
+                'disk' => null,
+            ],
+            'internal_stamp' => [
+                'placeholder' => $stampPlaceholder !== '' ? $stampPlaceholder : PrintFormImageOverlayPlaceholders::DEFAULT_STAMP,
+                'width_mm' => (float) ($validated['stamp_image_width_mm'] ?? 30),
+                'height_mm' => (float) ($validated['stamp_image_height_mm'] ?? 30),
+                'offset_x_mm' => (float) ($validated['stamp_image_offset_x_mm'] ?? 0),
+                'offset_y_mm' => (float) ($validated['stamp_image_offset_y_mm'] ?? 0),
+                'path' => null,
+                'disk' => null,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncImageOverlaySettings(PrintFormTemplate $template, array $validated): void
+    {
+        $settings = is_array($template->settings) ? $template->settings : [];
+        $overlays = is_array($settings['image_overlays'] ?? null) ? $settings['image_overlays'] : [];
+
+        $signature = is_array($overlays['internal_signature'] ?? null) ? $overlays['internal_signature'] : [];
+        $stamp = is_array($overlays['internal_stamp'] ?? null) ? $overlays['internal_stamp'] : [];
+
+        $applyCrmOverlayOffsets = array_key_exists('apply_crm_overlay_offsets', $validated)
+            ? (bool) $validated['apply_crm_overlay_offsets']
+            : (bool) ($overlays['apply_crm_overlay_offsets'] ?? true);
+
+        $signaturePlaceholder = trim((string) ($validated['internal_signature_placeholder'] ?? ($signature['placeholder'] ?? PrintFormImageOverlayPlaceholders::DEFAULT_SIGNATURE)));
+        $stampPlaceholder = trim((string) ($validated['internal_stamp_placeholder'] ?? ($stamp['placeholder'] ?? PrintFormImageOverlayPlaceholders::DEFAULT_STAMP)));
+
+        $overlays['internal_signature'] = [
+            'placeholder' => $signaturePlaceholder !== '' ? $signaturePlaceholder : PrintFormImageOverlayPlaceholders::DEFAULT_SIGNATURE,
+            'width_mm' => (float) ($validated['signature_image_width_mm'] ?? ($signature['width_mm'] ?? 42)),
+            'height_mm' => (float) ($validated['signature_image_height_mm'] ?? ($signature['height_mm'] ?? 18)),
+            'offset_x_mm' => (float) ($validated['signature_image_offset_x_mm'] ?? ($signature['offset_x_mm'] ?? 0)),
+            'offset_y_mm' => (float) ($validated['signature_image_offset_y_mm'] ?? ($signature['offset_y_mm'] ?? 0)),
+            'path' => $signature['path'] ?? null,
+            'disk' => $signature['disk'] ?? null,
+        ];
+
+        $overlays['internal_stamp'] = [
+            'placeholder' => $stampPlaceholder !== '' ? $stampPlaceholder : PrintFormImageOverlayPlaceholders::DEFAULT_STAMP,
+            'width_mm' => (float) ($validated['stamp_image_width_mm'] ?? ($stamp['width_mm'] ?? 30)),
+            'height_mm' => (float) ($validated['stamp_image_height_mm'] ?? ($stamp['height_mm'] ?? 30)),
+            'offset_x_mm' => (float) ($validated['stamp_image_offset_x_mm'] ?? ($stamp['offset_x_mm'] ?? 0)),
+            'offset_y_mm' => (float) ($validated['stamp_image_offset_y_mm'] ?? ($stamp['offset_y_mm'] ?? 0)),
+            'path' => $stamp['path'] ?? null,
+            'disk' => $stamp['disk'] ?? null,
+        ];
+        $overlays['apply_crm_overlay_offsets'] = $applyCrmOverlayOffsets;
+
+        $settings['image_overlays'] = $overlays;
+
+        $template->forceFill([
+            'settings' => $settings,
+        ])->save();
+    }
+
+    private function persistImageOverlayFiles(
+        PrintFormTemplate $template,
+        mixed $signatureImageFile,
+        mixed $stampImageFile,
+    ): void {
+        if ($signatureImageFile instanceof UploadedFile) {
+            $this->persistImageOverlayFile($template, 'internal_signature', $signatureImageFile);
+        }
+
+        if ($stampImageFile instanceof UploadedFile) {
+            $this->persistImageOverlayFile($template, 'internal_stamp', $stampImageFile);
+        }
+    }
+
+    private function persistImageOverlayFile(
+        PrintFormTemplate $template,
+        string $overlayKey,
+        UploadedFile $uploadedFile,
+    ): void {
+        $settings = is_array($template->settings) ? $template->settings : [];
+        $overlays = is_array($settings['image_overlays'] ?? null) ? $settings['image_overlays'] : [];
+        $overlay = is_array($overlays[$overlayKey] ?? null) ? $overlays[$overlayKey] : [];
+
+        $currentPath = $overlay['path'] ?? null;
+        $currentDisk = $overlay['disk'] ?? 'local';
+        if (is_string($currentPath) && $currentPath !== '') {
+            Storage::disk($currentDisk)->delete($currentPath);
+        }
+
+        $extension = strtolower($uploadedFile->getClientOriginalExtension() ?: 'png');
+        $fileName = Str::slug($template->code).'-'.$overlayKey.'-v'.$template->version.'.'.$extension;
+        $path = $uploadedFile->storeAs('print-form-template-assets/'.$template->id, $fileName, 'local');
+
+        $overlay['path'] = $path;
+        $overlay['disk'] = 'local';
+        $overlays[$overlayKey] = $overlay;
+        $settings['image_overlays'] = $overlays;
+
+        $template->forceFill([
+            'settings' => $settings,
+        ])->save();
+    }
+
+    private function deleteImageOverlayAsset(PrintFormTemplate $template, string $overlayKey): void
+    {
+        $path = data_get($template->settings, 'image_overlays.'.$overlayKey.'.path');
+        $disk = data_get($template->settings, 'image_overlays.'.$overlayKey.'.disk', 'local');
+
+        if (is_string($path) && $path !== '') {
+            Storage::disk((string) $disk)->delete($path);
+        }
+    }
+
+    private function syncScopedDefault(PrintFormTemplate $template): void
+    {
+        if (! $template->is_default || ! Schema::hasTable('print_form_templates')) {
+            return;
+        }
+
+        /** @var PrintFormTemplateOrderEligibility $eligibility */
+        $eligibility = app(PrintFormTemplateOrderEligibility::class);
+
+        PrintFormTemplate::query()
+            ->where('id', '!=', $template->id)
+            ->where('is_default', true)
+            ->get()
+            ->each(function (PrintFormTemplate $other) use ($eligibility, $template): void {
+                if (! $eligibility->templatesShareDefaultScope($template, $other)) {
+                    return;
+                }
+
+                $other->forceFill(['is_default' => false])->save();
+            });
+    }
+}

@@ -96,15 +96,19 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
 # M3 Schema
 if (Test-Path (Join-Path $repoRoot 'artisan')) {
     Write-Host '[M3] Schema...'
-    php artisan migrate --force
+    foreach ($sub in @('storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/logs', 'bootstrap/cache')) {
+        $p = Join-Path $repoRoot ($sub -replace '/', '\')
+        if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
+    }
+    php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
     Update-MigrationStep 'M3.1'
 
-    # Base seed if DatabaseSeeder exists
     try {
-        php artisan db:seed --force 2>$null
+        php artisan db:seed --class=SaasDemoSeeder --force
         Update-MigrationStep 'M3.2'
+        Update-MigrationStep 'M3.3'
     } catch {
-        Write-Warning 'db:seed skipped or partial — SaasDemoSeeder may be added later'
+        Write-Warning 'SaasDemoSeeder failed — check migrate and seeder'
     }
 
     if (-not $SkipBuild -and (Test-Path (Join-Path $repoRoot 'package.json'))) {

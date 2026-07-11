@@ -1,0 +1,386 @@
+<?php
+
+namespace App\Services;
+
+class PrintFormVariableCatalog
+{
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public function orderOptions(): array
+    {
+        return $this->sortedOptions(array_merge([
+            ['value' => 'order.id', 'label' => 'Заказ: ID'],
+            ['value' => 'order.order_number', 'label' => 'Заказ: Номер'],
+            ['value' => 'order.order_date', 'label' => 'Заказ: Дата'],
+            ['value' => 'order.loading_date', 'label' => 'Заказ: Дата загрузки'],
+            ['value' => 'order.unloading_date', 'label' => 'Заказ: Дата выгрузки'],
+            ['value' => 'order.status', 'label' => 'Заказ: Статус'],
+            ['value' => 'order.customer_rate', 'label' => 'Заказ: Ставка клиента'],
+            ['value' => 'order.carrier_rate', 'label' => 'Заказ: Ставка перевозчика'],
+            ['value' => 'order.customer_rate_with_currency', 'label' => 'Заказ: Ставка клиента (с валютой)'],
+            ['value' => 'order.carrier_rate_with_currency', 'label' => 'Заказ: Ставка перевозчика (с валютой)'],
+            ['value' => 'order.customer_payment_form', 'label' => 'Заказ: Форма оплаты клиента'],
+            ['value' => 'order.customer_payment_term', 'label' => 'Заказ: Оплата по клиенту'],
+            ['value' => 'order.carrier_payment_form', 'label' => 'Заказ: Форма оплаты перевозчику'],
+            ['value' => 'order.carrier_payment_term', 'label' => 'Заказ: Оплата по перевозчику'],
+            ['value' => 'order.invoice_number', 'label' => 'Заказ: Номер счета'],
+            ['value' => 'order.waybill_number', 'label' => 'Заказ: Номер ТТН'],
+            ['value' => 'order.special_notes', 'label' => 'Заказ: Особые отметки'],
+            ['value' => 'order.svh_name', 'label' => 'Заказ: СВХ — наименование'],
+            ['value' => 'order.svh_address', 'label' => 'Заказ: СВХ — адрес'],
+            ['value' => 'order.customs_post_code', 'label' => 'Заказ: Код таможенного поста'],
+            ['value' => 'order.cargo_declared_sum', 'label' => 'Заказ: Объявленная стоимость груза'],
+            ['value' => 'order.svh_summary', 'label' => 'Заказ: СВХ и таможня — сводный текст (для одного блока в DOCX)'],
+            ['value' => 'cargo_sender.name', 'label' => 'Грузоотправитель: Наименование'],
+            ['value' => 'cargo_sender.address', 'label' => 'Грузоотправитель: Адрес'],
+            ['value' => 'cargo_sender.contact_phone', 'label' => 'Грузоотправитель: Контакт (телефон)'],
+            ['value' => 'cargo_sender.all_names', 'label' => 'Грузоотправитель: Наименования (все точки)'],
+            ['value' => 'cargo_sender.all_addresses', 'label' => 'Грузоотправитель: Адреса (все точки)'],
+            ['value' => 'cargo_sender.all_contact_phones', 'label' => 'Грузоотправитель: Контакты (все точки)'],
+            ['value' => 'cargo_recipient.name', 'label' => 'Грузополучатель: Наименование'],
+            ['value' => 'cargo_recipient.address', 'label' => 'Грузополучатель: Адрес'],
+            ['value' => 'cargo_recipient.contact_phone', 'label' => 'Грузополучатель: Контакт (телефон)'],
+            ['value' => 'cargo_recipient.all_names', 'label' => 'Грузополучатель: Наименования (все точки)'],
+            ['value' => 'cargo_recipient.all_addresses', 'label' => 'Грузополучатель: Адреса (все точки)'],
+            ['value' => 'cargo_recipient.all_contact_phones', 'label' => 'Грузополучатель: Контакты (все точки)'],
+
+            ['value' => 'customer.name', 'label' => 'Заказчик: Наименование'],
+            ['value' => 'customer.full_name', 'label' => 'Заказчик: Полное наименование'],
+            ['value' => 'customer.inn', 'label' => 'Заказчик: ИНН'],
+            ['value' => 'customer.kpp', 'label' => 'Заказчик: КПП'],
+            ['value' => 'customer.ogrn', 'label' => 'Заказчик: ОГРН'],
+            ['value' => 'customer.legal_address', 'label' => 'Заказчик: Юр. адрес'],
+            ['value' => 'customer.actual_address', 'label' => 'Заказчик: Факт. адрес'],
+            ['value' => 'customer.postal_address', 'label' => 'Заказчик: Почтовый адрес'],
+            ['value' => 'customer.phone', 'label' => 'Заказчик: Телефон'],
+            ['value' => 'customer.email', 'label' => 'Заказчик: Email'],
+            ['value' => 'customer.contact_person', 'label' => 'Заказчик: Контактное лицо'],
+            ['value' => 'customer.bank_name', 'label' => 'Заказчик: Банк'],
+            ['value' => 'customer.bik', 'label' => 'Заказчик: БИК'],
+            ['value' => 'customer.account_number', 'label' => 'Заказчик: Р/с'],
+            ['value' => 'customer.correspondent_account', 'label' => 'Заказчик: К/с'],
+            ['value' => 'customer.is_non_resident', 'label' => 'Заказчик: Нерезидент (Да / Нет)'],
+            ['value' => 'customer.non_resident_corr_bank_name', 'label' => 'Заказчик: Банк-корреспондент, наименование'],
+            ['value' => 'customer.non_resident_corr_bank_swift', 'label' => 'Заказчик: Банк-корреспондент, SWIFT/BIC'],
+            ['value' => 'customer.non_resident_corr_settlement_account', 'label' => 'Заказчик: Банк-корреспондент, расчётный счёт'],
+            ['value' => 'customer.non_resident_corr_bank_account', 'label' => 'Заказчик: Счёт в банке-корреспонденте'],
+            ['value' => 'customer.cnaps_code', 'label' => 'Заказчик: CNAPS CODE'],
+            ['value' => 'customer.signer_name_nominative', 'label' => 'Заказчик: Подписант, именительный'],
+            ['value' => 'customer.signer_name_prepositional', 'label' => 'Заказчик: Подписант, родительный'],
+            ['value' => 'customer.signer_position', 'label' => 'Заказчик: Должность подписанта'],
+            ['value' => 'customer.signer_position_genitive_auto', 'label' => 'Заказчик: Должность подписанта (авто, родительный)'],
+            ['value' => 'customer.signer_authority_basis', 'label' => 'Заказчик: Основание подписи'],
+            ['value' => 'customer.edo_provider', 'label' => 'Заказчик: Провайдер ЭДО'],
+            ['value' => 'customer.edo_number', 'label' => 'Заказчик: Номер ЭДО'],
+            ...$this->englishRequisitesPlaceholderOptions('customer', 'Заказчик'),
+
+            ['value' => 'carrier.name', 'label' => 'Перевозчик: Наименование'],
+            ['value' => 'carrier.full_name', 'label' => 'Перевозчик: Полное наименование'],
+            ['value' => 'carrier.inn', 'label' => 'Перевозчик: ИНН'],
+            ['value' => 'carrier.kpp', 'label' => 'Перевозчик: КПП'],
+            ['value' => 'carrier.ogrn', 'label' => 'Перевозчик: ОГРН'],
+            ['value' => 'carrier.legal_address', 'label' => 'Перевозчик: Юр. адрес'],
+            ['value' => 'carrier.actual_address', 'label' => 'Перевозчик: Факт. адрес'],
+            ['value' => 'carrier.postal_address', 'label' => 'Перевозчик: Почтовый адрес'],
+            ['value' => 'carrier.phone', 'label' => 'Перевозчик: Телефон'],
+            ['value' => 'carrier.email', 'label' => 'Перевозчик: Email'],
+            ['value' => 'carrier.contact_person', 'label' => 'Перевозчик: Контактное лицо'],
+            ['value' => 'carrier.bank_name', 'label' => 'Перевозчик: Банк'],
+            ['value' => 'carrier.bik', 'label' => 'Перевозчик: БИК'],
+            ['value' => 'carrier.account_number', 'label' => 'Перевозчик: Р/с'],
+            ['value' => 'carrier.correspondent_account', 'label' => 'Перевозчик: К/с'],
+            ['value' => 'carrier.is_non_resident', 'label' => 'Перевозчик: Нерезидент (Да / Нет)'],
+            ['value' => 'carrier.non_resident_corr_bank_name', 'label' => 'Перевозчик: Банк-корреспондент, наименование'],
+            ['value' => 'carrier.non_resident_corr_bank_swift', 'label' => 'Перевозчик: Банк-корреспондент, SWIFT/BIC'],
+            ['value' => 'carrier.non_resident_corr_settlement_account', 'label' => 'Перевозчик: Банк-корреспондент, расчётный счёт'],
+            ['value' => 'carrier.non_resident_corr_bank_account', 'label' => 'Перевозчик: Счёт в банке-корреспонденте'],
+            ['value' => 'carrier.cnaps_code', 'label' => 'Перевозчик: CNAPS CODE'],
+            ['value' => 'carrier.signer_name_nominative', 'label' => 'Перевозчик: Подписант, именительный'],
+            ['value' => 'carrier.signer_name_prepositional', 'label' => 'Перевозчик: Подписант, предложный'],
+            ['value' => 'carrier.signer_position', 'label' => 'Перевозчик: Должность подписанта'],
+            ['value' => 'carrier.signer_position_genitive_auto', 'label' => 'Перевозчик: Должность подписанта (авто, родительный)'],
+            ['value' => 'carrier.signer_authority_basis', 'label' => 'Перевозчик: Основание подписи'],
+            ['value' => 'carrier.edo_provider', 'label' => 'Перевозчик: Провайдер ЭДО'],
+            ['value' => 'carrier.edo_number', 'label' => 'Перевозчик: Номер ЭДО'],
+            ...$this->englishRequisitesPlaceholderOptions('carrier', 'Перевозчик'),
+
+            ['value' => 'own_company.name', 'label' => 'Своя компания: Наименование'],
+            ['value' => 'own_company.full_name', 'label' => 'Своя компания: Полное наименование'],
+            ['value' => 'own_company.inn', 'label' => 'Своя компания: ИНН'],
+            ['value' => 'own_company.kpp', 'label' => 'Своя компания: КПП'],
+            ['value' => 'own_company.ogrn', 'label' => 'Своя компания: ОГРН'],
+            ['value' => 'own_company.legal_address', 'label' => 'Своя компания: Юр. адрес'],
+            ['value' => 'own_company.actual_address', 'label' => 'Своя компания: Факт. адрес'],
+            ['value' => 'own_company.postal_address', 'label' => 'Своя компания: Почтовый адрес'],
+            ['value' => 'own_company.bank_name', 'label' => 'Своя компания: Банк'],
+            ['value' => 'own_company.bik', 'label' => 'Своя компания: БИК'],
+            ['value' => 'own_company.account_number', 'label' => 'Своя компания: Р/с'],
+            ['value' => 'own_company.correspondent_account', 'label' => 'Своя компания: К/с'],
+            ['value' => 'own_company.is_non_resident', 'label' => 'Своя компания: Нерезидент (Да / Нет)'],
+            ['value' => 'own_company.non_resident_corr_bank_name', 'label' => 'Своя компания: Банк-корреспондент, наименование'],
+            ['value' => 'own_company.non_resident_corr_bank_swift', 'label' => 'Своя компания: Банк-корреспондент, SWIFT/BIC'],
+            ['value' => 'own_company.non_resident_corr_settlement_account', 'label' => 'Своя компания: Банк-корреспондент, расчётный счёт'],
+            ['value' => 'own_company.non_resident_corr_bank_account', 'label' => 'Своя компания: Счёт в банке-корреспонденте'],
+            ['value' => 'own_company.cnaps_code', 'label' => 'Своя компания: CNAPS CODE'],
+            ['value' => 'own_company.signer_name_nominative', 'label' => 'Своя компания: Подписант, именительный'],
+            ['value' => 'own_company.signer_name_prepositional', 'label' => 'Своя компания: Подписант, предложный'],
+            ['value' => 'own_company.signer_position', 'label' => 'Своя компания: Должность подписанта'],
+            ['value' => 'own_company.signer_position_genitive_auto', 'label' => 'Своя компания: Должность подписанта (авто, родительный)'],
+            ['value' => 'own_company.signer_authority_basis', 'label' => 'Своя компания: Основание подписи'],
+            ['value' => 'own_company.edo_provider', 'label' => 'Своя компания: Провайдер ЭДО'],
+            ['value' => 'own_company.edo_number', 'label' => 'Своя компания: Номер ЭДО'],
+            ...$this->englishRequisitesPlaceholderOptions('own_company', 'Своя компания'),
+
+            ['value' => 'manager.name', 'label' => 'Менеджер: Имя'],
+            ['value' => 'manager.email', 'label' => 'Менеджер: Email'],
+            ['value' => 'manager.phone', 'label' => 'Менеджер: Телефон'],
+            ['value' => 'responsible.name', 'label' => 'Ответственный: Имя'],
+            ['value' => 'responsible.email', 'label' => 'Ответственный: Email'],
+            ['value' => 'responsible.phone', 'label' => 'Ответственный: Телефон'],
+
+            ['value' => 'driver.full_name', 'label' => 'Водитель: ФИО'],
+            ['value' => 'driver.phone', 'label' => 'Водитель: Телефон'],
+            ['value' => 'driver.passport_data', 'label' => 'Водитель: Паспортные данные'],
+            ['value' => 'vehicle.brand', 'label' => 'Транспорт: Марка'],
+            ['value' => 'vehicle.number', 'label' => 'Транспорт: Номер'],
+            ['value' => 'vehicle.trailer_brand', 'label' => 'Транспорт: Марка прицепа'],
+            ['value' => 'vehicle.trailer_plate', 'label' => 'Транспорт: Госномер прицепа'],
+            ['value' => 'vehicle.transport_type', 'label' => 'Транспорт: тип (алиас кузова / совместимость)'],
+            ['value' => 'vehicle.cargo_body_type', 'label' => 'Транспорт: Кузов (из заказа — груз, поле «Кузов»)'],
+            ['value' => 'vehicle.trailer_type', 'label' => 'Транспорт: Кузов — то же, что cargo_body_type (совместимость)'],
+
+            ['value' => 'contacts.customer_name', 'label' => 'Контакты: Имя заказчика (заказ → основной контакт контрагента)'],
+            ['value' => 'contacts.customer_phone', 'label' => 'Контакты: Телефон заказчика (заказ → основной контакт контрагента)'],
+            ['value' => 'contacts.customer_email', 'label' => 'Контакты: Email заказчика (заказ → основной контакт контрагента)'],
+            ['value' => 'contacts.carrier_name', 'label' => 'Контакты: Имя перевозчика (заказ → основной контакт контрагента)'],
+            ['value' => 'contacts.carrier_phone', 'label' => 'Контакты: Телефон перевозчика (заказ → основной контакт контрагента)'],
+            ['value' => 'contacts.carrier_email', 'label' => 'Контакты: Email перевозчика (заказ → основной контакт контрагента)'],
+
+            ['value' => 'route.loading_addresses', 'label' => 'Маршрут: Адреса загрузки'],
+            ['value' => 'route.loading_cities', 'label' => 'Маршрут: Города загрузки'],
+            ['value' => 'route.loading_first_address', 'label' => 'Маршрут: Первая загрузка, адрес'],
+            ['value' => 'route.loading_first_city', 'label' => 'Маршрут: Первая загрузка, город'],
+            ['value' => 'route.loading_time_range', 'label' => 'Маршрут: Время загрузки (период)'],
+            ['value' => 'route.loading_method', 'label' => 'Маршрут: Способ погрузки'],
+            ['value' => 'route.loading_types', 'label' => 'Маршрут: Вид погрузки'],
+            ['value' => 'route.loading_special_conditions', 'label' => 'Маршрут: Особые условия на загрузке'],
+            ['value' => 'route.unloading_special_conditions', 'label' => 'Маршрут: Особые условия на выгрузке'],
+            ['value' => 'route.unloading_addresses', 'label' => 'Маршрут: Адреса выгрузки'],
+            ['value' => 'route.unloading_cities', 'label' => 'Маршрут: Города выгрузки'],
+            ['value' => 'route.unloading_first_address', 'label' => 'Маршрут: Первая выгрузка, адрес'],
+            ['value' => 'route.unloading_first_city', 'label' => 'Маршрут: Первая выгрузка, город'],
+            ['value' => 'route.unloading_last_city', 'label' => 'Маршрут: Последняя выгрузка, город'],
+            ['value' => 'route.unloading_last_address', 'label' => 'Маршрут: Последняя выгрузка, адрес'],
+            ['value' => 'route.unloading_time_range', 'label' => 'Маршрут: Время выгрузки (период)'],
+
+            ['value' => 'cargo.summary', 'label' => 'Груз: Сводка (все позиции, одна строка через « | »)'],
+            ['value' => 'cargo.lines_multiline', 'label' => 'Груз: Все позиции, каждая с новой строки'],
+            ['value' => 'cargo_row_index', 'label' => 'Таблица грузов: № (строка, cloneRow)'],
+            ['value' => 'cargo_row_name', 'label' => 'Таблица грузов: наименование (якорь строки ${cargo_row_name})'],
+            ['value' => 'cargo_row_summary', 'label' => 'Таблица грузов: сводка в одну строку'],
+            ['value' => 'cargo_row_text', 'label' => 'Таблица грузов: блок с переносами строк'],
+            ['value' => 'cargo_row_weight', 'label' => 'Таблица грузов: вес'],
+            ['value' => 'cargo_row_volume', 'label' => 'Таблица грузов: объём'],
+            ['value' => 'cargo_row_packages', 'label' => 'Таблица грузов: мест (число)'],
+            ['value' => 'cargo_row_packages_label', 'label' => 'Таблица грузов: мест с подписью (напр. «5 мест»)'],
+            ['value' => 'cargo_row_pack_type', 'label' => 'Таблица грузов: тип упаковки / тип места'],
+            ['value' => 'cargo_row_hs_code', 'label' => 'Таблица грузов: код ТН ВЭД'],
+            ['value' => 'cargo_row_dimensions', 'label' => 'Таблица грузов: габариты (заказ)'],
+            ['value' => 'cp_basic_terms_row_index', 'label' => 'Базовые условия (заказчик): № пункта (cloneRow)'],
+            ['value' => 'cp_basic_terms_row_text', 'label' => 'Базовые условия (заказчик): текст пункта (якорь ${cp_basic_terms_row_text})'],
+            ['value' => 'dp_basic_terms_row_index', 'label' => 'Базовые условия (перевозчик): № пункта (cloneRow)'],
+            ['value' => 'dp_basic_terms_row_text', 'label' => 'Базовые условия (перевозчик): текст пункта (якорь ${dp_basic_terms_row_text})'],
+            ['value' => 'cargo.names', 'label' => 'Груз: Наименования'],
+            ['value' => 'cargo.total_weight', 'label' => 'Груз: Общий вес, кг'],
+            ['value' => 'cargo.total_weight_tons', 'label' => 'Груз: Общий вес, т'],
+            ['value' => 'cargo.total_volume', 'label' => 'Груз: Общий объем, м3'],
+            ['value' => 'cargo.total_packages', 'label' => 'Груз: Всего мест'],
+            ['value' => 'cargo.cargo_types', 'label' => 'Груз: Типы груза'],
+            ['value' => 'cargo.pack_types', 'label' => 'Груз: Типы упаковки'],
+            ['value' => 'cargo.loading_types', 'label' => 'Груз: Виды погрузки'],
+            ['value' => 'cargo.hazard_classes', 'label' => 'Груз: Классы опасности (опасный груз)'],
+            ['value' => 'cargo.hs_codes', 'label' => 'Груз: Коды ТН ВЭД (по позициям)'],
+            ['value' => 'cargo.first_hs_code', 'label' => 'Груз: Первый код ТН ВЭД'],
+            ['value' => 'cargo.truck_body_types', 'label' => 'Груз: Типы кузова'],
+            ['value' => 'cargo.trailer_types', 'label' => 'Груз: Типы прицепа'],
+        ], $this->orderFinancialNormsPlaceholderOptions()));
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function orderFinancialNormsPlaceholderOptions(): array
+    {
+        $rows = [];
+        $sharedKeys = [
+            ['stage', 'этап (идентификатор плеча в мастере)'],
+            ['miss_amount', 'срыв, сумма'],
+            ['miss_currency', 'срыв, валюта'],
+            ['miss_amount_with_currency', 'срыв, сумма с валютой'],
+            ['downtime_amount', 'простой, сумма'],
+            ['downtime_currency', 'простой, валюта'],
+            ['downtime_amount_with_currency', 'простой, сумма с валютой'],
+            ['fine_amount', 'штраф, сумма'],
+            ['fine_currency', 'штраф, валюта'],
+            ['fine_amount_with_currency', 'штраф, сумма с валютой'],
+            ['penalty_terms', 'пеня / условия (текст)'],
+            ['norm_loading_hours', 'норматив, погрузка (ч)'],
+            ['norm_customs_hours', 'норматив, таможня (ч)'],
+            ['norm_unloading_hours', 'норматив, выгрузка (ч)'],
+        ];
+
+        foreach ($sharedKeys as [$key, $suffix]) {
+            $rows[] = [
+                'value' => 'financial.client_norms_penalties.'.$key,
+                'label' => 'Заказчик (мастер): '.$suffix,
+            ];
+        }
+
+        foreach ($sharedKeys as [$key, $suffix]) {
+            $rows[] = [
+                'value' => 'financial.carrier_norms_penalties.'.$key,
+                'label' => 'Перевозчик (плечо из контекста печати): '.$suffix,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public function leadOptions(): array
+    {
+        return $this->sortedOptions([
+            ['value' => 'lead.id', 'label' => 'Лид: ID'],
+            ['value' => 'lead.number', 'label' => 'Лид: Номер'],
+            ['value' => 'lead.status', 'label' => 'Лид: Статус'],
+            ['value' => 'lead.source', 'label' => 'Лид: Источник'],
+            ['value' => 'lead.title', 'label' => 'Лид: Тема'],
+            ['value' => 'lead.description', 'label' => 'Лид: Описание'],
+            ['value' => 'lead.transport_type', 'label' => 'Лид: Тип перевозки'],
+            ['value' => 'lead.loading_location', 'label' => 'Лид: Погрузка'],
+            ['value' => 'lead.unloading_location', 'label' => 'Лид: Выгрузка'],
+            ['value' => 'lead.planned_shipping_date', 'label' => 'Лид: Плановая отгрузка'],
+            ['value' => 'lead.target_price', 'label' => 'Лид: Цена клиента'],
+            ['value' => 'lead.target_currency', 'label' => 'Лид: Валюта'],
+            ['value' => 'lead.calculated_cost', 'label' => 'Лид: Себестоимость'],
+            ['value' => 'lead.expected_margin', 'label' => 'Лид: Маржа'],
+            ['value' => 'lead.next_contact_at', 'label' => 'Лид: Следующий контакт'],
+            ['value' => 'lead.lost_reason', 'label' => 'Лид: Причина отказа'],
+            ['value' => 'qualification.need', 'label' => 'Квалификация: Потребность'],
+            ['value' => 'qualification.timeline', 'label' => 'Квалификация: Срок'],
+            ['value' => 'qualification.authority', 'label' => 'Квалификация: ЛПР'],
+            ['value' => 'qualification.budget', 'label' => 'Квалификация: Бюджет'],
+            ['value' => 'counterparty.name', 'label' => 'Контрагент: Наименование'],
+            ['value' => 'counterparty.full_name', 'label' => 'Контрагент: Полное наименование'],
+            ['value' => 'counterparty.inn', 'label' => 'Контрагент: ИНН'],
+            ['value' => 'counterparty.kpp', 'label' => 'Контрагент: КПП'],
+            ['value' => 'counterparty.ogrn', 'label' => 'Контрагент: ОГРН'],
+            ['value' => 'counterparty.legal_address', 'label' => 'Контрагент: Юр. адрес'],
+            ['value' => 'counterparty.actual_address', 'label' => 'Контрагент: Факт. адрес'],
+            ['value' => 'counterparty.postal_address', 'label' => 'Контрагент: Почтовый адрес'],
+            ['value' => 'counterparty.phone', 'label' => 'Контрагент: Телефон'],
+            ['value' => 'counterparty.email', 'label' => 'Контрагент: Email'],
+            ['value' => 'counterparty.contact_person', 'label' => 'Контрагент: Контактное лицо'],
+            ['value' => 'counterparty.bank_name', 'label' => 'Контрагент: Банк'],
+            ['value' => 'counterparty.bik', 'label' => 'Контрагент: БИК'],
+            ['value' => 'counterparty.account_number', 'label' => 'Контрагент: Р/с'],
+            ['value' => 'counterparty.correspondent_account', 'label' => 'Контрагент: К/с'],
+            ['value' => 'counterparty.is_non_resident', 'label' => 'Контрагент: Нерезидент (Да / Нет)'],
+            ['value' => 'counterparty.non_resident_corr_bank_name', 'label' => 'Контрагент: Банк-корреспондент, наименование'],
+            ['value' => 'counterparty.non_resident_corr_bank_swift', 'label' => 'Контрагент: Банк-корреспондент, SWIFT/BIC'],
+            ['value' => 'counterparty.non_resident_corr_settlement_account', 'label' => 'Контрагент: Банк-корреспондент, расчётный счёт'],
+            ['value' => 'counterparty.non_resident_corr_bank_account', 'label' => 'Контрагент: Счёт в банке-корреспонденте'],
+            ['value' => 'counterparty.cnaps_code', 'label' => 'Контрагент: CNAPS CODE'],
+            ['value' => 'counterparty.signer_name_nominative', 'label' => 'Контрагент: Подписант, именительный'],
+            ['value' => 'counterparty.signer_name_prepositional', 'label' => 'Контрагент: Подписант, предложный'],
+            ['value' => 'counterparty.signer_position', 'label' => 'Контрагент: Должность подписанта'],
+            ['value' => 'counterparty.signer_position_genitive_auto', 'label' => 'Контрагент: Должность подписанта (авто, родительный)'],
+            ['value' => 'counterparty.signer_authority_basis', 'label' => 'Контрагент: Основание подписи'],
+            ...$this->englishRequisitesPlaceholderOptions('counterparty', 'Контрагент'),
+            ['value' => 'manager.name', 'label' => 'Менеджер: Имя'],
+            ['value' => 'manager.email', 'label' => 'Менеджер: Email'],
+            ['value' => 'manager.phone', 'label' => 'Менеджер: Телефон'],
+            ['value' => 'responsible.name', 'label' => 'Ответственный: Имя'],
+            ['value' => 'responsible.email', 'label' => 'Ответственный: Email'],
+            ['value' => 'responsible.phone', 'label' => 'Ответственный: Телефон'],
+            ['value' => 'route.loading_addresses', 'label' => 'Маршрут: Адреса погрузки'],
+            ['value' => 'route.loading_cities', 'label' => 'Маршрут: Города погрузки'],
+            ['value' => 'route.loading_first_address', 'label' => 'Маршрут: Первая погрузка, адрес'],
+            ['value' => 'route.loading_first_city', 'label' => 'Маршрут: Первая погрузка, город'],
+            ['value' => 'route.unloading_addresses', 'label' => 'Маршрут: Адреса выгрузки'],
+            ['value' => 'route.unloading_cities', 'label' => 'Маршрут: Города выгрузки'],
+            ['value' => 'route.unloading_first_address', 'label' => 'Маршрут: Первая выгрузка, адрес'],
+            ['value' => 'route.unloading_first_city', 'label' => 'Маршрут: Первая выгрузка, город'],
+            ['value' => 'route.unloading_last_city', 'label' => 'Маршрут: Последняя выгрузка, город'],
+            ['value' => 'route.unloading_last_address', 'label' => 'Маршрут: Последняя выгрузка, адрес'],
+            ['value' => 'route_point_row_index', 'label' => 'Таблица точек маршрута: № (строка, cloneRow)'],
+            ['value' => 'route_point_row_address', 'label' => 'Таблица точек маршрута: адрес (якорь ${route_point_row_address})'],
+            ['value' => 'route_point_row_type_label', 'label' => 'Таблица точек маршрута: тип (Погрузка/Выгрузка)'],
+            ['value' => 'route_point_row_city', 'label' => 'Таблица точек маршрута: город'],
+            ['value' => 'route_point_row_party_name', 'label' => 'Таблица точек маршрута: отправитель/получатель'],
+            ['value' => 'route_point_row_contact_phone', 'label' => 'Таблица точек маршрута: контакт'],
+            ['value' => 'route_point_row_planned_date', 'label' => 'Таблица точек маршрута: дата'],
+            ['value' => 'route_point_row_time_range', 'label' => 'Таблица точек маршрута: время'],
+            ['value' => 'route_point_row_special_conditions', 'label' => 'Таблица точек маршрута: особые условия (погрузка/выгрузка по типу точки)'],
+            ['value' => 'route_point_row_summary', 'label' => 'Таблица точек маршрута: сводка'],
+            ['value' => 'cargo.summary', 'label' => 'Груз: Сводка (одна строка, позиции через « | »)'],
+            ['value' => 'cargo_row_index', 'label' => 'Таблица грузов: № (строка, cloneRow)'],
+            ['value' => 'cargo_row_name', 'label' => 'Таблица грузов: наименование (якорь строки ${cargo_row_name})'],
+            ['value' => 'cargo_row_summary', 'label' => 'Таблица грузов: сводка в одну строку'],
+            ['value' => 'cargo_row_text', 'label' => 'Таблица грузов: блок с переносами строк'],
+            ['value' => 'cargo_row_weight', 'label' => 'Таблица грузов: вес'],
+            ['value' => 'cargo_row_volume', 'label' => 'Таблица грузов: объём'],
+            ['value' => 'cargo_row_packages', 'label' => 'Таблица грузов: мест (число)'],
+            ['value' => 'cargo_row_packages_label', 'label' => 'Таблица грузов: мест с подписью (напр. «5 мест»)'],
+            ['value' => 'cargo_row_pack_type', 'label' => 'Таблица грузов: тип упаковки / тип места'],
+            ['value' => 'cargo_row_hs_code', 'label' => 'Таблица грузов: код ТН ВЭД'],
+            ['value' => 'cargo.names', 'label' => 'Груз: Наименования'],
+            ['value' => 'cargo.total_weight', 'label' => 'Груз: Общий вес, кг'],
+            ['value' => 'cargo.total_volume', 'label' => 'Груз: Общий объем, м3'],
+            ['value' => 'cargo.total_packages', 'label' => 'Груз: Всего мест'],
+            ['value' => 'offer.number', 'label' => 'КП: Номер'],
+            ['value' => 'offer.offer_date', 'label' => 'КП: Дата'],
+            ['value' => 'offer.price', 'label' => 'КП: Цена'],
+            ['value' => 'offer.currency', 'label' => 'КП: Валюта'],
+            ['value' => 'document_verification_code', 'label' => 'QR: Код проверки целостности (текст)'],
+            ['value' => 'document_verification_qr', 'label' => 'QR: Изображение QR-кода проверки целостности'],
+        ]);
+    }
+
+    /**
+     * @param  list<array{value: string, label: string}>  $options
+     * @return list<array{value: string, label: string}>
+     */
+    private function sortedOptions(array $options): array
+    {
+        usort($options, static function (array $left, array $right): int {
+            return strcasecmp($left['label'], $right['label']);
+        });
+
+        return $options;
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    private function englishRequisitesPlaceholderOptions(string $prefix, string $partyLabel): array
+    {
+        return [
+            ['value' => "{$prefix}.has_english_requisites", 'label' => "{$partyLabel}: Реквизиты на английском (Да/Нет)"],
+            ['value' => "{$prefix}.name_en", 'label' => "{$partyLabel}: Наименование (EN)"],
+            ['value' => "{$prefix}.full_name_en", 'label' => "{$partyLabel}: Полное наименование (EN)"],
+            ['value' => "{$prefix}.legal_address_en", 'label' => "{$partyLabel}: Юр. адрес (EN)"],
+            ['value' => "{$prefix}.actual_address_en", 'label' => "{$partyLabel}: Факт. адрес (EN)"],
+            ['value' => "{$prefix}.postal_address_en", 'label' => "{$partyLabel}: Почтовый адрес (EN)"],
+            ['value' => "{$prefix}.contact_person_en", 'label' => "{$partyLabel}: Контактное лицо (EN)"],
+            ['value' => "{$prefix}.bank_name_en", 'label' => "{$partyLabel}: Банк (EN)"],
+            ['value' => "{$prefix}.signer_name_nominative_en", 'label' => "{$partyLabel}: Подписант, именительный (EN)"],
+            ['value' => "{$prefix}.signer_name_prepositional_en", 'label' => "{$partyLabel}: Подписант, предложный (EN)"],
+            ['value' => "{$prefix}.signer_position_en", 'label' => "{$partyLabel}: Должность подписанта (EN)"],
+            ['value' => "{$prefix}.signer_authority_basis_en", 'label' => "{$partyLabel}: Основание подписи (EN)"],
+        ];
+    }
+}

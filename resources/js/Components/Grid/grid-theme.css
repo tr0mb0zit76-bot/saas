@@ -1,0 +1,514 @@
+.orders-grid-theme {
+  display: block;
+  --ag-background-color: #ffffff;
+  --ag-foreground-color: #18181b;
+  --ag-header-background-color: #f4f4f5;
+  --ag-header-foreground-color: #18181b;
+  --ag-odd-row-background-color: #fafafa;
+  --ag-border-color: #c5ccd6;
+  --ag-row-border-color: #b8c0ca;
+  --orders-grid-cell-grid: #97a0af;
+  /* Было ~18px из ag-theme-alpine (6×3); уменьшаем «воздух» по горизонтали */
+  --ag-cell-horizontal-padding: 6px;
+  --ag-cell-widget-spacing: 5px;
+  --ag-widget-container-horizontal-padding: 8px;
+  --ag-widget-container-vertical-padding: 8px;
+  --ag-selected-row-background-color: rgba(24, 24, 27, 0.08);
+  --ag-font-size: 13px;
+  --ag-font-family: Inter, Figtree, system-ui, sans-serif;
+  --ag-row-height: 40px;
+  --ag-header-height: 42px;
+}
+
+.orders-grid-theme.orders-grid-density--compact {
+  --ag-font-size: 12px;
+  --ag-row-height: 34px;
+  --ag-header-height: 36px;
+}
+
+.orders-grid-theme.orders-grid-density--normal {
+  --ag-font-size: 13px;
+  --ag-row-height: 40px;
+  --ag-header-height: 42px;
+}
+
+.orders-grid-theme.orders-grid-density--comfortable {
+  --ag-font-size: 14px;
+  --ag-row-height: 46px;
+  --ag-header-height: 48px;
+}
+
+.orders-grid-theme .ag-root-wrapper,
+.orders-grid-theme .ag-root,
+.orders-grid-theme .ag-layout-normal {
+  height: 100% !important;
+}
+
+.orders-grid-theme .ag-row-even {
+  background-color: var(--ag-background-color);
+}
+
+.orders-grid-theme .ag-row-odd {
+  background-color: var(--ag-odd-row-background-color);
+}
+
+.orders-grid-theme .orders-grid-order-number-header,
+.orders-grid-theme .orders-grid-order-number-cell {
+  font-weight: 600;
+}
+
+/* Статус: иконка/подпись по вертикали по центру строки (renderer не получает рабочий h-full без flex на ячейке) */
+.orders-grid-theme .orders-grid-status-cell.ag-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.orders-grid-theme .orders-grid-status-cell.ag-cell .ag-cell-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.orders-grid-theme .orders-grid-status-cell.ag-cell .ag-cell-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+/* План/факт дат погрузки и выгрузки (маршрут) */
+.orders-grid-theme .orders-grid-route-date-planned {
+  background-color: rgb(254 252 232);
+}
+
+.orders-grid-theme .orders-grid-route-date-actual {
+  background-color: rgb(236 253 245);
+}
+
+.dark .orders-grid-theme .orders-grid-route-date-planned {
+  background-color: rgb(66 32 6 / 0.35);
+}
+
+.dark .orders-grid-theme .orders-grid-route-date-actual {
+  background-color: rgb(6 78 59 / 0.35);
+}
+
+/* Плановая дата в прошлом, факт ещё не зафиксирован */
+.orders-grid-theme .orders-grid-route-date-overdue-planned {
+  background-color: rgb(254 226 226);
+}
+
+.dark .orders-grid-theme .orders-grid-route-date-overdue-planned {
+  background-color: rgb(127 29 29 / 0.28);
+}
+
+.orders-grid-theme .orders-grid-editable-cell {
+  cursor: text;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ag-header-background-color) 52%, transparent),
+    color-mix(in srgb, var(--ag-header-background-color) 52%, transparent)
+  );
+  background-repeat: no-repeat;
+  background-size: 100% calc(100% - 8px);
+  background-position: center;
+}
+
+.orders-grid-theme .orders-grid-editable-cell:hover {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ag-header-background-color) 82%, transparent),
+    color-mix(in srgb, var(--ag-header-background-color) 82%, transparent)
+  );
+}
+
+.orders-grid-theme .ag-cell-focus.orders-grid-editable-cell,
+.orders-grid-theme .ag-cell-inline-editing.orders-grid-editable-cell {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ag-foreground-color) 18%, transparent);
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ag-header-background-color) 92%, transparent),
+    color-mix(in srgb, var(--ag-header-background-color) 92%, transparent)
+  );
+}
+
+.orders-grid-theme .documents-grid-track-received--pending {
+  background-color: rgb(254 243 199 / 0.55);
+}
+
+.dark .orders-grid-theme .documents-grid-track-received--pending {
+  background-color: rgb(120 53 15 / 0.28);
+}
+
+.orders-grid-theme .documents-grid-edo-fulfilment {
+  background-color: rgb(209 250 229 / 0.65);
+}
+
+.dark .orders-grid-theme .documents-grid-edo-fulfilment {
+  background-color: rgb(6 78 59 / 0.35);
+}
+
+.orders-grid-theme .ag-pinned-left-cols-container .ag-cell,
+.orders-grid-theme .ag-pinned-left-header .ag-header-cell {
+  box-shadow: 2px 0 0 var(--orders-grid-cell-grid);
+}
+
+.orders-grid-date-editor {
+  width: 100%;
+  height: calc(100% - 6px);
+  margin: 3px 0;
+  border: 1px solid var(--ag-border-color);
+  background: var(--ag-background-color);
+  color: var(--ag-foreground-color);
+  border-radius: 8px;
+  padding: 0 6px;
+  font: inherit;
+}
+
+.orders-grid-theme .ag-body-horizontal-scroll {
+  display: none !important;
+}
+
+.orders-grid-bottom-scroll {
+  position: relative;
+  z-index: 5;
+  height: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  background: #f4f4f5;
+  border-top: 1px solid #e4e4e7;
+  scrollbar-color: #a1a1aa #f4f4f5;
+  scrollbar-width: auto;
+}
+
+.orders-grid-bottom-scroll::-webkit-scrollbar {
+  height: 14px;
+}
+
+.orders-grid-bottom-scroll::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+
+.orders-grid-bottom-scroll::-webkit-scrollbar-thumb {
+  background: #a1a1aa;
+  border-radius: 9999px;
+  border: 2px solid #f4f4f5;
+}
+
+.orders-grid-bottom-scroll-inner {
+  height: 1px;
+}
+
+.dark .orders-grid-bottom-scroll {
+  background: #27272a;
+  border-top-color: #3f3f46;
+  scrollbar-color: #71717a #27272a;
+}
+
+.dark .orders-grid-bottom-scroll::-webkit-scrollbar-track {
+  background: #27272a;
+}
+
+.dark .orders-grid-bottom-scroll::-webkit-scrollbar-thumb {
+  background: #71717a;
+  border-color: #27272a;
+}
+
+.orders-grid-theme .ag-header-cell,
+.orders-grid-theme .ag-cell,
+.orders-grid-theme .ag-header-group-cell {
+  border-right: 2px solid var(--orders-grid-cell-grid);
+  border-bottom: 1px solid var(--orders-grid-cell-grid);
+}
+
+/* Диспозиция: семейство как у CRM, метрики строк — как в orders-grid-theme */
+.disposition-grid-theme {
+  --ag-font-family: inherit;
+}
+
+.disposition-grid-theme .ag-header-cell,
+.disposition-grid-theme .ag-header-group-cell {
+  font-weight: 400;
+  font-size: var(--ag-font-size);
+}
+
+.disposition-grid-theme .ag-cell {
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+  font-size: var(--ag-font-size);
+}
+
+.disposition-grid-theme .ag-cell .ag-cell-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.disposition-grid-theme .ag-cell .ag-cell-value {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Редактируемых ячеек много — убираем лишний вертикальный «воздух» фона (в заказах 8px, здесь плотнее) */
+.disposition-grid-theme .orders-grid-editable-cell {
+  background-size: 100% 100%;
+}
+
+.disposition-grid-theme .ag-floating-filter {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.disposition-grid-theme .ag-floating-filter-body input {
+  min-height: 0;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.disposition-grid-theme .disposition-date-group-header .ag-header-group-cell-label {
+  justify-content: center;
+  width: 100%;
+}
+
+.disposition-grid-theme .disposition-date-group-header.ag-header-group-cell {
+  justify-content: center;
+}
+
+.disposition-grid-theme .disposition-pinned-boundary-cell,
+.disposition-grid-theme .disposition-pinned-boundary-header,
+.disposition-grid-theme .disposition-day-boundary-cell,
+.disposition-grid-theme .disposition-day-boundary-header {
+  border-right-width: 3px;
+  border-right-color: color-mix(in srgb, var(--ag-foreground-color) 32%, var(--orders-grid-cell-grid));
+}
+
+/* Плановая выгрузка в прошлом — подсветка всей строки */
+.disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .ag-cell {
+  background-color: rgb(254 226 226);
+}
+
+.disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .orders-grid-editable-cell {
+  background-image: linear-gradient(to bottom, rgb(254 226 226), rgb(254 226 226));
+}
+
+.disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .orders-grid-editable-cell:hover {
+  background-image: linear-gradient(to bottom, rgb(252 165 165), rgb(252 165 165));
+}
+
+.dark .disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .ag-cell {
+  background-color: rgb(127 29 29 / 0.28);
+}
+
+.dark .disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .orders-grid-editable-cell {
+  background-image: linear-gradient(to bottom, rgb(127 29 29 / 0.35), rgb(127 29 29 / 0.35));
+}
+
+.dark .disposition-grid-theme .ag-row.ag-row-disposition-planned-overdue .orders-grid-editable-cell:hover {
+  background-image: linear-gradient(to bottom, rgb(153 27 27 / 0.45), rgb(153 27 27 / 0.45));
+}
+
+/* Сегодня: пустое местоположение — мягкая подсказка заполнить */
+.disposition-grid-theme .disposition-slot-empty-today {
+  background-color: rgb(254 249 195);
+}
+
+.disposition-grid-theme .disposition-slot-empty-today:hover {
+  background-color: rgb(253 230 138);
+}
+
+.dark .disposition-grid-theme .disposition-slot-empty-today {
+  background-color: rgb(113 63 18 / 0.28);
+}
+
+.dark .disposition-grid-theme .disposition-slot-empty-today:hover {
+  background-color: rgb(133 77 14 / 0.38);
+}
+
+.disposition-grid-theme .disposition-cell-saving {
+  opacity: 0.65;
+}
+
+.orders-grid-theme .ag-set-list-floating-trigger--active {
+  border-color: rgb(2 132 199);
+  background: rgb(224 242 254);
+  color: rgb(3 105 161);
+}
+
+.dark .orders-grid-theme .ag-set-list-floating-trigger--active {
+  border-color: rgb(56 189 248);
+  background: rgb(8 47 73);
+  color: rgb(125 211 252);
+}
+
+/* Список в плавающей строке: AG Grid иначе показывает «воронку» в заголовке при активном фильтре */
+.orders-grid-theme .ag-set-list-floating-only-header .ag-filter-icon,
+.orders-grid-theme .ag-set-list-floating-only-header .ag-header-cell-filter-button {
+  display: none !important;
+}
+
+.orders-grid-theme .ag-set-list-floating-multi-trigger {
+  min-height: 1.5rem;
+  line-height: 1.25rem;
+}
+
+.orders-grid-theme .ag-set-list-floating-multi-trigger--active,
+.orders-grid-theme .ag-set-list-floating-multi-trigger.ag-set-list-floating-trigger--active {
+  border-color: rgb(2 132 199);
+  background: rgb(224 242 254);
+  color: rgb(3 105 161);
+}
+
+.dark .orders-grid-theme .ag-set-list-floating-multi-trigger--active,
+.dark .orders-grid-theme .ag-set-list-floating-multi-trigger.ag-set-list-floating-trigger--active {
+  border-color: rgb(56 189 248);
+  background: rgb(8 47 73);
+  color: rgb(125 211 252);
+}
+
+.orders-grid-theme .ag-floating-filter {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.orders-grid-theme .ag-header-cell-resize::after {
+  background-color: var(--orders-grid-cell-grid);
+}
+
+.dark .orders-grid-theme {
+  --ag-background-color: #18181b;
+  --ag-foreground-color: #f4f4f5;
+  --ag-header-background-color: #27272a;
+  --ag-header-foreground-color: #fafafa;
+  --ag-odd-row-background-color: #18181b;
+  --ag-border-color: #3f3f46;
+  --ag-row-border-color: #52525b;
+  --orders-grid-cell-grid: #64748b;
+  --ag-selected-row-background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Выбор строк (чекбоксы AG Grid): явно на ячейках — иначе в тёмной теме остаётся светлый фон */
+.orders-grid-theme .ag-row.ag-row-selected .ag-cell {
+  background-color: var(--ag-selected-row-background-color);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-selected .ag-cell {
+  background-color: color-mix(in srgb, var(--ag-foreground-color) 11%, var(--ag-background-color));
+}
+
+/* Задачи: просроченный срок / SLA */
+.orders-grid-theme .ag-row.ag-row-task-due-overdue .ag-cell {
+  background-color: rgb(255 251 235);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-task-due-overdue .ag-cell {
+  background-color: rgb(66 32 6 / 0.45);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-selected.ag-row-task-due-overdue .ag-cell {
+  background-color: rgb(120 53 15 / 0.55);
+}
+
+.orders-grid-theme .ag-row.ag-row-task-sla-breached .ag-cell {
+  background-color: rgb(255 241 242);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-task-sla-breached .ag-cell {
+  background-color: rgb(76 5 25 / 0.45);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-selected.ag-row-task-sla-breached .ag-cell {
+  background-color: rgb(136 19 55 / 0.55);
+}
+
+.orders-grid-theme .tasks-grid-cell-due-overdue {
+  color: rgb(180 83 9);
+  font-weight: 600;
+}
+
+.dark .orders-grid-theme .tasks-grid-cell-due-overdue {
+  color: rgb(251 191 36);
+}
+
+.orders-grid-theme .tasks-grid-cell-sla-breached {
+  color: rgb(190 18 60);
+  font-weight: 600;
+}
+
+.dark .orders-grid-theme .tasks-grid-cell-sla-breached {
+  color: rgb(251 113 133);
+}
+
+/* Лиды: просроченный этап */
+.orders-grid-theme .ag-row.ag-row-lead-stage-overdue .ag-cell {
+  background-color: rgb(255 241 242);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-lead-stage-overdue .ag-cell {
+  background-color: rgb(76 5 25 / 0.4);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-selected.ag-row-lead-stage-overdue .ag-cell {
+  background-color: rgb(136 19 55 / 0.5);
+}
+
+.orders-grid-theme .leads-grid-cell-stage-overdue {
+  color: rgb(190 18 60);
+  font-weight: 600;
+}
+
+.dark .orders-grid-theme .leads-grid-cell-stage-overdue {
+  color: rgb(251 113 133);
+}
+
+/* Заказы: устаревшие данные */
+.orders-grid-theme .ag-row.ag-row-orders-stale .ag-cell {
+  background-color: rgb(254 242 242 / 0.65);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-orders-stale .ag-cell {
+  background-color: rgb(127 29 29 / 0.28);
+}
+
+.dark .orders-grid-theme .ag-row.ag-row-selected.ag-row-orders-stale .ag-cell {
+  background-color: rgb(153 27 27 / 0.38);
+}
+
+/* Тема Sky: таблицы в тон оболочки CRM */
+html[data-crm-workspace-skin='sky'] .orders-grid-theme {
+  --ag-background-color: rgb(var(--crm-surface));
+  --ag-foreground-color: rgb(var(--crm-text));
+  --ag-header-background-color: rgb(var(--crm-accent-soft) / 0.55);
+  --ag-header-foreground-color: rgb(12 74 110);
+  --ag-odd-row-background-color: rgb(var(--crm-surface-muted));
+  --ag-border-color: rgb(var(--crm-border));
+  --ag-row-border-color: rgb(var(--crm-border));
+  --orders-grid-cell-grid: color-mix(in srgb, rgb(var(--crm-text)) 22%, rgb(var(--crm-border)));
+  --ag-selected-row-background-color: rgb(var(--crm-accent-soft) / 0.65);
+}
+
+html.dark[data-crm-workspace-skin='sky'] .orders-grid-theme {
+  --ag-header-foreground-color: rgb(var(--crm-accent));
+  --ag-selected-row-background-color: rgb(var(--crm-accent-soft) / 0.35);
+}
+
+html[data-crm-workspace-skin='sky'] .orders-grid-bottom-scroll {
+  background: rgb(var(--crm-surface));
+  border-top-color: rgb(var(--crm-border));
+  scrollbar-color: rgb(var(--crm-accent)) rgb(var(--crm-surface-muted));
+}
+
+html.dark[data-crm-workspace-skin='sky'] .orders-grid-bottom-scroll {
+  background: rgb(var(--crm-surface-muted));
+}
