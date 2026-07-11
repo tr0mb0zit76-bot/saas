@@ -53,7 +53,7 @@ class SaasDemoSeeder extends Seeder
         );
 
         DB::transaction(function () use ($tenant): void {
-            $roles = $this->seedRoles();
+            $roles = $this->seedRoles($tenant);
             [$admin, $manager] = $this->seedUsers($roles, $tenant);
             $this->seedOwnCompany($admin, $tenant);
             $this->seedContractors($admin, $manager, $tenant);
@@ -70,7 +70,7 @@ class SaasDemoSeeder extends Seeder
     /**
      * @return array{admin: Role, manager: Role}
      */
-    private function seedRoles(): array
+    private function seedRoles(Tenant $tenant): array
     {
         $make = fn (string $name, string $displayName) => Role::query()->updateOrCreate(
             ['tenant_id' => $tenant->id, 'name' => $name],

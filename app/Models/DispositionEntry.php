@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Support\DispositionSlot;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DispositionEntry extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */

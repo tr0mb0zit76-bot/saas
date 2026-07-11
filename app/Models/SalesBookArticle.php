@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\SalesBookArticleStatus;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesBookArticle extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'parent_id',
         'title',

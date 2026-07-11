@@ -15,6 +15,7 @@ class Role extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'tenant_id',
         'name',
         'display_name',
         'description',

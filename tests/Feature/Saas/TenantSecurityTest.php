@@ -37,7 +37,7 @@ class TenantSecurityTest extends SaasTestCase
         ]);
 
         $roleId = \App\Models\Role::query()->firstOrCreate(
-            ['name' => 'manager'],
+            ['name' => 'manager', 'tenant_id' => $tenantA->id],
             [
                 'display_name' => 'Manager',
                 'permissions' => RoleAccess::permissionKeys(),

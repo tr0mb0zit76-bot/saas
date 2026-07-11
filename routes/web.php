@@ -264,7 +264,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/leads/{lead}/offers/{offer}/send-email', [LeadOfferMailController::class, 'send'])->name('leads.offers.send-email');
     });
 
-    Route::middleware('visibility.area:mail')->prefix('mail')->name('mail.')->group(function () {
+    Route::middleware(['visibility.area:mail', 'feature:mail'])->prefix('mail')->name('mail.')->group(function () {
         Route::get('/', [MailMailboxController::class, 'index'])->name('index');
         Route::get('/link-options', [MailMailboxController::class, 'linkOptions'])->name('link-options');
         Route::get('/threads/{mailThread}', [MailMailboxController::class, 'show'])->name('threads.show');
@@ -285,7 +285,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/ai/feedback', [MailThreadAnalysisController::class, 'feedback'])->name('ai.feedback');
     });
 
-    Route::middleware('visibility.area:sales_assistant_scripts')->group(function () {
+    Route::middleware(['visibility.area:sales_assistant_scripts', 'feature:sales_scripts'])->group(function () {
         Route::controller(SalesScriptController::class)->group(function () {
             Route::get('/scripts', 'index')->name('scripts.index');
             Route::post('/scripts/sessions', 'storeSession')->name('scripts.sessions.store');
@@ -302,7 +302,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('sales-assistant')->name('sales-assistant.')->group(function () {
-        Route::middleware('visibility.area:sales_assistant_book')->group(function () {
+        Route::middleware(['visibility.area:sales_assistant_book', 'feature:sales_book'])->group(function () {
             Route::controller(SalesAssistantController::class)->group(function () {
                 Route::get('/book', 'book')->name('book');
                 Route::post('/book/articles', 'storeBookArticle')->name('book.articles.store');
@@ -326,19 +326,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
         });
 
-        Route::middleware('visibility.area:sales_assistant_trainer')->group(function () {
+        Route::middleware(['visibility.area:sales_assistant_trainer', 'feature:sales_trainer'])->group(function () {
             Route::controller(SalesAssistantController::class)->group(function () {
                 Route::get('/trainer', 'trainer')->name('trainer');
             });
         });
 
-        Route::middleware('visibility.area:sales_assistant_trainer_analytics')->group(function () {
+        Route::middleware(['visibility.area:sales_assistant_trainer_analytics', 'feature:sales_trainer'])->group(function () {
             Route::controller(SalesAssistantController::class)->group(function () {
                 Route::get('/trainer/analytics', 'trainerAnalytics')->name('trainer.analytics');
             });
         });
 
-        Route::middleware('visibility.area:sales_assistant_book')->group(function () {
+        Route::middleware(['visibility.area:sales_assistant_book', 'feature:sales_book'])->group(function () {
             Route::controller(SalesAssistantController::class)->group(function () {
                 Route::get('/book/quiz-analytics', 'bookQuizAnalytics')->name('book.quiz-analytics');
             });
@@ -347,7 +347,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('scripts/editor')
         ->name('scripts.editor.')
-        ->middleware(['visibility.area:sales_assistant_scripts', 'can.manage.sales.scripts'])
+        ->middleware(['visibility.area:sales_assistant_scripts', 'can.manage.sales.scripts', 'feature:sales_scripts'])
         ->group(function () {
             Route::get('/', [SalesScriptEditorController::class, 'index'])->name('index');
             Route::post('/scripts', [SalesScriptEditorController::class, 'storeScript'])->name('scripts.store');
@@ -380,7 +380,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/orders/{order}/transport-summary', OrderTransportSummaryController::class)
         ->middleware('visibility.area:orders')
         ->name('orders.transport-summary');
-    Route::middleware('visibility.area:load_board')->prefix('load-board')->name('load-board.')->group(function () {
+    Route::middleware(['visibility.area:load_board', 'feature:load_board'])->prefix('load-board')->name('load-board.')->group(function () {
         Route::get('/', [LoadBoardController::class, 'index'])->name('index');
         Route::get('/rows', [LoadBoardController::class, 'rows'])->name('rows');
         Route::get('/cases/{post}', [LoadBoardController::class, 'show'])->name('cases.show');
@@ -526,7 +526,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:settings')
         ->name('settings.motivation.index');
 
-    Route::controller(SettingsMcpIntegrationController::class)->middleware('visibility.area:settings')->group(function () {
+    Route::controller(SettingsMcpIntegrationController::class)->middleware(['visibility.area:settings', 'feature:mcp_read'])->group(function () {
         Route::get('/settings/mcp-integrations', 'index')->name('settings.mcp-integrations.index');
         Route::put('/settings/mcp-integrations', 'update')->name('settings.mcp-integrations.update');
     });
@@ -618,7 +618,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('Fleet/Containers');
     })->middleware('visibility.area:drivers')->name('fleet.containers.index');
 
-    Route::controller(FleetVehicleController::class)->middleware('visibility.area:drivers')->group(function () {
+    Route::controller(FleetVehicleController::class)->middleware(['visibility.area:drivers', 'feature:fleet'])->group(function () {
         Route::get('/fleet/vehicles', 'index')->name('fleet.vehicles.index');
         Route::post('/fleet/vehicles', 'store')->name('fleet.vehicles.store');
         Route::get('/fleet/vehicles/{fleetVehicle}', 'show')->name('fleet.vehicles.show');
@@ -629,7 +629,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/fleet/vehicles/{fleetVehicle}/documents/{fleetVehicleDocument}/preview', 'previewDocument')->name('fleet.vehicles.documents.preview');
     });
 
-    Route::controller(FleetDriverController::class)->middleware('visibility.area:drivers')->group(function () {
+    Route::controller(FleetDriverController::class)->middleware(['visibility.area:drivers', 'feature:fleet'])->group(function () {
         Route::get('/drivers', 'index')->name('drivers.index');
         Route::post('/fleet/drivers', 'store')->name('fleet.drivers.store');
         Route::get('/fleet/drivers/{fleetDriver}', 'show')->name('fleet.drivers.show');
@@ -644,7 +644,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:orders')
         ->name('fleet.options.vehicles');
 
-    Route::controller(FleetTripController::class)->middleware('visibility.area.any:fleet_trips|own_fleet|drivers')->group(function () {
+    Route::controller(FleetTripController::class)->middleware(['visibility.area.any:fleet_trips|own_fleet|drivers', 'feature:fleet'])->group(function () {
         Route::get('/fleet/trips', 'index')->name('fleet.trips.index');
         Route::post('/fleet/trips', 'store')->name('fleet.trips.store');
         Route::get('/fleet/trips/{fleetTrip}', 'show')->name('fleet.trips.show');
@@ -653,7 +653,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('/fleet/efficiency', [FleetEfficiencyController::class, 'index'])
-        ->middleware('visibility.area.any:fleet_efficiency|own_fleet|drivers')
+        ->middleware(['visibility.area.any:fleet_efficiency|own_fleet|drivers', 'feature:fleet'])
         ->name('fleet.efficiency.index');
 
     Route::get('/fleet/options/drivers', [FleetDriverController::class, 'optionsForOrder'])
@@ -668,28 +668,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:payment_schedules')
         ->name('finance.reconciliation.store');
     Route::get('/finance/management-accounting', [ManagementAccountingController::class, 'index'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.index');
     Route::post('/finance/management-accounting/imports', [ManagementAccountingImportController::class, 'store'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.imports.store');
     Route::get('/finance/management-accounting/imports/{import}', [ManagementAccountingImportController::class, 'show'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.imports.show');
     Route::delete('/finance/management-accounting/imports/{import}', [ManagementAccountingImportController::class, 'destroy'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.imports.destroy');
     Route::get('/finance/management-accounting/lines/{line}/operational-candidates', [ManagementAccountingImportController::class, 'operationalCandidates'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.lines.operational-candidates');
     Route::post('/finance/management-accounting/lines/{line}/allocate', [ManagementAccountingImportController::class, 'allocate'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.lines.allocate');
     Route::post('/finance/management-accounting/lines/{line}/deallocate', [ManagementAccountingImportController::class, 'deallocate'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.lines.deallocate');
     Route::post('/finance/management-accounting/manual-entries', [ManagementAccountingImportController::class, 'storeManual'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.manual-entries.store');
     Route::post('/finance/management-accounting/categories', [ManagementAccountingImportController::class, 'storeCategory'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.categories.store');
     Route::post('/finance/management-accounting/categories/sync', [ManagementAccountingImportController::class, 'syncCategories'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.categories.sync');
     Route::patch('/finance/management-accounting/categories/{category}', [ManagementAccountingImportController::class, 'updateCategory'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.categories.update');
     Route::delete('/finance/management-accounting/categories/{category}', [ManagementAccountingImportController::class, 'destroyCategory'])
+        ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.categories.destroy');
     Route::get('/budgeting', [BudgetingController::class, 'index'])->name('budgeting.index');
     Route::patch('/budgeting/scenario', [BudgetingController::class, 'updateScenario'])->name('budgeting.scenario.update');
@@ -698,17 +710,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'updateOpexArticle'])->name('budgeting.opex-articles.update');
     Route::delete('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'destroyOpexArticle'])->name('budgeting.opex-articles.destroy');
     Route::post('/budgeting/plan-snapshots', [BudgetingController::class, 'freezePlan'])->name('budgeting.plan-snapshots.store');
-    Route::get('/documents', [DocumentRegistryController::class, 'index'])->middleware('visibility.area.any:documents|orders')->name('documents.index');
-    Route::post('/documents', [DocumentRegistryController::class, 'store'])->middleware('visibility.area.any:documents|orders')->name('documents.store');
-    Route::post('/documents/optimize-pdf', DocumentOptimizeController::class)->middleware('visibility.area.any:documents|orders')->name('documents.optimize-pdf');
-    Route::post('/documents/estimate-upload-budget', DocumentUploadBudgetEstimateController::class)->middleware('visibility.area.any:documents|orders')->name('documents.estimate-upload-budget');
-    Route::patch('/documents/{document}', [DocumentRegistryController::class, 'update'])->middleware('visibility.area.any:documents|orders')->name('documents.update');
+    Route::get('/documents', [DocumentRegistryController::class, 'index'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.index');
+    Route::post('/documents', [DocumentRegistryController::class, 'store'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.store');
+    Route::post('/documents/optimize-pdf', DocumentOptimizeController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.optimize-pdf');
+    Route::post('/documents/estimate-upload-budget', DocumentUploadBudgetEstimateController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.estimate-upload-budget');
+    Route::patch('/documents/{document}', [DocumentRegistryController::class, 'update'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.update');
     Route::patch('/documents/orders/{order}/entered-in-1c', [DocumentRegistryController::class, 'updateEnteredIn1C'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.entered-in-1c');
     Route::patch('/documents/orders/{order}/track-received', [DocumentRegistryController::class, 'updateTrackReceived'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.track-received');
     Route::patch('/documents/orders/{order}/edo-acknowledgement', [DocumentRegistryController::class, 'updateEdoAcknowledgement'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.edo-acknowledgement');
-    Route::delete('/documents/{document}', [DocumentRegistryController::class, 'destroy'])->middleware('visibility.area.any:documents|orders')->name('documents.destroy');
-    Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->middleware('visibility.area:documents')->name('finance.documents.store');
-    Route::patch('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'update'])->middleware('visibility.area:documents')->name('finance.documents.update');
+    Route::delete('/documents/{document}', [DocumentRegistryController::class, 'destroy'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.destroy');
+    Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->middleware(['visibility.area:documents', 'feature:documents'])->name('finance.documents.store');
+    Route::patch('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'update'])->middleware(['visibility.area:documents', 'feature:documents'])->name('finance.documents.update');
     Route::controller(SettingsKpiController::class)->middleware('visibility.area:finance_salary')->group(function () {
         Route::get('/finance/salary', 'financeSalaryIndex')->name('finance.salary.index');
         Route::post('/finance/salary/periods', 'storeSalaryPeriod')->name('finance.salary.periods.store');
@@ -782,7 +794,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:modules_how_much_costs')
         ->name('modules.how-much-costs.index');
 
-    Route::middleware('visibility.area:modules_import_cost')->group(function () {
+    Route::middleware(['visibility.area:modules_import_cost', 'feature:import_cost'])->group(function () {
         Route::controller(ImportCostCalculatorController::class)->prefix('modules/import-cost')->name('modules.import-cost.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/tn-ved/search', 'searchTnVed')->name('tn-ved.search');
@@ -790,7 +802,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-    Route::middleware('visibility.area:modules_proposal_templates')->prefix('modules/proposal-templates')->name('modules.proposal-templates.')->controller(ProposalHtmlTemplateController::class)->group(function () {
+    Route::middleware(['visibility.area:modules_proposal_templates', 'feature:proposals_html'])->prefix('modules/proposal-templates')->name('modules.proposal-templates.')->controller(ProposalHtmlTemplateController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
@@ -820,7 +832,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Payment Schedule Routes
-    Route::prefix('payment-schedules')->name('payment-schedules.')->middleware('visibility.area.any:documents|payment_schedules|finance_salary')->group(function () {
+    Route::prefix('payment-schedules')->name('payment-schedules.')->middleware(['visibility.area.any:documents|payment_schedules|finance_salary', 'feature:payment_schedules'])->group(function () {
         Route::patch('/payment-run', [PaymentScheduleController::class, 'updatePaymentRun'])->name('payment-run');
         Route::post('/{paymentSchedule}/record-payment', [PaymentScheduleController::class, 'recordPayment'])->name('record-payment');
         Route::patch('/{paymentSchedule}/invoice-number', [PaymentScheduleController::class, 'updateInvoiceNumber'])->name('invoice-number');

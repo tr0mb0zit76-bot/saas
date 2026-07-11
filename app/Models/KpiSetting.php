@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 class KpiSetting extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */

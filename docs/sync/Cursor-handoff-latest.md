@@ -1,6 +1,6 @@
-# Cursor handoff — SaaS CRM
+# Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-11 · **Фаза:** M6 in progress · **Ветка:** `cursor/saas-security-foundation-4010`
+**Обновлено:** 2026-07-11 · **Фаза:** M6 → M7 · **Ветка:** `cursor/saas-security-foundation-4010`
 
 ---
 
@@ -13,25 +13,22 @@
 
 ---
 
-## Сделано (автономная сессия)
+## Сделано (автономная сессия 2)
 
-### Security & plans (PR #4)
-- Fail-closed TenantScope, API/auth tenant middleware, login scoped by tenant_id
-- `config/saas-plans.php`, `EnsureFeatureEnabled`, Traklo Pro branding
-- AI assistants: Старший, Продавец, РОП, Юрист, СБ, Финансист, Почта
-- ADR-004 … ADR-012
+### Tier B tenancy
+- Migration `2026_07_11_130000_add_tenant_id_tier_b.php` (~75 таблиц: sales_scripts*, fleet_*, business_processes, management_*, budget_*, order graph)
+- `BelongsToTenant` на: SalesScript, SalesBookArticle, BusinessProcess, FleetVehicle/Driver/Trip, LoadBoardPost, DispositionEntry, KpiSetting, OrderLeg, Cargo
 
-### Tier A tenancy
-- Migration `2026_07_11_120000_add_tenant_id_tier_a.php` (~35 tables + AI)
-- `BelongsToTenant` on: Task, OrderDocument, PaymentSchedule, Mail*, Conversation, ChatMessage, ActivityEvent, GridView, Role, Department, PrintFormTemplate
-- `BelongsToTenant` / `TenantScope` safe during migrations (schema column check)
+### Composite unique per tenant
+- `users`: unique `(tenant_id, email)` — migration `130001`
+- `roles`: unique `(tenant_id, name)` — migration `130002`
+- `Role::$fillable` + `tenant_id`; fix `SaasDemoSeeder::seedRoles(Tenant $tenant)`
 
-### Storage
-- `TenantStorage` helper, `DocumentStorageService` → tenant paths when context set
-- `SetTenantFromJob` middleware
+### Feature gating (M7.1)
+- `feature:*` middleware на routes: mail, sales_*, load_board, fleet, documents, payment_schedules, management_accounting, import_cost, proposals_html, mcp_read
 
-### Tests
-- `tests/Feature/Saas/*` — 12 tests passing
+### Tests — **15 passing** in SaaS suite
+- `TenantTierBIsolationTest`, `TenantEmailUniquenessTest`, `TenantFeatureGatingTest`
 
 ---
 
@@ -53,17 +50,19 @@ TENANT_STORAGE_DISK=tenant_local
 TENANT_STORAGE_FOR_DOCUMENTS=true
 ```
 
+Login: `admin@saas.local` / `password`
+
 ---
 
 ## Следующие PR
 
-1. M6 P0.10 audit IDOR scope fixes
-2. Tier B migration (sales_scripts, fleet, management…)
-3. Route `feature:*` groups
-4. Super-admin skeleton (tenants, suspend, invoice period)
+1. Super-admin skeleton (tenants CRUD, suspend, plan override)
+2. BelongsToTenant на оставшиеся Tier A child models
+3. M6 P0.10 — audit grep + cherry-pick scope fixes из v5
+4. Merge PR #4 → main
 
 ---
 
-## От вас ничего не требуется сейчас
+## От вас ничего не требуется
 
-Когда будете — merge PR #4 в main и pull на home-pc.
+Когда будете — merge PR в main и `migrate` на home-pc.

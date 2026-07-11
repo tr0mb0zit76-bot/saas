@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated_at": "2026-07-11T10:40:00Z",
-  "current_phase": "M6",
+  "updated_at": "2026-07-11T14:00:00Z",
+  "current_phase": "M7",
   "phases": {
     "M0": { "name": "Prerequisites", "status": "done" },
     "M1": { "name": "Bootstrap from v5", "status": "done" },
@@ -9,8 +9,8 @@
     "M3": { "name": "Schema and seed", "status": "done" },
     "M4": { "name": "Lab smoke", "status": "done" },
     "M5": { "name": "Tenancy", "status": "done" },
-    "M6": { "name": "Audit hardening + tenant security", "status": "in_progress" },
-    "M7": { "name": "Ready for pilots", "status": "pending" }
+    "M6": { "name": "Audit hardening + tenant security", "status": "done" },
+    "M7": { "name": "Ready for pilots", "status": "in_progress" }
   },
   "steps": {
     "M0.1": { "status": "done", "note": "git pull" },
@@ -44,10 +44,13 @@
     "M6.0": { "status": "done", "note": "fail-closed scope, API tenant, login check, saas-plans skeleton" },
     "M6.0a": { "status": "done", "note": "Tier A tenant_id migration + BelongsToTenant on 13 models" },
     "M6.0b": { "status": "done", "note": "DocumentStorageService → TenantStorage" },
-    "M6.1": { "status": "pending", "note": "P0.10 IDOR scope" },
-    "M6.2": { "status": "pending", "note": "P1.1 department scope" },
-    "M7.1": { "status": "in_progress", "note": "feature flags skeleton in config + middleware" },
-    "M7.2": { "status": "pending", "note": "handoff complete" }
+    "M6.1": { "status": "done", "note": "P0.10 scope helpers already in v5 fork" },
+    "M6.2": { "status": "done", "note": "P1.1 department scope in Finance/Lead services" },
+    "M6.3": { "status": "done", "note": "Tier B migration ~75 tables" },
+    "M6.4": { "status": "done", "note": "composite unique users/roles per tenant" },
+    "M7.1": { "status": "done", "note": "feature:* middleware on Pro/Enterprise routes" },
+    "M7.2": { "status": "pending", "note": "super-admin skeleton" },
+    "M7.3": { "status": "pending", "note": "handoff complete + merge PR" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",
