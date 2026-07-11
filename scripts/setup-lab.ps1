@@ -101,7 +101,18 @@ if (Test-Path $envFile) {
 Update-MigrationStep 'M2.3'
 
 if (Test-Path (Join-Path $repoRoot 'composer.json')) {
-    composer install --no-interaction
+    Write-Host 'composer install...'
+    $composerCmd = Get-Command composer -ErrorAction SilentlyContinue
+    if ($composerCmd) {
+        & $composerCmd.Source install --no-interaction
+    } elseif (Test-Path (Join-Path $repoRoot 'composer.phar')) {
+        php (Join-Path $repoRoot 'composer.phar') install --no-interaction
+    } else {
+        Write-Error "composer not in PATH. Run: pwsh -File scripts/finish-lab-setup.ps1"
+    }
+    if (-not (Test-Path (Join-Path $repoRoot 'vendor\autoload.php'))) {
+        Write-Error 'composer install did not create vendor/autoload.php'
+    }
     Update-MigrationStep 'M2.4'
 }
 
