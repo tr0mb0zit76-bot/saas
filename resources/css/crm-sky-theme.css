@@ -1,0 +1,28 @@
+/**
+ * Общие радиусы CRM и локальные токены для модулей (например «Сколько влезет»).
+ * Глобальная тема Sky включается через data-crm-workspace-skin (см. crm-workspace-skin.css).
+ */
+:root {
+        --crm-radius-md: 0.75rem;
+        --crm-radius-lg: 1rem;
+        --crm-radius-xl: 1.5rem;
+        --crm-accent: 2 132 199;
+        --crm-accent-soft: 224 242 254;
+        --crm-surface: 255 255 255;
+        --crm-surface-muted: 250 250 250;
+        --crm-border: 228 228 231;
+        --crm-text: 24 24 27;
+        --crm-text-muted: 82 82 91;
+        --crm-shadow: 15 23 42;
+    }
+
+    .dark {
+        --crm-accent: 56 189 248;
+        --crm-accent-soft: 12 74 110;
+        --crm-surface: 24 24 27;
+        --crm-surface-muted: 9 9 11;
+        --crm-border: 63 63 70;
+        --crm-text: 244 244 245;
+        --crm-text-muted: 161 161 170;
+        --crm-shadow: 0 0 0;
+    }

@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\UpdateRoleTablePresetRequest;
+use App\Models\Role;
+use App\Support\ContractorTableColumns;
+use App\Support\LeadTableColumns;
+use App\Support\OrderTableColumns;
+use App\Support\PaymentScheduleTableColumns;
+use App\Support\RoleAccess;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class SettingsTableManagementController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+
+        return Inertia::render('Settings/Tables', [
+            'roles' => Role::query()
+                ->orderBy('display_name')
+                ->orderBy('name')
+                ->get()
+                ->map(function (Role $role): array {
+                    $columnsConfig = is_array($role->columns_config) ? $role->columns_config : [];
+
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'display_name' => $role->display_name,
+                        'columns_config' => [
+                            'orders' => OrderTableColumns::mergePresetWithCatalog(
+                                $columnsConfig['orders'] ?? OrderTableColumns::defaultState($role->name),
+                            ),
+                            'leads' => LeadTableColumns::mergePresetWithCatalog(
+                                is_array($columnsConfig['leads'] ?? null)
+                                    ? $columnsConfig['leads']
+                                    : LeadTableColumns::defaultState($role->name),
+                            ),
+                            'contractors' => ContractorTableColumns::mergePresetWithCatalog(
+                                is_array($columnsConfig['contractors'] ?? null)
+                                    ? $columnsConfig['contractors']
+                                    : ContractorTableColumns::defaultState($role->name),
+                            ),
+                            'payment_schedule' => PaymentScheduleTableColumns::mergePresetWithCatalog(
+                                is_array($columnsConfig['payment_schedule'] ?? null)
+                                    ? $columnsConfig['payment_schedule']
+                                    : PaymentScheduleTableColumns::defaultState($role->name),
+                            ),
+                        ],
+                    ];
+                })
+                ->values(),
+            'orderColumns' => OrderTableColumns::options(),
+            'leadColumns' => LeadTableColumns::options(),
+            'contractorColumns' => ContractorTableColumns::options(),
+            'paymentScheduleColumns' => PaymentScheduleTableColumns::options(),
+        ]);
+    }
+
+    public function update(UpdateRoleTablePresetRequest $request, Role $role): RedirectResponse
+    {
+        $columnsConfig = is_array($role->columns_config) ? $role->columns_config : [];
+        $columnsConfig[$request->validated('table')] = $request->validated('columns');
+
+        $role->update([
+            'columns_config' => $columnsConfig,
+        ]);
+
+        return to_route('settings.tables.index');
+    }
+}

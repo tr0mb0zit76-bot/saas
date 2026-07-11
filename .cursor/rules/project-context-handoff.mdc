@@ -16,10 +16,11 @@ alwaysApply: true
 
 | Приоритет | Файл в git | Vault (Я.Диск) |
 | --- | --- | --- |
-| 1 | `docs/sync/Cursor-handoff-latest.md` | `Exchange/saas/Cursor-handoff-latest.md` |
-| 2 | `docs/sync/cursor-agent-startup.md` | `Exchange/saas/cursor-agent-startup.md` |
-| 3 | `docs/sync/architecture-plan.md` | `Exchange/saas/architecture/plan.md` |
-| 4 | `AGENTS.md` | тот же файл в репозитории |
+| 1 | `docs/sync/migration-state.json` | `Exchange/saas/migration-state.json` |
+| 2 | `docs/sync/Cursor-handoff-latest.md` | `Exchange/saas/Cursor-handoff-latest.md` |
+| 3 | `docs/sync/migration-runbook.md` | `Exchange/saas/migration-runbook.md` |
+| 4 | `docs/sync/architecture-plan.md` | `Exchange/saas/architecture/plan.md` |
+| 5 | `AGENTS.md` | тот же файл в репозитории |
 
 ## 3. Исходный CRM (только для справки)
 
@@ -27,12 +28,19 @@ alwaysApply: true
 - Vault: `C:\Sync\Yandex.Disk\Exchange\CRM`
 - Не вносить изменения в v5.local без явного запроса
 
-## 4. Архитектурные решения
+## 4. Переезд v5 → SaaS (автономно)
+
+- Оркестратор: **`saas-migration-orchestrator`** — bootstrap, БД, migrate, smoke, handoff
+- Статус: `pwsh -File scripts/migration-status.ps1`
+- One-shot: `pwsh -File scripts/setup-lab.ps1`
+- Человек нужен только при blockers в `migration-state.json`
+
+## 5. Архитектурные решения
 
 - Для планирования — субагент `saas-architect`
 - ADR: `docs/architecture/decisions/`
 
-## 5. После заметной работы
+## 6. После заметной работы
 
 - Обновить `docs/sync/Cursor-handoff-latest.md`
 - Запустить `pwsh -File scripts/sync-docs-to-yandex.ps1`

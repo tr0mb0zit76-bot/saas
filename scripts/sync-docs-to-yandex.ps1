@@ -35,6 +35,8 @@ $rootMap = @{
     'Cursor-handoff-latest.md' = (Join-Path $saasRoot 'Cursor-handoff-latest.md')
     'cursor-agent-startup.md'  = (Join-Path $saasRoot 'cursor-agent-startup.md')
     'architecture-plan.md'     = (Join-Path $archDest 'plan.md')
+    'migration-runbook.md'     = (Join-Path $saasRoot 'migration-runbook.md')
+    'migration-state.json'     = (Join-Path $saasRoot 'migration-state.json')
 }
 
 foreach ($srcName in $rootMap.Keys) {
