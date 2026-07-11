@@ -29,6 +29,10 @@ if ($LASTEXITCODE -ne 0) {
 
 # Add OSPanel PHP/MySQL to PATH for this session
 $ospanel = 'C:\OSPanel'
+if (-not (Test-Path $ospanel)) {
+    $ospanel = 'C:\ospanel'
+}
+
 $phpDirs = Get-ChildItem -Path "$ospanel\modules\php" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
 foreach ($phpDir in $phpDirs) {
     if ($phpDir.Name -match '^PHP-8\.3') {
@@ -36,11 +40,16 @@ foreach ($phpDir in $phpDirs) {
         break
     }
 }
-$mysqlDirs = Get-ChildItem -Path "$ospanel\modules\database" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
-foreach ($mysqlDir in $mysqlDirs) {
-    if ($mysqlDir.Name -match '^MySQL') {
-        $env:Path = "$($mysqlDir.FullName)\bin;$env:Path"
-        break
+
+$dbRoot = Join-Path $ospanel 'modules\database'
+if (Test-Path $dbRoot) {
+    $mysqlExe = Get-ChildItem -Path $dbRoot -Recurse -Filter 'mysql.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($mysqlExe) {
+        $binDir = Split-Path -Parent $mysqlExe.FullName
+        $env:Path = "$binDir;$env:Path"
+        Write-Host "MySQL CLI: $($mysqlExe.FullName)"
+    } else {
+        Write-Host 'mysql.exe not in OSPanel — provision-database.ps1 will use PHP fallback' -ForegroundColor Yellow
     }
 }
 
