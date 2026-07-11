@@ -120,8 +120,8 @@ export function ensureZiggyUsesPageProtocol() {
     try {
         const ziggyBase = new URL(globalThis.Ziggy.url, window.location.origin);
 
-        if (ziggyBase.hostname === window.location.hostname
-            && ziggyBase.protocol !== window.location.protocol) {
+        if (ziggyBase.hostname !== window.location.hostname
+            || ziggyBase.protocol !== window.location.protocol) {
             globalThis.Ziggy.url = window.location.origin;
         }
     } catch {
