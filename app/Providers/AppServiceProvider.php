@@ -22,6 +22,7 @@ use App\Services\Inference\DeepSeekChatCompletionClient;
 use App\Services\NextcloudWebDavStorage;
 use App\Services\SalesScripts\TrainerAssistantAutoReactionService;
 use App\Support\InertiaAppSurface;
+use App\Support\PlatformHost;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
@@ -75,6 +76,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureLabHttpSessionCookies();
+
         $this->app->rebinding('request', function ($app, Request $request): void {
             $this->configureGeneratedUrls($request);
         });
@@ -144,7 +147,8 @@ class AppServiceProvider extends ServiceProvider
 
             if (! $hasHttpsForwarded
                 && is_string($appHost)
-                && strcasecmp($request->getHost(), $appHost) === 0) {
+                && (strcasecmp($request->getHost(), $appHost) === 0
+                    || PlatformHost::matchesRequest($request))) {
                 URL::forceScheme('http');
                 URL::forceRootUrl($request->getSchemeAndHttpHost());
 
@@ -178,6 +182,28 @@ class AppServiceProvider extends ServiceProvider
 
         if ($appUrl !== '') {
             URL::forceRootUrl(rtrim((string) config('app.url'), '/'));
+        }
+    }
+
+    /**
+     * Lab HTTP (APP_URL=http://…): never mark session cookies Secure.
+     * With trustProxies, X-Forwarded-Proto: https would otherwise set Secure on
+     * plain HTTP clients (Cursor Simple Browser, curl) → session not sent → 419.
+     */
+    private function configureLabHttpSessionCookies(): void
+    {
+        if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
+            return;
+        }
+
+        if (env('SESSION_SECURE_COOKIE') !== null) {
+            return;
+        }
+
+        $appUrl = strtolower((string) config('app.url', ''));
+
+        if (str_starts_with($appUrl, 'http://')) {
+            config(['session.secure' => false]);
         }
     }
 }

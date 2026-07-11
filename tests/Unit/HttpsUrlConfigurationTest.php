@@ -81,4 +81,34 @@ class HttpsUrlConfigurationTest extends TestCase
 
         $this->assertSame('http://crm.example.test/login', url('/login'));
     }
+
+    public function test_lab_http_app_url_disables_secure_session_cookies_even_with_forwarded_https(): void
+    {
+        config(['app.url' => 'http://saas.local']);
+
+        $provider = new AppServiceProvider($this->app);
+        $boot = new \ReflectionMethod($provider, 'boot');
+        $boot->setAccessible(true);
+        $boot->invoke($provider);
+
+        $this->assertFalse(config('session.secure'));
+    }
+
+    public function test_platform_host_uses_http_root_on_plain_http_lab_request(): void
+    {
+        config([
+            'app.url' => 'http://saas.local',
+            'app.platform_domain' => 'platform.saas.local',
+        ]);
+
+        $request = Request::create('http://platform.saas.local/login', 'GET');
+        $this->app->instance('request', $request);
+
+        $provider = new AppServiceProvider($this->app);
+        $method = new \ReflectionMethod($provider, 'configureGeneratedUrls');
+        $method->setAccessible(true);
+        $method->invoke($provider, $request);
+
+        $this->assertSame('http://platform.saas.local/login', url('/login'));
+    }
 }
