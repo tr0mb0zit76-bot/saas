@@ -32,6 +32,7 @@ saas.local/
 │   ├── bootstrap-from-v5.ps1      # копирование кода из v5
 │   ├── provision-database.ps1     # CREATE DATABASE saas_crm (auto)
 │   ├── setup-lab.ps1              # one-shot lab setup
+│   └── setup-os-panel.ps1         # Windows OSPanel: git pull + lab
 │   └── migration-status.ps1       # статус переезда
 └── (код приложения — после bootstrap)
 ```
@@ -114,6 +115,10 @@ saas.local/
 pwsh -File scripts/migration-status.ps1
 
 # Полный lab setup (bootstrap + DB + deps + migrate)
+# Локальный OSPanel (Windows)
+pwsh -File scripts/setup-os-panel.ps1
+
+# Универсальный lab setup
 pwsh -File scripts/setup-lab.ps1
 
 # Только создать БД saas_crm
