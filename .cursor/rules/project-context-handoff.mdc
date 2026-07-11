@@ -1,0 +1,38 @@
+---
+description: Читать handoff и архитектурный план перед работой над SaaS
+alwaysApply: true
+---
+
+# Контекст проекта SaaS CRM — старт сессии
+
+Перед любыми правками **не полагайся только на память прошлых чатов**.
+
+## 1. Обновить код и документацию
+
+- `git pull` в корне `saas.local`
+- После pull: `pwsh -File scripts/sync-docs-to-yandex.ps1`
+
+## 2. Прочитать (в этом порядке)
+
+| Приоритет | Файл в git | Vault (Я.Диск) |
+| --- | --- | --- |
+| 1 | `docs/sync/Cursor-handoff-latest.md` | `Exchange/saas/Cursor-handoff-latest.md` |
+| 2 | `docs/sync/cursor-agent-startup.md` | `Exchange/saas/cursor-agent-startup.md` |
+| 3 | `docs/sync/architecture-plan.md` | `Exchange/saas/architecture/plan.md` |
+| 4 | `AGENTS.md` | тот же файл в репозитории |
+
+## 3. Исходный CRM (только для справки)
+
+- Код: `C:\OSPanel\home\v5.local`
+- Vault: `C:\Sync\Yandex.Disk\Exchange\CRM`
+- Не вносить изменения в v5.local без явного запроса
+
+## 4. Архитектурные решения
+
+- Для планирования — субагент `saas-architect`
+- ADR: `docs/architecture/decisions/`
+
+## 5. После заметной работы
+
+- Обновить `docs/sync/Cursor-handoff-latest.md`
+- Запустить `pwsh -File scripts/sync-docs-to-yandex.ps1`
