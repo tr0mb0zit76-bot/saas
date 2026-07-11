@@ -49,8 +49,8 @@
     "M6.3": { "status": "done", "note": "Tier B migration ~75 tables" },
     "M6.4": { "status": "done", "note": "composite unique users/roles per tenant" },
     "M7.1": { "status": "done", "note": "feature:* middleware on Pro/Enterprise routes" },
-    "M7.2": { "status": "pending", "note": "super-admin skeleton" },
-    "M7.3": { "status": "pending", "note": "handoff complete + merge PR" }
+    "M7.2": { "status": "done", "note": "super-admin /platform/tenants skeleton" },
+    "M7.3": { "status": "pending", "note": "TenantProvisioner on create" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",
