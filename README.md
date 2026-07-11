@@ -22,9 +22,19 @@ pwsh -File scripts/sync-docs-to-yandex.ps1
 
 Читать: `docs/sync/Cursor-handoff-latest.md` → `docs/sync/architecture-plan.md` → `AGENTS.md`.
 
-## Субагент
+## Субагенты
 
-Архитектурное планирование — субагент **`saas-architect`** (`.cursor/agents/saas-architect.md`).
+| Агент | Назначение |
+| --- | --- |
+| **`saas-migration-orchestrator`** | Автономный переезд v5 → saas |
+| **`saas-architect`** | Архитектура и ADR |
+
+Запуск переезда одной фразой: *«Продолжи переезд»*
+
+```powershell
+pwsh -File scripts/setup-lab.ps1
+pwsh -File scripts/migration-status.ps1
+```
 
 ## Фазы (кратко)
 

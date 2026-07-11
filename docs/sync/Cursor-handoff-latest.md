@@ -1,35 +1,52 @@
 # Cursor handoff — SaaS CRM (экспедиторы)
 
 > **Синхронизация:** Yandex Disk `Exchange/saas/` · **Код:** `git pull` в `saas.local`  
-> Источник в git: `docs/sync/Cursor-handoff-latest.md` → `pwsh -File scripts/sync-docs-to-yandex.ps1`
+> **Оркестратор:** `saas-migration-orchestrator` · **Состояние:** `docs/sync/migration-state.json`
 
-**Обновлено:** 2026-07-11 · **Ветка:** `main` · **Фаза:** 0 (продуктовая гипотеза → подготовка Phase 1)
+**Обновлено:** 2026-07-11 · **Ветка:** `main` · **Фаза переезда:** M0 (не начат)
 
 ---
 
-## Итог сессии 2026-07-11 — инициализация SaaS проекта
+## Итог сессии 2026-07-11 — оркестратор переезда
 
 | Блок | Статус |
 | --- | --- |
-| Анализ CRM v5 + Exchange/CRM | ✅ |
-| Архитектурный план (`architecture-plan.md`) | ✅ |
-| Субагент `saas-architect` | ✅ `.cursor/agents/saas-architect.md` |
-| Репозиторий `saas.git` | ✅ инициализирован локально |
-| Документация vault `Exchange/saas` | ✅ структура + sync script |
-| Dev-окружение OSPanel `saas.local` | ✅ PHP 8.3, ждёт bootstrap кода |
-| ADR (3 решения) | ✅ repo strategy, tenant isolation, module packaging |
+| Субагент `saas-migration-orchestrator` | ✅ `.cursor/agents/saas-migration-orchestrator.md` |
+| Runbook M0–M7 | ✅ `docs/sync/migration-runbook.md` |
+| State file | ✅ `docs/sync/migration-state.json` |
+| Скрипты: setup-lab, provision-database, migration-status | ✅ |
+| Audit remediation checklist | ✅ `docs/architecture/saas-audit-remediation.md` |
 
-**Код приложения:** ещё не скопирован из v5 — Phase 1 kickoff через `scripts/bootstrap-from-v5.ps1`.
+**Код CRM:** ещё не bootstrapped — оркестратор запускает `setup-lab.ps1` автономно.
 
 ---
 
-## Следующая сессия
+## Как запустить переезд (человеку)
 
-1. Найти 2–3 пилотных экспедитора (человек)
-2. Юридическое: оферта, 152-ФЗ (человек)
-3. Spike: скрипт таблиц для `tenant_id` по миграциям v5
-4. Phase 1: `bootstrap-from-v5.ps1` → `composer install` → миграция `tenants`
-5. Первый isolation test
+Одна фраза агенту:
+
+> **«Продолжи переезд»** или **«Запусти saas-migration-orchestrator»**
+
+Или вручную:
+
+```powershell
+cd C:\OSPanel\home\saas\saas.local
+git pull
+pwsh -File scripts/setup-lab.ps1
+pwsh -File scripts/migration-status.ps1
+```
+
+**Участие человека не нужно**, кроме blockers (MySQL не запущен, v5.local не найден).
+
+---
+
+## Следующий шаг оркестратора
+
+1. M0 — проверить php/composer/node/v5/mysql
+2. M1 — `bootstrap-from-v5.ps1`
+3. M2 — `.env` + `provision-database.ps1` (БД **создаётся скриптом**)
+4. M3 — migrate + `SaasDemoSeeder` (создать если нет)
+5. M4 — smoke: 2 контрагента, лид → заказ
 
 ---
 
@@ -37,31 +54,14 @@
 
 | Что | Где |
 | --- | --- |
+| Оркестратор | `.cursor/agents/saas-migration-orchestrator.md` |
+| State | `docs/sync/migration-state.json` |
+| Runbook | `docs/sync/migration-runbook.md` |
 | Код | `C:\OSPanel\home\saas\saas.local` |
 | Git | https://github.com/tr0mb0zit76-bot/saas.git |
-| Vault | `C:\Sync\Yandex.Disk\Exchange\saas` |
-| Исходный CRM | `C:\OSPanel\home\v5.local` |
-| Архитектурный план | `docs/sync/architecture-plan.md` |
-| Субагент | `saas-architect` |
 
 ---
 
-## Между ПК
+## Blockers
 
-Напиши агенту **ОТДАТЬ** (конец сессии) или **ЗАБРАТЬ** (старт) — см. `docs/sync/cursor-agent-startup.md`.
-
-### ЗАБРАТЬ
-
-```powershell
-cd C:\OSPanel\home\saas\saas.local
-git pull
-pwsh -File scripts/sync-docs-to-yandex.ps1
-```
-
-Читать: этот handoff → `architecture-plan.md` → `AGENTS.md`.
-
-### ОТДАТЬ
-
-1. Обновить этот файл (дата, что сделано, следующий шаг)
-2. `pwsh -File scripts/sync-docs-to-yandex.ps1`
-3. `git add -A && git commit && git push` (если просили коммит)
+_(пусто — оркестратор заполнит при эскалации)_

@@ -7,6 +7,13 @@
 
 - [[Cursor-handoff-latest|Handoff — актуальный контекст]] ← **читать первым**
 - [[cursor-agent-startup|Старт сессии Cursor]]
+- [[migration-runbook|Runbook переезда M0–M7]]
+- [[migration-state.json|Состояние переезда (JSON)]]
+
+## Субагенты
+
+- **saas-migration-orchestrator** — автономный переезд (bootstrap, БД, migrate, smoke)
+- **saas-architect** — архитектура, ADR, тарифы
 
 ## Архитектура
 
