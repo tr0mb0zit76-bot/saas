@@ -29,7 +29,15 @@
 
         <div class="grid gap-4 lg:grid-cols-3">
             <div v-for="plan in plans" :key="plan.key" class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 class="font-medium">{{ plan.label }}</h2>
+                <div class="flex items-start justify-between gap-3">
+                    <h2 class="font-medium">{{ plan.label }}</h2>
+                    <Link
+                        :href="route('platform.plans.edit', plan.key)"
+                        class="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-sky-700 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                        Модули
+                    </Link>
+                </div>
                 <dl class="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
                     <div class="flex justify-between"><dt>Пользователи</dt><dd>{{ formatLimit(plan.limits.users) }}</dd></div>
                     <div class="flex justify-between"><dt>Заказы/мес</dt><dd>{{ formatLimit(plan.limits.orders_per_month) }}</dd></div>
@@ -42,6 +50,7 @@
 
 <script setup>
 import PlatformLayout from '@/Layouts/PlatformLayout.vue';
+import { Link } from '@inertiajs/vue3';
 
 defineOptions({
     layout: (h, page) => h(PlatformLayout, { activeKey: 'plans' }, () => page),

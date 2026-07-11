@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\StorePlatformTenantRequest;
 use App\Http\Requests\Platform\UpdatePlatformTenantFeaturesRequest;
 use App\Http\Requests\Platform\UpdatePlatformTenantRequest;
+use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\Saas\TenantBillingService;
 use App\Services\Saas\TenantProvisioner;
@@ -50,12 +51,7 @@ class PlatformTenantController extends Controller
 
         return Inertia::render('Platform/Tenants/Index', [
             'tenants' => $tenants,
-            'planOptions' => collect(config('saas-plans.plans', []))
-                ->map(fn (array $plan, string $key): array => [
-                    'value' => $key,
-                    'label' => (string) ($plan['label'] ?? $key),
-                ])
-                ->values(),
+            'planOptions' => SubscriptionPlan::selectOptions(),
             'statusOptions' => [
                 ['value' => 'active', 'label' => 'Активен'],
                 ['value' => 'trial', 'label' => 'Пробный период'],

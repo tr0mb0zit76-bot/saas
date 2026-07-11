@@ -383,4 +383,93 @@ class PrintFormVariableCatalog
             ['value' => "{$prefix}.signer_authority_basis_en", 'label' => "{$partyLabel}: Основание подписи (EN)"],
         ];
     }
+
+    /**
+     * @return list<array{name: string, items: list<array{value: string, label: string, macro: string}>}>
+     */
+    public function groupedOrderOptions(): array
+    {
+        return $this->groupOptions($this->orderOptions());
+    }
+
+    /**
+     * @return list<array{name: string, items: list<array{value: string, label: string, macro: string}>}>
+     */
+    public function groupedLeadOptions(): array
+    {
+        return $this->groupOptions($this->leadOptions());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function pathLabelIndex(): array
+    {
+        $index = [];
+
+        foreach ([...$this->orderOptions(), ...$this->leadOptions()] as $option) {
+            $index[$option['value']] = $option['label'];
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param  list<array{value: string, label: string}>  $options
+     * @return list<array{name: string, items: list<array{value: string, label: string, macro: string}>}>
+     */
+    private function groupOptions(array $options): array
+    {
+        $groups = [];
+
+        foreach ($options as $option) {
+            $segment = explode('.', $option['value'], 2)[0] ?? 'other';
+            $name = match ($segment) {
+                'order' => 'Заказ',
+                'customer' => 'Заказчик',
+                'carrier' => 'Перевозчик',
+                'own_company' => 'Своя компания',
+                'lead' => 'Лид',
+                'counterparty' => 'Контрагент',
+                'offer' => 'Коммерческое предложение',
+                'qualification' => 'Квалификация',
+                'route' => 'Маршрут',
+                'cargo' => 'Груз (сводка)',
+                'cargo_sender' => 'Грузоотправитель',
+                'cargo_recipient' => 'Грузополучатель',
+                'manager' => 'Менеджер',
+                'responsible' => 'Ответственный',
+                'driver' => 'Водитель',
+                'vehicle' => 'Транспорт',
+                'contacts' => 'Контакты',
+                'financial' => 'Финансовые нормы и штрафы',
+                'document_verification_code' => 'Проверка документа',
+                'document_verification_qr' => 'Проверка документа',
+                default => str_contains($segment, '_row') ? 'Таблицы (cloneRow)' : ucfirst(str_replace('_', ' ', $segment)),
+            };
+
+            if (! isset($groups[$name])) {
+                $groups[$name] = [];
+            }
+
+            $groups[$name][] = [
+                'value' => $option['value'],
+                'label' => $option['label'],
+                'macro' => '${'.$option['value'].'}',
+            ];
+        }
+
+        ksort($groups, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $result = [];
+
+        foreach ($groups as $name => $items) {
+            $result[] = [
+                'name' => (string) $name,
+                'items' => $items,
+            ];
+        }
+
+        return $result;
+    }
 }

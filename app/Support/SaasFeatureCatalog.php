@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\SubscriptionPlan;
+
 final class SaasFeatureCatalog
 {
     /**
@@ -56,17 +58,6 @@ final class SaasFeatureCatalog
      */
     public static function planSummaries(): array
     {
-        $summaries = [];
-
-        foreach (config('saas-plans.plans', []) as $planKey => $plan) {
-            $summaries[] = [
-                'key' => (string) $planKey,
-                'label' => (string) ($plan['label'] ?? $planKey),
-                'features' => array_values((array) ($plan['features'] ?? [])),
-                'limits' => (array) ($plan['limits'] ?? []),
-            ];
-        }
-
-        return $summaries;
+        return SubscriptionPlan::summaries();
     }
 }

@@ -14,6 +14,7 @@ use App\Services\DocxPlaceholderExtractor;
 use App\Services\LeadPrintFormDraftService;
 use App\Services\OrderPrintFormDraftService;
 use App\Services\PrintForm\PrintFormBasicTermsService;
+use App\Services\PrintForm\PrintFormPlaceholderGuide;
 use App\Services\PrintFormDraftResponseBuilder;
 use App\Services\PrintFormTemplateOrderEligibility;
 use App\Services\PrintFormVariableCatalog;
@@ -43,6 +44,7 @@ class SettingsTemplateController extends Controller
         private readonly PrintFormDraftResponseBuilder $draftResponseBuilder,
         private readonly PrintFormPlaceholderPathResolver $placeholderPathResolver,
         private readonly PrintFormBasicTermsService $basicTermsService,
+        private readonly PrintFormPlaceholderGuide $placeholderGuide,
     ) {}
 
     public function index(Request $request): Response
@@ -205,6 +207,7 @@ class SettingsTemplateController extends Controller
             'transportScopeOptions' => PrintFormTemplate::transportScopeOptions(),
             'orderVariableOptions' => $this->variableCatalog->orderOptions(),
             'leadVariableOptions' => $this->variableCatalog->leadOptions(),
+            'placeholderGuide' => $this->placeholderGuide->toArray(),
             'documentPreview' => DocumentPreview::inertiaMeta(),
             'basicTermsEditor' => [
                 'enabled' => $this->basicTermsService->tablesReady(),

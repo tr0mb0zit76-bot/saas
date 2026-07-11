@@ -28,6 +28,8 @@ Route::domain($platformDomain)->group(function (): void {
 
         Route::get('/', [PlatformDashboardController::class, 'index'])->name('platform.dashboard');
         Route::get('/plans', [PlatformPlansController::class, 'index'])->name('platform.plans.index');
+        Route::get('/plans/{planKey}/features', [PlatformPlansController::class, 'edit'])->name('platform.plans.edit');
+        Route::patch('/plans/{planKey}/features', [PlatformPlansController::class, 'updateFeatures'])->name('platform.plans.features.update');
         Route::get('/tenants', [PlatformTenantController::class, 'index'])->name('platform.tenants.index');
         Route::post('/tenants', [PlatformTenantController::class, 'store'])->name('platform.tenants.store');
         Route::patch('/tenants/{tenant}', [PlatformTenantController::class, 'update'])->name('platform.tenants.update');

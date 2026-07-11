@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Platform;
 
+use App\Models\SubscriptionPlan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,7 +29,7 @@ class StorePlatformTenantRequest extends FormRequest
             ],
             'name' => ['required', 'string', 'max:255'],
             'status' => ['required', 'string', Rule::in(['active', 'trial', 'suspended'])],
-            'plan' => ['required', 'string', Rule::in(array_keys(config('saas-plans.plans', [])))],
+            'plan' => ['required', 'string', Rule::in(SubscriptionPlan::planKeys())],
             'trial_ends_at' => ['nullable', 'date'],
         ];
     }

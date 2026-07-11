@@ -100,6 +100,39 @@ class PrintFormPlaceholderPathResolver
         return $out;
     }
 
+    /**
+     * Справочник готовых макросов DOCX → путь данных (для руководства по настройке ПФ).
+     *
+     * @return list<array{macro: string, path: string, label: string, family: string}>
+     */
+    public function legacyAliasCatalog(array $pathLabels = []): array
+    {
+        $entries = [];
+
+        foreach ($this->legacyPlaceholderMappings() as $macro => $path) {
+            $family = 'legacy';
+
+            if (str_starts_with($macro, 'cp_')) {
+                $family = 'cp';
+            } elseif (str_starts_with($macro, 'dp_')) {
+                $family = 'dp';
+            } elseif (str_starts_with($macro, 'lp_')) {
+                $family = 'lp';
+            }
+
+            $entries[] = [
+                'macro' => $macro,
+                'path' => $path,
+                'label' => $pathLabels[$path] ?? $path,
+                'family' => $family,
+            ];
+        }
+
+        usort($entries, static fn (array $left, array $right): int => strcmp($left['macro'], $right['macro']));
+
+        return $entries;
+    }
+
     private function normalizeLegacyPlaceholderKey(string $placeholder): string
     {
         $value = str_replace(["\u{2019}", "\u{2018}", "\u{00B4}", '’', '`', '´'], "'", trim($placeholder));

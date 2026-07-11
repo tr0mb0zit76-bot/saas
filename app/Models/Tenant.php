@@ -63,6 +63,14 @@ class Tenant extends Model
     {
         $plan = strtolower(trim((string) ($this->plan ?: 'start')));
 
+        $known = collect(SubscriptionPlan::summaries())
+            ->pluck('key')
+            ->all();
+
+        if ($known !== [] && in_array($plan, $known, true)) {
+            return $plan;
+        }
+
         return array_key_exists($plan, config('saas-plans.plans', [])) ? $plan : 'start';
     }
 
@@ -71,6 +79,12 @@ class Tenant extends Model
      */
     public function planFeatures(): array
     {
+        $subscriptionPlan = SubscriptionPlan::findByKey($this->planKey());
+
+        if ($subscriptionPlan !== null) {
+            return $subscriptionPlan->featuresList();
+        }
+
         /** @var list<string> $features */
         $features = config('saas-plans.plans.'.$this->planKey().'.features', []);
 
@@ -82,6 +96,12 @@ class Tenant extends Model
      */
     public function planLimits(): array
     {
+        $subscriptionPlan = SubscriptionPlan::findByKey($this->planKey());
+
+        if ($subscriptionPlan !== null) {
+            return $subscriptionPlan->limitsMap();
+        }
+
         /** @var array<string, int|null> $limits */
         $limits = config('saas-plans.plans.'.$this->planKey().'.limits', []);
 

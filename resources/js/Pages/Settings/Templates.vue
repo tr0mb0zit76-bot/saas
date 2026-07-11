@@ -10,6 +10,14 @@
                     v-if="pageTab === 'templates'"
                     type="button"
                     :class="crmBtnNeutral"
+                    @click="showPlaceholderGuide = true"
+                >
+                    Справочник плейсхолдеров
+                </button>
+                <button
+                    v-if="pageTab === 'templates'"
+                    type="button"
+                    :class="crmBtnNeutral"
                     @click="openCreateModal"
                 >
                     <Plus class="h-4 w-4" />
@@ -798,6 +806,85 @@
                 </section>
             </div>
         </Teleport>
+
+        <Teleport to="body">
+            <div
+                v-if="showPlaceholderGuide"
+                class="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4"
+                @click.self="showPlaceholderGuide = false"
+            >
+                <section class="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+                    <div class="flex items-start justify-between gap-4 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+                        <div>
+                            <h2 class="text-lg font-semibold">Справочник плейсхолдеров DOCX</h2>
+                            <p class="mt-1 text-sm text-zinc-500">{{ placeholderGuide.intro }}</p>
+                        </div>
+                        <button type="button" class="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800" @click="showPlaceholderGuide = false">
+                            <X class="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <div class="border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+                        <input
+                            v-model="placeholderGuideSearch"
+                            type="search"
+                            placeholder="Поиск по названию или макросу..."
+                            class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                        />
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+                        <button
+                            v-for="tab in placeholderGuideTabs"
+                            :key="tab.key"
+                            type="button"
+                            :class="placeholderGuideTab === tab.key ? crmPillActive : crmPill"
+                            @click="placeholderGuideTab = tab.key"
+                        >
+                            {{ tab.label }}
+                        </button>
+                    </div>
+
+                    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                        <ol v-if="placeholderGuideTab === 'steps'" class="list-decimal space-y-2 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+                            <li v-for="(step, index) in placeholderGuide.usage_steps" :key="index">{{ step }}</li>
+                        </ol>
+
+                        <template v-else-if="placeholderGuideTab === 'order' || placeholderGuideTab === 'lead'">
+                            <div v-for="group in filteredGuideEntityGroups" :key="group.name" class="mb-6">
+                                <h3 class="text-sm font-medium">{{ group.name }}</h3>
+                                <ul class="mt-2 divide-y divide-zinc-100 dark:divide-zinc-800">
+                                    <li v-for="item in group.items" :key="item.value" class="grid gap-1 py-2 text-sm md:grid-cols-2">
+                                        <span class="font-mono text-sky-700 dark:text-sky-300">{{ item.macro }}</span>
+                                        <span class="text-zinc-600 dark:text-zinc-400">{{ item.label }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template v-else-if="placeholderGuideTab === 'legacy'">
+                            <div v-for="section in filteredLegacySections" :key="section.key" class="mb-6">
+                                <h3 class="text-sm font-medium">{{ section.label }}</h3>
+                                <ul class="mt-2 divide-y divide-zinc-100 dark:divide-zinc-800">
+                                    <li v-for="item in section.items" :key="item.macro" class="grid gap-1 py-2 text-sm md:grid-cols-3">
+                                        <span class="font-mono text-sky-700 dark:text-sky-300">${{ item.macro }}</span>
+                                        <span class="font-mono text-zinc-500">{{ item.path }}</span>
+                                        <span class="text-zinc-600 dark:text-zinc-400">{{ item.label }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <ul v-else class="space-y-3 text-sm">
+                            <li v-for="item in filteredSpecialMacros" :key="item.macro" class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                                <div class="font-mono text-sky-700 dark:text-sky-300">{{ item.macro }}</div>
+                                <div class="mt-1 text-zinc-600 dark:text-zinc-400">{{ item.description }}</div>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -874,6 +961,16 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    placeholderGuide: {
+        type: Object,
+        default: () => ({
+            intro: '',
+            usage_steps: [],
+            entity_types: [],
+            legacy_aliases: [],
+            special_macros: [],
+        }),
+    },
     documentPreview: {
         type: Object,
         default: () => ({
@@ -896,6 +993,56 @@ const props = defineProps({
         }),
     },
 });
+
+const showPlaceholderGuide = ref(false);
+const placeholderGuideSearch = ref('');
+const placeholderGuideTab = ref('steps');
+
+const placeholderGuideTabs = [
+    { key: 'steps', label: 'Как настроить' },
+    { key: 'order', label: 'Заказ' },
+    { key: 'lead', label: 'Лид / КП' },
+    { key: 'legacy', label: 'Короткие имена' },
+    { key: 'special', label: 'Таблицы и QR' },
+];
+
+const activeGuideEntity = computed(() =>
+    props.placeholderGuide.entity_types?.find((entity) => entity.key === placeholderGuideTab.value) ?? null,
+);
+
+function matchesGuideSearch(...parts) {
+    const query = placeholderGuideSearch.value.trim().toLowerCase();
+
+    if (query === '') {
+        return true;
+    }
+
+    return parts.some((part) => String(part ?? '').toLowerCase().includes(query));
+}
+
+const filteredGuideEntityGroups = computed(() => {
+    const groups = activeGuideEntity.value?.groups ?? [];
+
+    return groups
+        .map((group) => ({
+            ...group,
+            items: (group.items ?? []).filter((item) => matchesGuideSearch(item.macro, item.label, item.value)),
+        }))
+        .filter((group) => group.items.length > 0);
+});
+
+const filteredLegacySections = computed(() =>
+    (props.placeholderGuide.legacy_aliases ?? [])
+        .map((section) => ({
+            ...section,
+            items: (section.items ?? []).filter((item) => matchesGuideSearch(item.macro, item.path, item.label)),
+        }))
+        .filter((section) => section.items.length > 0),
+);
+
+const filteredSpecialMacros = computed(() =>
+    (props.placeholderGuide.special_macros ?? []).filter((item) => matchesGuideSearch(item.macro, item.description)),
+);
 
 let basicTermRowKey = 0;
 
