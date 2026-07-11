@@ -21,7 +21,12 @@ packages/
 infra/
 scripts/
 tests/
-exchange/saas/
+```
+
+External sync and knowledge exchange live outside git at:
+
+```text
+C:\Sync\Yandex.Disk\Exchange\saas
 ```
 
 ## Consequences
@@ -29,5 +34,4 @@ exchange/saas/
 - Documentation and handoff can move forward immediately.
 - Future code has clear boundaries for API, web, workers, shared packages, and
   infrastructure.
-- `exchange/saas/` acts as a repository mirror of the requested Windows sync
-  folder.
+- Yandex Disk sync folder remains separate from version control.

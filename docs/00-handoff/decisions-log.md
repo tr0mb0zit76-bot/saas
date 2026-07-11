@@ -18,5 +18,5 @@ Consequences:
 - Application code is intentionally not generated yet.
 - Docker services are limited to generic infrastructure useful for most SaaS CRM
   stacks: PostgreSQL, Redis, and Mailpit.
-- The sync folder is represented in the repository as `exchange/saas/`, which
-  can be copied to `C:\Sync\Yandex.Disk\Exchange\saas`.
+- The sync folder `C:\Sync\Yandex.Disk\Exchange\saas` stays outside git and is
+  synchronized through Yandex Disk for Obsidian, Hivemind, and handoff use.

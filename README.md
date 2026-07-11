@@ -6,12 +6,13 @@ CRM into a SaaS platform for forwarding and logistics companies.
 ## Current status
 
 - GitHub remote: `https://github.com/tr0mb0zit76-bot/saas.git`
-- Source CRM folders requested by the owner:
+- Source CRM folders on the owner's local machine:
   - `C:\OSPanel\home\v5.local`
   - `C:\Sync\Yandex.Disk\Exchange`
-- These Windows folders are not mounted in the current Linux cloud environment.
-  The repository therefore starts with architecture, discovery, handoff, and
-  development-environment scaffolding.
+- External sync folder for indexes and handoff (Yandex Disk, not in git):
+  - `C:\Sync\Yandex.Disk\Exchange\saas`
+- This Cloud Agent runs in a remote Linux environment with access only to the
+  cloned GitHub repository at `/workspace`, not to the local Windows disk.
 
 ## Repository layout
 
@@ -24,7 +25,6 @@ packages/             Shared domain/config packages
 infra/                Docker, CI, deployment notes
 scripts/              Discovery, migration, maintenance scripts
 tests/                E2E, integration, and fixtures
-exchange/saas/        Mirror structure for C:\Sync\Yandex.Disk\Exchange\saas
 ```
 
 ## Start here
@@ -33,9 +33,9 @@ exchange/saas/        Mirror structure for C:\Sync\Yandex.Disk\Exchange\saas
 2. Review `docs/02-architecture/saas-architecture.md`.
 3. Mount or copy the CRM sources from `C:\OSPanel\home\v5.local`.
 4. Fill the discovery indexes in `docs/01-discovery/`.
-5. Use `exchange/saas/` as the repository copy of the Windows sync handoff
-   folder. Its contents are intended to be copied or synchronized to
-   `C:\Sync\Yandex.Disk\Exchange\saas`.
+5. Keep exchange indexes and handoff notes in
+   `C:\Sync\Yandex.Disk\Exchange\saas` via Yandex Disk sync. That folder is
+   outside git and is intended for Obsidian, Hivemind, and similar tools.
 
 ## Development environment
 

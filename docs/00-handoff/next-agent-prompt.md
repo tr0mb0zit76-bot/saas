@@ -22,8 +22,8 @@ Your task:
 1. Make the CRM source and exchange folders available.
 2. Analyze the real CRM source tree and knowledge files.
 3. Fill the discovery documents under `docs/01-discovery`.
-4. Fill sync indexes under `exchange/saas/indexes` or the real Windows
-   `C:\Sync\Yandex.Disk\Exchange\saas\indexes`.
+4. Fill sync indexes under
+   `C:\Sync\Yandex.Disk\Exchange\saas\indexes` (Yandex Disk, outside git).
 5. Validate or revise the SaaS architecture under `docs/02-architecture`.
 6. Create ADRs for confirmed technology, multi-tenancy, migration, and storage
    decisions.

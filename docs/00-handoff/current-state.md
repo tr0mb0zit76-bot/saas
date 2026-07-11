@@ -14,11 +14,15 @@ forwarding company, not only the current internal company.
 
 ## What was verified in the cloud environment
 
-- `/workspace` is the `saas` git repository.
+- `/workspace` is the `saas` git repository cloned from GitHub.
 - The remote points to `https://github.com/tr0mb0zit76-bot/saas`.
-- The repository initially contained only `README.md`.
-- The Windows CRM folders are not available in this Linux cloud environment.
-- Checked likely mount points such as `/mnt/c` and `/c`; they do not exist.
+- This Cloud Agent runs in a remote Linux container, not on the owner's local
+  Windows machine.
+- The agent has access only to `/workspace` (the git clone), not to local
+  Windows paths such as `C:\OSPanel\home\v5.local` or
+  `C:\Sync\Yandex.Disk\Exchange`.
+- Checked likely mount points such as `/mnt/c` and `/c`; they do not exist in
+  this environment.
 
 ## Important limitation
 
@@ -31,8 +35,8 @@ the real CRM code, database schema, business rules, and documents.
 - Created the SaaS planning and development scaffold.
 - Added architecture documents for multi-tenancy, modules, security, billing,
   operations, and migration discovery.
-- Added a repository mirror of the desired Windows sync folder at
-  `exchange/saas/`.
+- Documented the external Yandex Disk sync folder at
+  `C:\Sync\Yandex.Disk\Exchange\saas` (outside git).
 - Added a stack-neutral local development environment outline.
 
 ## Next required input
