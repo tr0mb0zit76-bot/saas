@@ -12,6 +12,7 @@ use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\ForcePlatformRootUrl;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ReconnectOnPreparedStatementError;
 use App\Http\Middleware\SetTenantFromAuthenticatedUser;
@@ -63,6 +64,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(prepend: [
             IdentifyTenant::class,
+            ForcePlatformRootUrl::class,
         ]);
 
         $middleware->web(append: [

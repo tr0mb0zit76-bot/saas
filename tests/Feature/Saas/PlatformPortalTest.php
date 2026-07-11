@@ -61,6 +61,16 @@ class PlatformPortalTest extends SaasTestCase
             ->assertRedirect($this->platformUrl('/login'));
     }
 
+    public function test_platform_login_page_uses_platform_host_for_urls(): void
+    {
+        $platformOrigin = 'http://platform.test';
+
+        $this->get($this->platformUrl('/login'))
+            ->assertOk()
+            ->assertSee('"url":"http:\/\/platform.test"', false)
+            ->assertSee('name="app-base-url" content="'.$platformOrigin.'"', false);
+    }
+
     public function test_platform_admin_can_log_in_via_platform_portal(): void
     {
         $this->post($this->platformUrl('/login'), [
