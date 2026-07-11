@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\LeadFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
 class Lead extends Model
 {
     /** @use HasFactory<LeadFactory> */
+    use BelongsToTenant;
+
     use HasFactory;
 
     /**
@@ -21,6 +24,7 @@ class Lead extends Model
      */
     protected $fillable = [
         'number',
+        'tenant_id',
         'status',
         'source',
         'counterparty_id',

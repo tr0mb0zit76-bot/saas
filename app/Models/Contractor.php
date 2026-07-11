@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Support\EdoProviderDictionary;
 use App\Support\OwnFleetCatalog;
 use App\Support\RoleAccess;
@@ -16,11 +17,14 @@ use Illuminate\Support\Facades\Schema;
 
 class Contractor extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */
     protected $fillable = [
         'type',
+        'tenant_id',
         'name',
         'full_name',
         'short_description',

@@ -5,8 +5,10 @@ namespace Database\Seeders;
 use App\Models\Contractor;
 use App\Models\Lead;
 use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -43,13 +45,22 @@ class SaasDemoSeeder extends Seeder
 
         $this->call(DatabaseSeeder::class);
 
-        DB::transaction(function (): void {
+        TenantContext::bypass(true);
+
+        $tenant = Tenant::query()->updateOrCreate(
+            ['slug' => 'demo'],
+            ['name' => 'Demo Logistics', 'status' => 'active', 'plan' => 'start'],
+        );
+
+        DB::transaction(function () use ($tenant): void {
             $roles = $this->seedRoles();
-            [$admin, $manager] = $this->seedUsers($roles);
-            $this->seedOwnCompany($admin);
-            $this->seedContractors($admin, $manager);
-            $this->seedLeads($manager);
+            [$admin, $manager] = $this->seedUsers($roles, $tenant);
+            $this->seedOwnCompany($admin, $tenant);
+            $this->seedContractors($admin, $manager, $tenant);
+            $this->seedLeads($manager, $tenant);
         });
+
+        TenantContext::bypass(false);
 
         $this->command?->info('SaasDemoSeeder OK');
         $this->command?->info('Login: '.self::ADMIN_EMAIL.' / '.self::MANAGER_EMAIL.' — password: '.self::PASSWORD);
@@ -82,11 +93,12 @@ class SaasDemoSeeder extends Seeder
      * @param  array{admin: Role, manager: Role}  $roles
      * @return array{0: User, 1: User}
      */
-    private function seedUsers(array $roles): array
+    private function seedUsers(array $roles, Tenant $tenant): array
     {
         $hash = Hash::make(self::PASSWORD);
 
         $admin = User::query()->create([
+            'tenant_id' => $tenant->id,
             'role_id' => $roles['admin']->id,
             'name' => 'Demo Admin',
             'email' => self::ADMIN_EMAIL,
@@ -96,6 +108,7 @@ class SaasDemoSeeder extends Seeder
         ]);
 
         $manager = User::query()->create([
+            'tenant_id' => $tenant->id,
             'role_id' => $roles['manager']->id,
             'name' => 'Demo Manager',
             'email' => self::MANAGER_EMAIL,
@@ -107,13 +120,14 @@ class SaasDemoSeeder extends Seeder
         return [$admin, $manager];
     }
 
-    private function seedOwnCompany(User $admin): void
+    private function seedOwnCompany(User $admin, Tenant $tenant): void
     {
         if (! Schema::hasColumn('contractors', 'is_own_company')) {
             return;
         }
 
         Contractor::query()->create([
+            'tenant_id' => $tenant->id,
             'type' => 'customer',
             'name' => 'ООО «Демо Экспедиция»',
             'full_name' => 'ООО «Демо Экспедиция»',
@@ -126,9 +140,10 @@ class SaasDemoSeeder extends Seeder
         ]);
     }
 
-    private function seedContractors(User $admin, User $manager): void
+    private function seedContractors(User $admin, User $manager, Tenant $tenant): void
     {
         $base = [
+            'tenant_id' => $tenant->id,
             'is_active' => true,
             'created_by' => $admin->id,
             'updated_by' => $admin->id,
@@ -155,13 +170,14 @@ class SaasDemoSeeder extends Seeder
         ]));
     }
 
-    private function seedLeads(User $manager): void
+    private function seedLeads(User $manager, Tenant $tenant): void
     {
         if (! Schema::hasTable('leads')) {
             return;
         }
 
         Lead::factory()->count(2)->create([
+            'tenant_id' => $tenant->id,
             'responsible_id' => $manager->id,
             'loading_location' => 'Москва',
             'unloading_location' => 'Санкт-Петербург',

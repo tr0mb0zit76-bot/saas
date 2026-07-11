@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureSettingsVisibilityAccess;
 use App\Http\Middleware\EnsureVisibilityAreaAccess;
 use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ReconnectOnPreparedStatementError;
 use App\Http\Middleware\RejectExternalFromInternalRoutes;
 use App\Http\Middleware\VerifyAstralEpdWebhookSignature;
@@ -42,6 +43,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'can.manage.sales.scripts' => EnsureCanManageSalesScripts::class,
             'verify.astral.epd.signature' => VerifyAstralEpdWebhookSignature::class,
             'verify.onec.token' => VerifyOneCFreshToken::class,
+        ]);
+
+        $middleware->web(prepend: [
+            IdentifyTenant::class,
         ]);
 
         $middleware->web(append: [

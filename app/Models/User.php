@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use App\Support\ExternalParty;
 use App\Support\RoleAccess;
 use Database\Factories\UserFactory;
@@ -20,6 +21,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
+    use BelongsToTenant;
+
     use Notifiable;
 
     /**
@@ -31,6 +34,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role_id',
+        'tenant_id',
         'theme',
         'is_active',
         'has_signing_authority',

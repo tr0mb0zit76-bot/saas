@@ -107,8 +107,11 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
         php artisan db:seed --class=SaasDemoSeeder --force
         Update-MigrationStep 'M3.2'
         Update-MigrationStep 'M3.3'
+        php artisan db:seed --class=TenantDemoSeeder --force
+        php artisan saas:smoke-lab
+        Update-MigrationStep 'M4.4'
     } catch {
-        Write-Warning 'SaasDemoSeeder failed — check migrate and seeder'
+        Write-Warning 'Seeder/smoke failed — check migrate and logs'
     }
 
     if (-not $SkipBuild -and (Test-Path (Join-Path $repoRoot 'package.json'))) {

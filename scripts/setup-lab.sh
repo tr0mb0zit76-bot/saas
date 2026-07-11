@@ -49,6 +49,8 @@ npm ci
 php artisan key:generate --force 2>/dev/null || true
 php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
 php artisan db:seed --class=SaasDemoSeeder --force
+php artisan db:seed --class=TenantDemoSeeder --force
+php artisan saas:smoke-lab
 npm run build
 
 echo "=== Done ==="

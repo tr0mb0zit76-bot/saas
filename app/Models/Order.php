@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\Schema;
 class Order extends Model
 {
     /** @use HasFactory<OrderFactory> */
+    use BelongsToTenant;
+
     use HasFactory;
 
     /**
@@ -22,6 +25,7 @@ class Order extends Model
      */
     protected $fillable = [
         'order_number',
+        'tenant_id',
         'company_code',
         'manager_id',
         'order_owner_id',

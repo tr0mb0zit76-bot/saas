@@ -1,63 +1,44 @@
-# Cursor handoff — SaaS CRM (экспедиторы)
+# Cursor handoff — SaaS CRM
 
-> **Оркестратор:** `saas-migration-orchestrator` · **Состояние:** `docs/sync/migration-state.json`
-
-**Обновлено:** 2026-07-11 · **Ветка:** `cursor/migration-orchestrator-4010` · **Фаза:** **M4** (lab smoke, почти готово)
+**Обновлено:** 2026-07-11 · **Фаза:** **M5 done** → M6 audit hardening next
 
 ---
 
-## Итог сессии — переезд продолжен (cloud lab)
+## Автономный переезд — выполнено
 
-| Блок | Статус |
-| --- | --- |
-| M0 Prerequisites | ✅ php, composer, node, v5 clone, MariaDB |
-| M1 Bootstrap v5 → saas | ✅ код скопирован из github v5 |
-| M2 Environment | ✅ .env, composer, npm |
-| M3 Schema + seed | ✅ migrate + **SaasDemoSeeder** |
-| M4 Smoke | 🟡 login 200, 4 contractors, 2 leads |
-| M5 Tenancy | ⏳ следующий этап |
+| Фаза | Статус |
+|------|--------|
+| M0–M3 Bootstrap + DB + seed | ✅ |
+| M4 Lab smoke | ✅ lead→order, tests green |
+| M5 Tenancy | ✅ tenant_id, isolation, demo-a/b |
+| M6 Audit | ⏳ автоматически дальше |
 
-### Demo login (lab)
+### Demo login
 
-| Поле | Значение |
-| --- | --- |
-| URL | `http://saas.local` (Windows) / `http://127.0.0.1:8000` (cloud) |
-| Admin | `admin@saas.local` / `password` |
-| Manager | `manager@saas.local` / `password` |
+| Tenant | URL | User |
+|--------|-----|------|
+| **demo** | `http://saas.local` | `admin@saas.local` / `password` |
+| **demo-a** | header `X-Tenant-Slug: demo-a` | `manager@demo-a.saas.local` / `password` |
+| **demo-b** | header `X-Tenant-Slug: demo-b` | `manager@demo-b.saas.local` / `password` |
 
-### Demo data
-
-- **Own company:** ООО «Демо Экспедиция»
-- **Контрагенты:** ООО «Тест Заказчик», ИП «Тест Перевозчик» (+ own fleet из v5 seed)
-- **Лиды:** 2 шт. (Москва → СПб)
-
----
-
-## На Windows (OSPanel) — повторить lab
+### Автокоманды (Windows)
 
 ```powershell
-cd C:\OSPanel\home\saas\saas.local
-git pull
-pwsh -File scripts/setup-lab.ps1
-# или если v5 локально:
-pwsh -File scripts/bootstrap-from-v5.ps1
-pwsh -File scripts/provision-database.ps1
-composer install && npm ci
-php artisan migrate --schema-path=database/schema/.skip-mysql-cli-load
-php artisan db:seed --class=SaasDemoSeeder
-npm run build
+pwsh -File scripts/setup-lab.ps1   # всё: bootstrap, DB, migrate, seed, smoke
+php artisan saas:smoke-lab         # повторный smoke
+php artisan test tests/Feature/Saas/
 ```
 
----
+### Данные lab
 
-## Следующий шаг оркестратора
-
-1. M4.4 — smoke: конвертация лида в заказ (UI или feature test)
-2. M4.5 — `php artisan test --compact` smoke suite
-3. **M5** — `tenants` + `tenant_id` + isolation tests
+- 4+ contractors, 2 leads, 1+ orders (конвертация лида)
+- Tenants: demo, demo-a, demo-b
 
 ---
 
-## Blockers
+## Следующий автоматический шаг (M6)
 
-_(нет)_
+- P0.10 / P1.1 из audit remediation
+- Feature flags skeleton (M7)
+
+**Human needed:** нет
