@@ -65,10 +65,35 @@ if ((Test-Path $envExample) -and -not (Test-Path $envFile)) {
 Update-MigrationStep 'M2.1'
 
 if (Test-Path $envFile) {
-    $envContent = Get-Content $envFile -Raw
-    if ($envContent -notmatch '(?m)^APP_URL=') { Add-Content $envFile "`nAPP_URL=http://saas.local" }
-    else { (Get-Content $envFile) -replace '(?m)^APP_URL=.*', 'APP_URL=http://saas.local' | Set-Content $envFile }
-    if ($envContent -notmatch '(?m)^DB_DATABASE=') { Add-Content $envFile "`nDB_DATABASE=saas_crm" }
+    $lines = Get-Content $envFile
+    $replacements = @{
+        'APP_URL'       = 'http://saas.local'
+        'APP_ENV'       = 'local'
+        'APP_DEBUG'     = 'true'
+        'DB_CONNECTION' = 'mysql'
+        'DB_HOST'       = '127.0.1.21'
+        'DB_PORT'       = '3306'
+        'DB_DATABASE'   = 'saas_crm'
+        'DB_USERNAME'   = 'root'
+        'DB_PASSWORD'   = ''
+        'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
+    }
+    foreach ($key in $replacements.Keys) {
+        $val = $replacements[$key]
+        $idx = [array]::FindIndex($lines, [Predicate[string]] { param($l) $l -match "^$key=" })
+        if ($idx -ge 0) {
+            $lines[$idx] = "$key=$val"
+        } else {
+            $lines += "$key=$val"
+        }
+    }
+    # Uncomment DB block if still commented
+    $lines = $lines | ForEach-Object {
+        if ($_ -match '^#\s*(DB_HOST|DB_PORT|DB_DATABASE|DB_USERNAME|DB_PASSWORD)=') {
+            $_ -replace '^#\s*', ''
+        } else { $_ }
+    }
+    Set-Content -Path $envFile -Value ($lines -join "`n")
     Update-MigrationStep 'M2.2'
 }
 
@@ -122,6 +147,6 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
 
 Write-Host ''
 Write-Host '=== Setup complete ===' -ForegroundColor Green
+Write-Host 'Open: http://saas.local' -ForegroundColor Green
+Write-Host 'Login: admin@saas.local / password' -ForegroundColor Green
 & (Join-Path $repoRoot 'scripts\migration-status.ps1')
-Write-Host ''
-Write-Host 'Next: orchestrator runs M4 smoke (SaasDemoSeeder if needed)'
