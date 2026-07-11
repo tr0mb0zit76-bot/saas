@@ -53,6 +53,8 @@ Add-OspanelPath
 Write-Host "Repo: $repoRoot" -ForegroundColor Cyan
 php -v
 
+& (Join-Path $repoRoot 'scripts\apply-saas-lab-env.ps1') -SkipArtisanClear
+
 $composer = Ensure-Composer
 $vendorAutoload = Join-Path $repoRoot 'vendor\autoload.php'
 
@@ -105,6 +107,8 @@ if (-not $SkipBuild) {
 } else {
     Write-Host '[5/5] skip build' -ForegroundColor Yellow
 }
+
+& (Join-Path $repoRoot 'scripts\apply-saas-lab-env.ps1')
 
 Write-Host ''
 Write-Host 'Done. Open http://saas.local' -ForegroundColor Green

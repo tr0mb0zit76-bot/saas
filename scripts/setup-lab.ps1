@@ -67,16 +67,18 @@ Update-MigrationStep 'M2.1'
 if (Test-Path $envFile) {
     $lines = Get-Content $envFile
     $replacements = @{
-        'APP_URL'       = 'http://saas.local'
-        'APP_ENV'       = 'local'
-        'APP_DEBUG'     = 'true'
-        'DB_CONNECTION' = 'mysql'
-        'DB_HOST'       = '127.0.1.21'
-        'DB_PORT'       = '3306'
-        'DB_DATABASE'   = 'saas_crm'
-        'DB_USERNAME'   = 'root'
-        'DB_PASSWORD'   = ''
-        'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
+        'APP_URL'                  = 'http://saas.local'
+        'CRM_DOMAIN'               = 'saas.local'
+        'SHOWCASE_DOMAIN'          = 'saas.local'
+        'APP_ENV'                  = 'local'
+        'APP_DEBUG'                = 'true'
+        'DB_CONNECTION'            = 'mysql'
+        'DB_HOST'                  = '127.0.1.21'
+        'DB_PORT'                  = '3306'
+        'DB_DATABASE'              = 'saas_crm'
+        'DB_USERNAME'              = 'root'
+        'DB_PASSWORD'              = ''
+        'SAAS_DEFAULT_TENANT_SLUG'   = 'demo'
     }
     foreach ($key in $replacements.Keys) {
         $val = $replacements[$key]
@@ -126,6 +128,8 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
     if (-not $keyLine -or $keyLine -eq 'APP_KEY=' -or $keyLine -match 'APP_KEY=\s*$') {
         php artisan key:generate --force
     }
+    php artisan config:clear
+    php artisan route:clear
     Update-MigrationStep 'M2.6'
 }
 

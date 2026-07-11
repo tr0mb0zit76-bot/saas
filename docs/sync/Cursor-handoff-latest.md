@@ -17,6 +17,8 @@ pwsh -File scripts/setup-os-panel.ps1
 
 Если `vendor/autoload.php` missing: `pwsh -File scripts/finish-lab-setup.ps1`
 
+Если **404** на `/`: `pwsh -File scripts/apply-saas-lab-env.ps1` (домены CRM/SHOWCASE → saas.local)
+
 Открыть: **http://saas.local**  
 Login: **admin@saas.local** / **password**
 
