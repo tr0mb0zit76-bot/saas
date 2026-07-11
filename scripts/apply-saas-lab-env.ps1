@@ -28,6 +28,9 @@ $replacements = [ordered]@{
     'CRM_DOMAIN'               = $HostName
     'SHOWCASE_DOMAIN'          = $HostName
     'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
+    'PLATFORM_DOMAIN'          = "platform.$HostName"
+    'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local'
+    'SAAS_TRIAL_DAYS'          = '14'
 }
 
 foreach ($key in $replacements.Keys) {
@@ -45,6 +48,7 @@ Write-Host "Updated .env for SaaS lab host: $HostName" -ForegroundColor Green
 Write-Host "  APP_URL=$appUrl"
 Write-Host "  CRM_DOMAIN=$HostName"
 Write-Host "  SHOWCASE_DOMAIN=$HostName"
+Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
 
 if ($SkipArtisanClear) { return }
 
