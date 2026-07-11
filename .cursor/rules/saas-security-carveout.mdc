@@ -1,0 +1,18 @@
+---
+description: Traklo Pro SaaS — исключения из Ponytail для tenancy, billing и platform admin.
+globs:
+alwaysApply: true
+---
+
+# SaaS security carve-out (overrides Ponytail where they conflict)
+
+Ponytail applies, **except** for multi-tenant isolation, billing, and platform admin:
+
+- **Never skip** `TenantScope`, `TenantContext`, `BelongsToTenant`, or `platform.admin` middleware to shorten a diff.
+- **Never weaken** fail-closed tenant resolution (`IdentifyTenant`, login scoped by `tenant_id`).
+- **Never remove or shrink** tests in `tests/Feature/Saas/` to make a change smaller.
+- Feature gating (`feature:*` middleware, `Tenant::featureEnabled`) must stay enforced at route and menu level.
+- Platform super-admin (`/platform/*`) is separate from tenant CRM; changes there still require auth via `PlatformAdmin`.
+- When adding platform UI, prefer reusing existing Inertia/Vue patterns — but not at the cost of tenant data leaking across boundaries.
+
+Before merging SaaS work: run `php artisan test tests/Feature/Saas`.

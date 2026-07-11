@@ -1,17 +1,17 @@
 <template>
     <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:min-h-0">
-        <CrmPageHeader
-            lead="Управление арендаторами Traklo Pro: создание, тариф, статус."
-            title="Арендаторы SaaS"
-        >
-            <template #actions>
-                <button type="button" :class="crmBtnCreate" @click="showCreate = !showCreate">
-                    {{ showCreate ? 'Скрыть форму' : 'Новый арендатор' }}
-                </button>
-            </template>
-        </CrmPageHeader>
+        <div>
+            <h1 class="text-2xl font-semibold">Арендаторы</h1>
+            <p class="mt-1 text-sm text-zinc-500">Создание, тариф, статус и биллинг арендаторов Traklo Pro.</p>
+        </div>
 
-        <div v-if="showCreate" :class="`${crmPanel} space-y-4 p-4`">
+        <div class="flex justify-end">
+            <button type="button" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700" @click="showCreate = !showCreate">
+                {{ showCreate ? 'Скрыть форму' : 'Новый арендатор' }}
+            </button>
+        </div>
+
+        <div v-if="showCreate" class="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <div class="text-sm font-medium">Создание арендатора</div>
             <form class="grid gap-3 md:grid-cols-2 xl:grid-cols-4" @submit.prevent="submitCreate">
                 <div class="space-y-1">
@@ -37,12 +37,12 @@
                     </select>
                 </div>
                 <div class="md:col-span-2 xl:col-span-4">
-                    <button type="submit" :class="crmBtnCreate" :disabled="createForm.processing">Создать</button>
+                    <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50" :disabled="createForm.processing">Создать</button>
                 </div>
             </form>
         </div>
 
-        <div :class="crmGridPanel">
+        <div class="overflow-x-auto rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <table class="min-w-full text-sm">
                 <thead class="border-b border-zinc-200 text-left text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-800">
                     <tr>
@@ -77,11 +77,14 @@
                         </td>
                         <td class="px-3 py-2 text-xs text-zinc-500">{{ tenant.billing_period_end || '—' }}</td>
                         <td class="px-3 py-2">{{ tenant.users_count }}</td>
-                        <td class="px-3 py-2 space-x-2">
-                            <button type="button" :class="crmBtnNeutral" :disabled="savingId === tenant.id" @click="saveTenant(tenant.id)">
+                        <td class="px-3 py-2 space-x-2 whitespace-nowrap">
+                            <button type="button" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700" :disabled="savingId === tenant.id" @click="saveTenant(tenant.id)">
                                 Сохранить
                             </button>
-                            <button type="button" :class="crmBtnCreate" @click="markPaid(tenant.id)">
+                            <Link :href="route('platform.tenants.features', tenant.id)" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700">
+                                Модули
+                            </Link>
+                            <button type="button" class="rounded-lg bg-sky-600 px-2 py-1 text-xs text-white" @click="markPaid(tenant.id)">
                                 Оплачено
                             </button>
                         </td>
@@ -93,14 +96,12 @@
 </template>
 
 <script setup>
-import CrmPageHeader from '@/Components/Crm/CrmPageHeader.vue';
-import CrmLayout from '@/Layouts/CrmLayout.vue';
-import { crmBtnCreate, crmBtnNeutral, crmGridPanel, crmPanel } from '@/styles/crm';
-import { router, useForm } from '@inertiajs/vue3';
+import PlatformLayout from '@/Layouts/PlatformLayout.vue';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import { reactive, ref } from 'vue';
 
 defineOptions({
-    layout: (h, page) => h(CrmLayout, { activeKey: 'settings', activeSubKey: 'platform-tenants' }, () => page),
+    layout: (h, page) => h(PlatformLayout, { activeKey: 'tenants' }, () => page),
 });
 
 const props = defineProps({

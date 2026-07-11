@@ -1004,6 +1004,7 @@ const MENU_ROUTES = {
     system: '/settings/system',
     'order-numbering': '/settings/system/order-numbering',
     'platform-tenants': '/platform/tenants',
+    'platform-admin': '/platform',
 };
 
 const MOBILE_BROWSER_BYPASS = 'crm_mobile_browser_cabinet_v1';
@@ -1435,7 +1436,7 @@ const menuItems = computed(() => {
                     administrationChildren.push({ key: 'roles', label: 'Роли' });
                 }
                 if (isPlatformAdmin.value) {
-                    administrationChildren.push({ key: 'platform-tenants', label: 'Арендаторы SaaS' });
+                    administrationChildren.push({ key: 'platform-admin', label: 'Platform Admin' });
                 }
                 if (hasSettingsSystemAccess.value) {
                     administrationChildren.push({ key: 'business-processes', label: 'Бизнес-процессы' });

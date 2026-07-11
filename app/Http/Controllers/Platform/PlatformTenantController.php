@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\StorePlatformTenantRequest;
+use App\Http\Requests\Platform\UpdatePlatformTenantFeaturesRequest;
 use App\Http\Requests\Platform\UpdatePlatformTenantRequest;
 use App\Models\Tenant;
 use App\Services\Saas\TenantBillingService;
 use App\Services\Saas\TenantProvisioner;
+use App\Support\SaasFeatureCatalog;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -121,6 +123,73 @@ class PlatformTenantController extends Controller
         return to_route('platform.tenants.index')->with('flash', [
             'type' => 'success',
             'message' => "Оплата за «{$tenant->name}» зафиксирована, период продлён.",
+        ]);
+    }
+
+    public function features(Tenant $tenant): Response
+    {
+        TenantContext::bypass(true);
+
+        $planFeatures = $tenant->planFeatures();
+        $overrides = data_get($tenant->settings, 'features');
+        $overrideMap = is_array($overrides) && ! array_is_list($overrides) ? $overrides : [];
+
+        $features = array_map(function (array $item) use ($tenant, $planFeatures, $overrideMap): array {
+            $key = $item['key'];
+            $inPlan = in_array($key, $planFeatures, true);
+            $hasOverride = array_key_exists($key, $overrideMap);
+
+            return [
+                ...$item,
+                'in_plan' => $inPlan,
+                'enabled' => $tenant->featureEnabled($key),
+                'override' => $hasOverride ? (bool) $overrideMap[$key] : null,
+            ];
+        }, SaasFeatureCatalog::groupedFeatures());
+
+        TenantContext::bypass(false);
+
+        return Inertia::render('Platform/Tenants/Features', [
+            'tenant' => [
+                'id' => $tenant->id,
+                'slug' => $tenant->slug,
+                'name' => $tenant->name,
+                'plan' => $tenant->planKey(),
+            ],
+            'features' => $features,
+        ]);
+    }
+
+    public function updateFeatures(UpdatePlatformTenantFeaturesRequest $request, Tenant $tenant): RedirectResponse
+    {
+        TenantContext::bypass(true);
+
+        $planFeatures = $tenant->planFeatures();
+        $overrides = [];
+
+        foreach ($request->validated('features') as $key => $enabled) {
+            $inPlan = in_array($key, $planFeatures, true);
+
+            if ((bool) $enabled !== $inPlan) {
+                $overrides[$key] = (bool) $enabled;
+            }
+        }
+
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+
+        if ($overrides === []) {
+            unset($settings['features']);
+        } else {
+            $settings['features'] = $overrides;
+        }
+
+        $tenant->update(['settings' => $settings]);
+
+        TenantContext::bypass(false);
+
+        return to_route('platform.tenants.features', $tenant)->with('flash', [
+            'type' => 'success',
+            'message' => "Модули арендатора «{$tenant->name}» обновлены.",
         ]);
     }
 }

@@ -51,6 +51,8 @@ use App\Http\Controllers\PaymentScheduleController;
 use App\Http\Controllers\PipelineController;
 use App\Http\Controllers\Portal\OrderCarrierPortalController;
 use App\Http\Controllers\Portal\OrderCustomerPortalController;
+use App\Http\Controllers\Platform\PlatformDashboardController;
+use App\Http\Controllers\Platform\PlatformPlansController;
 use App\Http\Controllers\Platform\PlatformTenantController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProposalHtmlTemplateController;
@@ -887,9 +889,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::prefix('platform')->name('platform.')->middleware('platform.admin')->group(function (): void {
+        Route::get('/', [PlatformDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/plans', [PlatformPlansController::class, 'index'])->name('plans.index');
         Route::get('/tenants', [PlatformTenantController::class, 'index'])->name('tenants.index');
         Route::post('/tenants', [PlatformTenantController::class, 'store'])->name('tenants.store');
         Route::patch('/tenants/{tenant}', [PlatformTenantController::class, 'update'])->name('tenants.update');
+        Route::get('/tenants/{tenant}/features', [PlatformTenantController::class, 'features'])->name('tenants.features');
+        Route::patch('/tenants/{tenant}/features', [PlatformTenantController::class, 'updateFeatures'])->name('tenants.features.update');
         Route::post('/tenants/{tenant}/mark-paid', [PlatformTenantController::class, 'markPaid'])->name('tenants.mark-paid');
     });
 
