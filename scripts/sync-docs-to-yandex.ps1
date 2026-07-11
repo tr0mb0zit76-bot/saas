@@ -37,6 +37,7 @@ $rootMap = @{
     'architecture-plan.md'     = (Join-Path $archDest 'plan.md')
     'migration-runbook.md'     = (Join-Path $saasRoot 'migration-runbook.md')
     'migration-state.json'     = (Join-Path $saasRoot 'migration-state.json')
+    'traklo-pro-storage.md'    = (Join-Path $saasRoot 'traklo-pro-storage.md')
 }
 
 foreach ($srcName in $rootMap.Keys) {

@@ -23,6 +23,8 @@ ADR: `004`–`010` в `docs/architecture/decisions/`
 
 **Scale:** ADR-011 (AI data tenant_id), ADR-012 (DB phases P0–P4).
 
+**Obsidian:** [[traklo-pro-storage|traklo-pro-storage.md]] — local vs S3.
+
 ---
 
 ## Сделано в этой итерации

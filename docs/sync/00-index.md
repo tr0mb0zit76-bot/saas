@@ -9,6 +9,7 @@
 - [[cursor-agent-startup|Старт сессии Cursor]]
 - [[migration-runbook|Runbook переезда M0–M7]]
 - [[migration-state.json|Состояние переезда (JSON)]]
+- [[traklo-pro-storage|Хранилище: local lab vs S3 prod]] ← **файлы tenants/**
 
 ## Субагенты
 
@@ -34,6 +35,14 @@
 - [[architecture/decisions/ADR-001-repo-strategy|ADR-001: стратегия репозитория]]
 - [[architecture/decisions/ADR-002-tenant-isolation|ADR-002: изоляция tenant]]
 - [[architecture/decisions/ADR-003-module-packaging|ADR-003: упаковка модулей]]
+- [[architecture/decisions/ADR-005-tenant-file-storage|ADR-005: S3-first storage]]
+- [[architecture/decisions/ADR-011-ai-llm-multi-tenant-data|ADR-011: AI / LLM data]]
+- [[architecture/decisions/ADR-012-database-scaling-strategy|ADR-012: масштаб БД]]
+
+## Продукт и инфра
+
+- [[architecture/saas-product-roadmap-brief|Roadmap brief M6/M7]]
+- [[traklo-pro-storage|Хранилище Traklo Pro (lab vs prod)]]
 
 ## Исходный CRM (read-only)
 
