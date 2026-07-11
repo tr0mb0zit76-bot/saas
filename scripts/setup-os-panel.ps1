@@ -11,7 +11,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
+
+$canonicalRoot = 'C:\OSPanel\home\saas\saas.local'
+$fixScript = Join-Path $PSScriptRoot 'fix-nested-repo-path.ps1'
+if (Test-Path $fixScript) {
+    & pwsh -NoProfile -File $fixScript | Out-Null
+}
+
+if (Test-Path (Join-Path $canonicalRoot 'artisan')) {
+    $repoRoot = $canonicalRoot
+} else {
+    $repoRoot = Split-Path -Parent $PSScriptRoot
+}
 Set-Location $repoRoot
 
 Write-Host '=== SaaS OSPanel Local Setup ===' -ForegroundColor Cyan

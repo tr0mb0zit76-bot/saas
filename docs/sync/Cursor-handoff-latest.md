@@ -12,6 +12,9 @@ git pull origin main
 pwsh -File scripts/setup-os-panel.ps1
 ```
 
+Если репо случайно лежит в `...\saas.local\saas.local`, setup исправит путь сам.  
+Или вручную: `pwsh -File scripts/fix-nested-repo-path.ps1`
+
 Открыть: **http://saas.local**  
 Login: **admin@saas.local** / **password**
 
