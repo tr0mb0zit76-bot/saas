@@ -29,7 +29,7 @@ $replacements = [ordered]@{
     'SHOWCASE_DOMAIN'          = $HostName
     'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
     'PLATFORM_DOMAIN'          = "platform.$HostName"
-    'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local'
+    'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local,platform-admin@saas.local'
     'SAAS_TRIAL_DAYS'          = '14'
 }
 
