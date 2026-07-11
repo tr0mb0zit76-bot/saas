@@ -804,7 +804,6 @@ const isStandaloneApp = ref(false);
 const isMobileViewport = ref(false);
 
 const authUser = computed(() => page.props.auth?.user ?? null);
-const isPlatformAdmin = computed(() => Boolean(authUser.value?.is_platform_admin));
 const sidebarFavorites = computed(() => authUser.value?.sidebar_favorites ?? null);
 const sidebarFavoriteKeys = computed(() => sidebarFavorites.value?.keys ?? []);
 const sidebarFavoriteMax = computed(() => sidebarFavorites.value?.max ?? 5);
@@ -1004,7 +1003,6 @@ const MENU_ROUTES = {
     system: '/settings/system',
     'order-numbering': '/settings/system/order-numbering',
     'platform-tenants': '/platform/tenants',
-    'platform-admin': '/platform',
 };
 
 const MOBILE_BROWSER_BYPASS = 'crm_mobile_browser_cabinet_v1';
@@ -1434,9 +1432,6 @@ const menuItems = computed(() => {
                 }
                 if (isAdminUser.value) {
                     administrationChildren.push({ key: 'roles', label: 'Роли' });
-                }
-                if (isPlatformAdmin.value) {
-                    administrationChildren.push({ key: 'platform-admin', label: 'Platform Admin' });
                 }
                 if (hasSettingsSystemAccess.value) {
                     administrationChildren.push({ key: 'business-processes', label: 'Бизнес-процессы' });

@@ -5,6 +5,7 @@ namespace Tests\Feature\Saas;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\PlatformHost;
 use App\Support\RoleAccess;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Hash;
@@ -18,7 +19,10 @@ class PlatformSuperAdminTest extends SaasTestCase
     {
         parent::setUp();
 
-        config(['saas.platform_admin_emails' => ['platform-admin@saas.local']]);
+        config([
+            'app.platform_domain' => 'platform.test',
+            'saas.platform_admin_emails' => ['platform-admin@saas.local'],
+        ]);
 
         TenantContext::bypass(true);
 
@@ -54,9 +58,9 @@ class PlatformSuperAdminTest extends SaasTestCase
 
     public function test_platform_admin_can_open_super_admin_sections(): void
     {
-        $this->actingAs($this->platformAdmin)->get('/platform')->assertOk();
-        $this->actingAs($this->platformAdmin)->get('/platform/plans')->assertOk();
-        $this->actingAs($this->platformAdmin)->get('/platform/tenants')->assertOk();
+        $this->actingAs($this->platformAdmin)->get($this->platformUrl('/'))->assertOk();
+        $this->actingAs($this->platformAdmin)->get($this->platformUrl('/plans'))->assertOk();
+        $this->actingAs($this->platformAdmin)->get($this->platformUrl('/tenants'))->assertOk();
     }
 
     public function test_platform_admin_can_override_tenant_features(): void
@@ -120,5 +124,10 @@ class PlatformSuperAdminTest extends SaasTestCase
         config(['saas.default_tenant_slug' => $tenant->slug]);
 
         $this->actingAs($user)->get('/mail')->assertOk();
+    }
+
+    private function platformUrl(string $path = '/'): string
+    {
+        return PlatformHost::url($path);
     }
 }

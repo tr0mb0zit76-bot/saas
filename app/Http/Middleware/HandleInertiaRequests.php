@@ -79,6 +79,15 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Platform) {
+            return [
+                ...parent::share($request),
+                'document_title_suffix' => Inertia::always(fn () => InertiaAppSurface::Platform->documentTitleSuffix()),
+                'flash' => fn () => $request->session()->get('flash'),
+                'auth' => Inertia::always(fn () => $this->sharedPlatformAuth($request)),
+            ];
+        }
+
         return [
             ...parent::share($request),
             'document_title_suffix' => Inertia::always(fn () => InertiaAppSurface::fromRequest($request)->documentTitleSuffix()),
@@ -101,6 +110,27 @@ class HandleInertiaRequests extends Middleware
             'crm_features' => Inertia::always(fn (): array => CrmFeatureCatalog::snapshot($request->user())),
             'tenant' => Inertia::always(fn (): ?array => $this->sharedTenant()),
             'mobile_push_enabled' => Inertia::always(static fn (): bool => (bool) config('fcm.enabled')),
+        ];
+    }
+
+    /**
+     * @return array{user: ?array<string, mixed>}
+     */
+    private function sharedPlatformAuth(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return ['user' => null];
+        }
+
+        return [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_platform_admin' => PlatformAdmin::isPlatformAdmin($user),
+            ],
         ];
     }
 

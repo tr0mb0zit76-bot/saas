@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Support\PlatformHost;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -12,6 +13,12 @@ class IdentifyTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (PlatformHost::matchesRequest($request)) {
+            TenantContext::bypass(true);
+
+            return $next($request);
+        }
+
         $slug = $request->header('X-Tenant-Slug')
             ?? $this->resolveSubdomain($request->getHost())
             ?? config('saas.default_tenant_slug');

@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\PlatformAdmin;
+use App\Support\PlatformHost;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,6 +21,12 @@ class SetTenantFromAuthenticatedUser
         $user = $request->user();
 
         if (! $user instanceof User) {
+            return $next($request);
+        }
+
+        if (PlatformHost::matchesRequest($request) && PlatformAdmin::isPlatformAdmin($user)) {
+            TenantContext::bypass(true);
+
             return $next($request);
         }
 

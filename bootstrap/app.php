@@ -18,6 +18,7 @@ use App\Http\Middleware\SetTenantFromAuthenticatedUser;
 use App\Http\Middleware\RejectExternalFromInternalRoutes;
 use App\Http\Middleware\VerifyAstralEpdWebhookSignature;
 use App\Http\Middleware\VerifyOneCFreshToken;
+use App\Support\PlatformHost;
 use App\Support\UserFacingDatabaseMessageResolver;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +26,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -33,10 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            Route::middleware('web')->group(base_path('routes/platform.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
-        $middleware->redirectGuestsTo(fn (Request $request): string => $request->is('mobile/*') ? '/mobile/login' : '/login');
+        $middleware->redirectGuestsTo(function (Request $request): string {
+            if (PlatformHost::matchesRequest($request)) {
+                return PlatformHost::url('/login');
+            }
+
+            return $request->is('mobile/*') ? '/mobile/login' : '/login';
+        });
 
         $middleware->alias([
             'visibility.area' => EnsureVisibilityAreaAccess::class,

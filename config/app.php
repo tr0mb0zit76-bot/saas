@@ -75,6 +75,16 @@ return [
     'crm_domain' => $crmDomain,
 
     /*
+    | Traklo Pro platform operator portal (super-admin). Локально: platform.saas.local.
+    */
+    'platform_domain' => strtolower(trim((string) env(
+        'PLATFORM_DOMAIN',
+        $crmDomain !== '' && ! str_starts_with($crmDomain, 'platform.')
+            ? 'platform.'.$crmDomain
+            : 'platform.localhost',
+    ))),
+
+    /*
     | Несколько хостов витрины через запятую в SHOWCASE_DOMAIN (например domen.ru,www.domen.ru).
     | showcase_domain — первый хост (обратная совместимость).
     */

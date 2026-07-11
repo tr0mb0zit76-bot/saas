@@ -22,10 +22,14 @@
                     </nav>
                 </div>
                 <div class="flex items-center gap-3 text-sm">
-                    <Link :href="route('dashboard')" class="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200">
-                        ← CRM
-                    </Link>
                     <span class="text-zinc-400">{{ authUser?.name }}</span>
+                    <button
+                        type="button"
+                        class="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                        @click="logout"
+                    >
+                        Выйти
+                    </button>
                 </div>
             </div>
         </header>
@@ -37,10 +41,10 @@
 </template>
 
 <script setup>
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-const props = defineProps({
+defineProps({
     activeKey: { type: String, default: 'dashboard' },
 });
 
@@ -52,4 +56,8 @@ const navItems = [
     { key: 'tenants', label: 'Арендаторы', href: route('platform.tenants.index') },
     { key: 'plans', label: 'Тарифы и модули', href: route('platform.plans.index') },
 ];
+
+function logout() {
+    router.post(route('platform.logout'));
+}
 </script>

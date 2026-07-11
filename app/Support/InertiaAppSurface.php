@@ -14,9 +14,14 @@ enum InertiaAppSurface: string
 {
     case Showcase = 'showcase';
     case Crm = 'crm';
+    case Platform = 'platform';
 
     public static function fromRequest(Request $request): self
     {
+        if (PlatformHost::matchesRequest($request)) {
+            return self::Platform;
+        }
+
         $host = strtolower($request->getHost());
         $crm = strtolower((string) config('app.crm_domain', ''));
         /** @var list<string> $showcaseHosts */
@@ -46,6 +51,7 @@ enum InertiaAppSurface: string
         return match ($this) {
             self::Showcase => (string) config('app.showcase_browser_title', 'Автоальянс Смоленск'),
             self::Crm => (string) config('app.crm_browser_title', 'CRM компании Автоальянс Смоленск'),
+            self::Platform => 'Traklo Pro Platform',
         };
     }
 

@@ -5,6 +5,7 @@ namespace Tests\Feature\Saas;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\PlatformHost;
 use App\Support\RoleAccess;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Hash;
@@ -16,7 +17,10 @@ class PlatformTenantManagementTest extends SaasTestCase
     {
         parent::setUp();
 
-        config(['saas.platform_admin_emails' => ['platform-admin@saas.local']]);
+        config([
+            'app.platform_domain' => 'platform.test',
+            'saas.platform_admin_emails' => ['platform-admin@saas.local'],
+        ]);
     }
 
     public function test_non_platform_admin_cannot_access_tenant_registry(): void
@@ -52,7 +56,7 @@ class PlatformTenantManagementTest extends SaasTestCase
         TenantContext::bypass(false);
         config(['saas.default_tenant_slug' => $tenant->slug]);
 
-        $this->actingAs($user)->get('/platform/tenants')->assertForbidden();
+        $this->actingAs($user)->get($this->platformUrl('/tenants'))->assertForbidden();
     }
 
     public function test_platform_admin_can_list_and_create_tenants(): void
@@ -88,11 +92,11 @@ class PlatformTenantManagementTest extends SaasTestCase
         TenantContext::bypass(false);
         config(['saas.default_tenant_slug' => $tenant->slug]);
 
-        $this->actingAs($admin)->get('/platform/tenants')->assertOk();
+        $this->actingAs($admin)->get($this->platformUrl('/tenants'))->assertOk();
 
         $slug = 'newco-'.uniqid();
 
-        $this->actingAs($admin)->post('/platform/tenants', [
+        $this->actingAs($admin)->post($this->platformUrl('/tenants'), [
             'slug' => $slug,
             'name' => 'New Company',
             'status' => 'trial',
@@ -103,5 +107,10 @@ class PlatformTenantManagementTest extends SaasTestCase
         $this->assertDatabaseHas('tenants', ['slug' => $slug, 'plan' => 'start', 'status' => 'trial']);
         $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', Tenant::query()->where('slug', $slug)->value('id'))->count());
         TenantContext::bypass(false);
+    }
+
+    private function platformUrl(string $path = '/'): string
+    {
+        return PlatformHost::url($path);
     }
 }
