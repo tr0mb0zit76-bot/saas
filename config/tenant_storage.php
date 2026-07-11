@@ -16,6 +16,9 @@ return [
 
     'disk' => env('TENANT_STORAGE_DISK', 'tenant_local'),
 
+    // Route DocumentStorageService through TenantStorage when tenant context is set.
+    'use_for_documents' => env('TENANT_STORAGE_FOR_DOCUMENTS', true),
+
     // Optional bucket-level prefix, e.g. traklo-pro-prod
     'root_prefix' => env('TENANT_STORAGE_ROOT_PREFIX', ''),
 

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Support\TenantContext;
+use App\Support\TenantStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +15,8 @@ class DocumentStorageService
     public const DRIVER_LOCAL = 'local';
 
     public const DRIVER_NEXTCLOUD = 'nextcloud';
+
+    public const DRIVER_TENANT = 'tenant';
 
     private readonly string $configuredDriver;
 
@@ -45,6 +49,9 @@ class DocumentStorageService
         $path = $this->resolveUniquePathInDirectory($directory, $originalName);
         $contents = $file->get();
         $driver = $this->configuredDriver();
+        if ($this->usesTenantStorage($driver)) {
+            $driver = $this->tenantStorageDriverLabel();
+        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -74,6 +81,9 @@ class DocumentStorageService
         $directory = 'mail_inbound/'.$mailboxUserId.'/'.$messageId;
         $path = $this->resolveUniquePathInDirectory($directory, $originalName);
         $driver = $this->configuredDriver();
+        if ($this->usesTenantStorage($driver)) {
+            $driver = $this->tenantStorageDriverLabel();
+        }
         $this->put($path, $contents, $driver);
 
         return [
@@ -94,6 +104,9 @@ class DocumentStorageService
         $path = $this->resolveUniquePathInDirectory($directory, $originalName);
         $contents = $file->get();
         $driver = $this->configuredDriver();
+        if ($this->usesTenantStorage($driver)) {
+            $driver = $this->tenantStorageDriverLabel();
+        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -118,6 +131,9 @@ class DocumentStorageService
         $path = $this->resolveUniquePathInDirectory($directory, $originalName);
         $contents = $file->get();
         $driver = $this->configuredDriver();
+        if ($this->usesTenantStorage($driver)) {
+            $driver = $this->tenantStorageDriverLabel();
+        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -135,6 +151,12 @@ class DocumentStorageService
 
     public function put(string $path, string $contents, ?string $driver = null): void
     {
+        if ($this->usesTenantStorage($driver)) {
+            TenantStorage::put($path, $contents);
+
+            return;
+        }
+
         $driver = $this->resolveDriver($driver);
 
         if ($driver === self::DRIVER_NEXTCLOUD) {
@@ -148,6 +170,10 @@ class DocumentStorageService
 
     public function get(string $path, ?string $driver = null): string
     {
+        if ($this->usesTenantStorage($driver)) {
+            return (string) TenantStorage::get($path);
+        }
+
         $driver = $this->resolveDriver($driver);
 
         if ($driver === self::DRIVER_NEXTCLOUD) {
@@ -163,9 +189,15 @@ class DocumentStorageService
             return;
         }
 
-        $driver = $this->resolveDriver($driver);
-
         try {
+            if ($this->usesTenantStorage($driver)) {
+                TenantStorage::delete($path);
+
+                return;
+            }
+
+            $driver = $this->resolveDriver($driver);
+
             if ($driver === self::DRIVER_NEXTCLOUD) {
                 $this->nextcloudStorage->delete((string) $path);
 
@@ -184,6 +216,14 @@ class DocumentStorageService
 
     public function size(string $path, ?string $driver = null, ?string $knownContents = null): int
     {
+        if ($this->usesTenantStorage($driver)) {
+            if ($knownContents !== null) {
+                return strlen($knownContents);
+            }
+
+            return strlen((string) TenantStorage::get($path));
+        }
+
         $driver = $this->resolveDriver($driver);
 
         if ($driver === self::DRIVER_NEXTCLOUD) {
@@ -199,6 +239,10 @@ class DocumentStorageService
 
     public function exists(string $path, ?string $driver = null): bool
     {
+        if ($this->usesTenantStorage($driver)) {
+            return TenantStorage::exists($path);
+        }
+
         $driver = $this->resolveDriver($driver);
 
         if ($driver === self::DRIVER_NEXTCLOUD) {
@@ -318,10 +362,33 @@ class DocumentStorageService
     {
         $resolved = $driver ?? $this->configuredDriver;
 
+        if (in_array($resolved, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
+            return self::DRIVER_TENANT;
+        }
+
         if ($resolved === self::DRIVER_NEXTCLOUD) {
             return self::DRIVER_NEXTCLOUD;
         }
 
         return self::DRIVER_LOCAL;
+    }
+
+    private function usesTenantStorage(?string $driver): bool
+    {
+        if ($driver === self::DRIVER_NEXTCLOUD) {
+            return false;
+        }
+
+        if (in_array($driver, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
+            return TenantContext::id() !== null;
+        }
+
+        return (bool) config('tenant_storage.use_for_documents', true)
+            && TenantContext::id() !== null;
+    }
+
+    private function tenantStorageDriverLabel(): string
+    {
+        return str_contains(TenantStorage::diskName(), 's3') ? 'tenant_s3' : 'tenant_local';
     }
 }

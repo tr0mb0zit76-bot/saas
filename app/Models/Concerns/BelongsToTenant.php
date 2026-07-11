@@ -6,6 +6,7 @@ use App\Models\Scopes\TenantScope;
 use App\Models\Tenant;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
 
 trait BelongsToTenant
 {
@@ -15,6 +16,10 @@ trait BelongsToTenant
 
         static::creating(function ($model): void {
             if ($model->tenant_id !== null || TenantContext::id() === null) {
+                return;
+            }
+
+            if (! Schema::hasColumn($model->getTable(), 'tenant_id')) {
                 return;
             }
 

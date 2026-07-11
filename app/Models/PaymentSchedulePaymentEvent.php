@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +11,7 @@ use Illuminate\Support\Facades\Schema;
 
 class PaymentSchedulePaymentEvent extends Model
 {
+    use BelongsToTenant;
     /**
      * @var list<string>
      */

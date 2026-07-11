@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Support\PrintFormTemplateTransportScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PrintFormTemplate extends Model
 {
+    use BelongsToTenant;
     /**
      * @var list<string>
      */

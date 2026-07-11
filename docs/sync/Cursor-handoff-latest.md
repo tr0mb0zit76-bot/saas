@@ -4,80 +4,66 @@
 
 ---
 
-## Продуктовая стратегия
+## Продукт: Traklo Pro
 
-Полный бриф: `docs/architecture/saas-product-roadmap-brief.md`  
-ADR: `004`–`010` в `docs/architecture/decisions/`
-
-**Позиционирование:** vertical SaaS для экспедиторов (5–50 чел.), не «ещё одна CRM», а цепочка лид → заказ → документы → график оплат + mobile + AI command bar.
-
-**Тарифы:** Start / Pro / Enterprise — каталог `config/saas-plans.php`, enforcement через middleware `feature:*`.
-
-**Брендинг:** **Traklo Pro**; per-tenant `settings.branding`. AI: Старший, Продавец, РОП, Юрист, СБ, Финансист, Почта.
-
-**Pilot:** чистый demo-tenant, не prod Автоальянс.
-
-**Billing MVP:** счета + УПД вручную (ADR-009).
-
-**Storage:** S3-first (`TenantStorage`, ADR-005). Lab = local disk, prod = Yandex OS / S3. Nextcloud — legacy v5 only.
-
-**Scale:** ADR-011 (AI data tenant_id), ADR-012 (DB phases P0–P4).
-
-**Obsidian:** [[traklo-pro-storage|traklo-pro-storage.md]] — local vs S3.
+- **Pilot:** чистый demo-tenant
+- **Billing:** счета / УПД (ADR-009)
+- **Storage:** S3 prod, `tenant_local` lab — [[traklo-pro-storage]]
+- **Mobile:** один APK + subdomain
 
 ---
 
-## Сделано в этой итерации
+## Сделано (автономная сессия)
 
-- ADR-004 … ADR-010
-- Fail-closed `TenantScope` (ADR-010)
-- `SetTenantFromAuthenticatedUser` + API tenant middleware
-- Login scoped by `tenant_id`
-- `config/saas-plans.php` + `Tenant::featureEnabled()`
-- Neutral AI personas + app title defaults
-- Tests: `tests/Feature/Saas/TenantSecurityTest.php`
+### Security & plans (PR #4)
+- Fail-closed TenantScope, API/auth tenant middleware, login scoped by tenant_id
+- `config/saas-plans.php`, `EnsureFeatureEnabled`, Traklo Pro branding
+- AI assistants: Старший, Продавец, РОП, Юрист, СБ, Финансист, Почта
+- ADR-004 … ADR-012
+
+### Tier A tenancy
+- Migration `2026_07_11_120000_add_tenant_id_tier_a.php` (~35 tables + AI)
+- `BelongsToTenant` on: Task, OrderDocument, PaymentSchedule, Mail*, Conversation, ChatMessage, ActivityEvent, GridView, Role, Department, PrintFormTemplate
+- `BelongsToTenant` / `TenantScope` safe during migrations (schema column check)
+
+### Storage
+- `TenantStorage` helper, `DocumentStorageService` → tenant paths when context set
+- `SetTenantFromJob` middleware
+
+### Tests
+- `tests/Feature/Saas/*` — 12 tests passing
 
 ---
 
-## Следующие PR (порядок)
-
-1. Tier A `tenant_id` migration (~40 таблиц)
-2. M6 audit P0.10 / P1.1
-3. `TenantStorage` + file isolation slice
-4. Route `feature:*` groups (mail, finance, …)
-5. Billing skeleton (`tenant_subscriptions`)
-
----
-
-## Локальный OSPanel (Windows)
+## На home-pc (когда вернётесь)
 
 ```powershell
 cd C:\OSPanel\home\saas\saas.local
-git pull origin main
-pwsh -File scripts/setup-os-panel.ps1
+git pull origin cursor/saas-security-foundation-4010
+composer install --no-interaction
+php artisan migrate --force
+php artisan config:clear
+npm run build
 ```
 
-Если **404** на `/`: `pwsh -File scripts/apply-saas-lab-env.ps1`
+`.env` (lab, без S3):
 
-Открыть: **http://saas.local** · Login: **admin@saas.local** / **password**
-
----
-
-## Demo tenants
-
-| Slug | User |
-|------|------|
-| demo | admin@saas.local |
-| demo-a | manager@demo-a.saas.local |
-| demo-b | manager@demo-b.saas.local |
+```env
+TENANT_STORAGE_DISK=tenant_local
+TENANT_STORAGE_FOR_DOCUMENTS=true
+```
 
 ---
 
-## Решения продукта (2026-07-11)
+## Следующие PR
 
-| Вопрос | Решение |
-|--------|---------|
-| Имя продукта | **Traklo Pro** |
-| Pilot | Чистый **demo**, не AA prod |
-| Billing | Счета / УПД, ручное продление |
-| Mobile MVP | Один APK + subdomain `{slug}.crm.ru` (см. ниже) |
+1. M6 P0.10 audit IDOR scope fixes
+2. Tier B migration (sales_scripts, fleet, management…)
+3. Route `feature:*` groups
+4. Super-admin skeleton (tenants, suspend, invoice period)
+
+---
+
+## От вас ничего не требуется сейчас
+
+Когда будете — merge PR #4 в main и pull на home-pc.

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use App\Observers\OrderDocumentObserver;
 use Database\Factories\OrderDocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ObservedBy([OrderDocumentObserver::class])]
 class OrderDocument extends Model
 {
+    use BelongsToTenant;
     /** @use HasFactory<OrderDocumentFactory> */
     use HasFactory;
 

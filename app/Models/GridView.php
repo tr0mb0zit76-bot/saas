@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
+
 use Database\Factories\GridViewFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GridView extends Model
 {
+    use BelongsToTenant;
     /** @use HasFactory<GridViewFactory> */
     use HasFactory;
 

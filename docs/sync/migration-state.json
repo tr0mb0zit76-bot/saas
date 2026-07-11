@@ -42,6 +42,8 @@
     "M5.4": { "status": "done", "note": "TenantIsolationTest" },
     "M5.5": { "status": "done", "note": "TenantDemoSeeder demo-a/b" },
     "M6.0": { "status": "done", "note": "fail-closed scope, API tenant, login check, saas-plans skeleton" },
+    "M6.0a": { "status": "done", "note": "Tier A tenant_id migration + BelongsToTenant on 13 models" },
+    "M6.0b": { "status": "done", "note": "DocumentStorageService → TenantStorage" },
     "M6.1": { "status": "pending", "note": "P0.10 IDOR scope" },
     "M6.2": { "status": "pending", "note": "P1.1 department scope" },
     "M7.1": { "status": "in_progress", "note": "feature flags skeleton in config + middleware" },

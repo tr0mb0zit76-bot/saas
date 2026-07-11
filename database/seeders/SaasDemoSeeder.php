@@ -73,8 +73,9 @@ class SaasDemoSeeder extends Seeder
     private function seedRoles(): array
     {
         $make = fn (string $name, string $displayName) => Role::query()->updateOrCreate(
-            ['name' => $name],
+            ['tenant_id' => $tenant->id, 'name' => $name],
             [
+                'tenant_id' => $tenant->id,
                 'display_name' => $displayName,
                 'description' => 'SaaS demo role',
                 'permissions' => RoleAccess::permissionKeys(),
