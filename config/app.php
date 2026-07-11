@@ -91,8 +91,8 @@ return [
     /*
     | Суффикс заголовка вкладки (после названия страницы через « - ») для Inertia.
     */
-    'showcase_browser_title' => env('SHOWCASE_BROWSER_TITLE', env('APP_NAME', 'Forward CRM')),
-    'crm_browser_title' => env('CRM_BROWSER_TITLE', env('APP_NAME', 'Forward CRM')),
+    'showcase_browser_title' => env('SHOWCASE_BROWSER_TITLE', env('APP_NAME', 'Traklo Pro')),
+    'crm_browser_title' => env('CRM_BROWSER_TITLE', env('APP_NAME', 'Traklo Pro')),
 
     /*
     | Ссылка на карточку компании на checko.ru для виджета «Проверенная компания» на витрине.

@@ -1,17 +1,20 @@
-# ADR-009: Billing provider integration
+# ADR-009: Billing — счета и УПД (B2B)
 
-**Status:** Proposed  
-**Date:** 2026-07-11
+**Status:** Accepted  
+**Date:** 2026-07-11 (updated)
 
 ## Decision
 
-Use **ЮKassa or CloudPayments** webhooks → `tenant_subscriptions` table. Suspend tenant on payment failure; no custom billing engine.
+MVP billing: **manual invoice workflow** (счёт → оплата → УПД), not online payment gateway. Track subscription state in `tenant_subscriptions` with status `trial | active | past_due | suspended`. Admin marks invoice paid; system extends period and keeps plan features.
+
+Optional later: ЮKassa/CloudPayments for self-service — separate ADR amendment.
 
 ## Context
 
-Monetization requires recurring plans mapped to ADR-006 feature sets.
+B2B экспедиторы привыкли к счетам и закрывающим документам. Product director confirmed no payment provider at launch.
 
 ## Consequences
 
-- Tables: `tenant_subscriptions`, optional `tenant_usage_logs`.
-- Trial job on existing `tenants.trial_ends_at`.
+- Super-admin UI: create tenant, assign plan Start/Pro/Enterprise, set `billing_period_end`, suspend on non-payment.
+- No webhook MVP; cron job `ExpireTrials` on `trial_ends_at`.
+- Usage limits (users, orders/month) enforced in app; overage handled commercially offline.

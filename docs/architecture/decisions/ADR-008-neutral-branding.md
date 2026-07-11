@@ -1,17 +1,17 @@
-# ADR-008: Neutral product branding
+# ADR-008: Product branding — Traklo Pro
 
 **Status:** Accepted  
-**Date:** 2026-07-11
+**Date:** 2026-07-11 (updated)
 
 ## Decision
 
-Platform defaults use **Forward CRM** (configurable via `APP_NAME`). Per-tenant branding in `tenants.settings.branding`. AI assistant **display names** are neutral (Орбита, Коммерция, …); slugs unchanged for audit compatibility. Traklo mobile remains Enterprise SKU only.
+Platform product name: **Traklo Pro** (`APP_NAME`). Per-tenant branding in `tenants.settings.branding`. AI assistant display names: **Старший, Продавец, РОП, Юрист, СБ, Финансист, Почта** (slugs unchanged for audit). External-party mobile (бывший Traklo carrier app) — Enterprise SKU `traklo_mobile`.
 
 ## Context
 
-SaaS product is sold to external freight forwarders, not Avtoalyans-only.
+SaaS sold to external freight forwarders under Traklo Pro brand. Pilot tenant: clean **demo**, not Avtoalyans production data.
 
 ## Consequences
 
-- v5 internal deployments may override `.env` with AA branding.
-- Public showcase copy becomes tenant-aware or disabled on SaaS single-host lab.
+- v5 internal AA deployments override `.env` locally if needed.
+- Showcase copy becomes tenant-aware on SaaS hosts.

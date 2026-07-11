@@ -13,7 +13,11 @@ ADR: `004`–`010` в `docs/architecture/decisions/`
 
 **Тарифы:** Start / Pro / Enterprise — каталог `config/saas-plans.php`, enforcement через middleware `feature:*`.
 
-**Брендинг:** нейтральный default **Forward CRM**; per-tenant `settings.branding`. AI-ассистенты переименованы (Орбита, Коммерция, …), slug в audit без изменений.
+**Брендинг:** **Traklo Pro**; per-tenant `settings.branding`. AI: Старший, Продавец, РОП, Юрист, СБ, Финансист, Почта.
+
+**Pilot:** чистый demo-tenant, не prod Автоальянс.
+
+**Billing MVP:** счета + УПД вручную (ADR-009), без онлайн-эквайринга на старте.
 
 ---
 
@@ -63,8 +67,11 @@ pwsh -File scripts/setup-os-panel.ps1
 
 ---
 
-## Open questions
+## Решения продукта (2026-07-11)
 
-1. Имя продукта: Forward CRM или другое?
-2. Mobile: один APK + subdomain vs white-label Enterprise?
-3. Billing: ЮKassa vs CloudPayments?
+| Вопрос | Решение |
+|--------|---------|
+| Имя продукта | **Traklo Pro** |
+| Pilot | Чистый **demo**, не AA prod |
+| Billing | Счета / УПД, ручное продление |
+| Mobile MVP | Один APK + subdomain `{slug}.crm.ru` (см. ниже) |

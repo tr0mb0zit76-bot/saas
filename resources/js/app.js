@@ -22,7 +22,7 @@ function documentTitleSuffixFromPage() {
         return suffix.trim();
     }
 
-    return 'Forward CRM';
+    return 'Traklo Pro';
 }
 
 const savedTheme = localStorage.getItem('theme');

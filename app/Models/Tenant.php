@@ -118,8 +118,8 @@ class Tenant extends Model
     public function branding(): array
     {
         $defaults = [
-            'product_name' => (string) config('app.name', 'Forward CRM'),
-            'mobile_app_name' => (string) config('saas.mobile_app_name', 'Forward Mobile'),
+            'product_name' => (string) config('app.name', 'Traklo Pro'),
+            'mobile_app_name' => (string) config('saas.mobile_app_name', 'Traklo Pro'),
             'primary_accent' => 'sky',
             'logo_path' => null,
         ];
