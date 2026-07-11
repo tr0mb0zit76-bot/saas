@@ -37,15 +37,24 @@ class SaasDemoSeeder extends Seeder
             return;
         }
 
+        TenantContext::bypass(true);
+
+        if (User::query()->where('email', self::MANAGER_EMAIL)->exists()) {
+            $this->ensurePlatformLabAdmin();
+            TenantContext::bypass(false);
+            $this->command?->warn('SaasDemoSeeder: demo bundle present, ensured platform admin.');
+
+            return;
+        }
+
         if (User::query()->where('email', self::ADMIN_EMAIL)->exists()) {
+            TenantContext::bypass(false);
             $this->command?->warn('SaasDemoSeeder: demo users already exist, skipping.');
 
             return;
         }
 
         $this->call(DatabaseSeeder::class);
-
-        TenantContext::bypass(true);
 
         $tenant = Tenant::query()->updateOrCreate(
             ['slug' => 'demo'],
@@ -65,6 +74,42 @@ class SaasDemoSeeder extends Seeder
         $this->command?->info('SaasDemoSeeder OK');
         $this->command?->info('Login: '.self::ADMIN_EMAIL.' / '.self::MANAGER_EMAIL.' — password: '.self::PASSWORD);
         $this->command?->info('Contractors: '.Contractor::query()->count().' | Leads: '.Lead::query()->count());
+    }
+
+    private function ensurePlatformLabAdmin(): void
+    {
+        if (User::query()->where('email', self::ADMIN_EMAIL)->exists()) {
+            return;
+        }
+
+        $tenant = Tenant::query()->updateOrCreate(
+            ['slug' => (string) config('saas.default_tenant_slug', 'demo')],
+            ['name' => 'Demo Logistics', 'status' => 'active', 'plan' => 'start'],
+        );
+
+        $role = Role::query()->firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'admin'],
+            [
+                'tenant_id' => $tenant->id,
+                'display_name' => 'Администратор',
+                'description' => 'SaaS demo role',
+                'permissions' => RoleAccess::permissionKeys(),
+                'visibility_areas' => RoleAccess::defaultVisibilityAreas('admin'),
+                'visibility_scopes' => RoleAccess::defaultVisibilityScopes('admin'),
+            ],
+        );
+
+        User::query()->create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => 'Demo Admin',
+            'email' => self::ADMIN_EMAIL,
+            'password' => Hash::make(self::PASSWORD),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $this->command?->info('SaasDemoSeeder: created lab admin '.self::ADMIN_EMAIL);
     }
 
     /**

@@ -45,7 +45,7 @@ if (-not (Test-Path $envFile)) {
 }
 
 Set-EnvKey 'PLATFORM_DOMAIN' $PlatformHost
-Set-EnvKey 'SAAS_PLATFORM_ADMIN_EMAILS' 'admin@saas.local'
+Set-EnvKey 'SAAS_PLATFORM_ADMIN_EMAILS' 'admin@saas.local,platform-admin@saas.local'
 Set-EnvKey 'SAAS_TRIAL_DAYS' '14'
 Write-Host "Updated .env (PLATFORM_DOMAIN, SAAS_*)" -ForegroundColor Green
 
@@ -129,6 +129,11 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
     php artisan config:clear | Out-Null
     php artisan route:clear | Out-Null
     Write-Host 'Cleared Laravel config/route cache.' -ForegroundColor Green
+
+    php artisan db:seed --class=SaasDemoSeeder --force 2>&1 | Out-Host
+    if (Test-Path (Join-Path $repoRoot 'scripts/check-platform-login.php')) {
+        php (Join-Path $repoRoot 'scripts/check-platform-login.php') 2>&1 | Out-Host
+    }
 }
 
 Write-Host ''
