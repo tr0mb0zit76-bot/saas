@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\LeadActivityFactory;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class LeadActivity extends Model
 {
     /** @use HasFactory<LeadActivityFactory> */
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     /**
      * @var list<string>

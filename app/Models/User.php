@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\ExternalParty;
+use App\Support\PlatformAdmin;
 use App\Support\RoleAccess;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -119,6 +120,11 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return RoleAccess::isAdminUser($this);
+    }
+
+    public function isPlatformAdmin(): bool
+    {
+        return PlatformAdmin::isPlatformAdmin($this);
     }
 
     public function isSupervisor(): bool

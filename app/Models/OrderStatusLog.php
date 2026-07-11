@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\OrderStatusLogFactory;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class OrderStatusLog extends Model
 {
     /** @use HasFactory<OrderStatusLogFactory> */
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     /**
      * @var list<string>

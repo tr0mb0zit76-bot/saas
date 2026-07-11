@@ -804,6 +804,7 @@ const isStandaloneApp = ref(false);
 const isMobileViewport = ref(false);
 
 const authUser = computed(() => page.props.auth?.user ?? null);
+const isPlatformAdmin = computed(() => Boolean(authUser.value?.is_platform_admin));
 const sidebarFavorites = computed(() => authUser.value?.sidebar_favorites ?? null);
 const sidebarFavoriteKeys = computed(() => sidebarFavorites.value?.keys ?? []);
 const sidebarFavoriteMax = computed(() => sidebarFavorites.value?.max ?? 5);
@@ -826,6 +827,57 @@ function menuBadgeFor(key) {
     return 0;
 }
 const visibleAreas = computed(() => authUser.value?.role?.visibility_areas ?? []);
+const tenantFeatures = computed(() => page.props.tenant?.features ?? null);
+
+const MENU_SAAS_FEATURES = {
+    mail: 'mail',
+    documents: 'documents',
+    'load-board': 'load_board',
+    fleet: 'fleet',
+    'own-fleet': 'fleet',
+    'fleet-vehicles': 'fleet',
+    'fleet-trips': 'fleet',
+    'fleet-efficiency': 'fleet',
+    'fleet-containers': 'fleet',
+    'fleet-drivers': 'fleet',
+    'sales-assistant-scripts': 'sales_scripts',
+    'sales-assistant-book': 'sales_book',
+    'sales-assistant-trainer': 'sales_trainer',
+    'sales-assistant-trainer-analytics': 'sales_trainer',
+    'sales-assistant-counter': 'sales_scripts',
+    'modules-import-cost': 'import_cost',
+    'modules-proposal-templates': 'proposals_html',
+    'mcp-integrations': 'mcp_read',
+    'finance-management-accounting': 'management_accounting',
+    'finance-cashflow': 'payment_schedules',
+    'finance-reconciliation': 'payment_schedules',
+};
+
+function tenantHasSaasFeature(menuKey) {
+    const features = tenantFeatures.value;
+    const required = MENU_SAAS_FEATURES[menuKey];
+
+    if (!required || !Array.isArray(features)) {
+        return true;
+    }
+
+    return features.includes(required);
+}
+
+function filterMenuTreeByTenantFeatures(items) {
+    return items
+        .map((item) => {
+            if (item.children?.length) {
+                const children = filterMenuTreeByTenantFeatures(item.children);
+
+                return children.length > 0 ? { ...item, children } : null;
+            }
+
+            return tenantHasSaasFeature(item.key) ? item : null;
+        })
+        .filter(Boolean);
+}
+
 const isAdminUser = computed(() => Boolean(authUser.value?.role?.is_admin) || authUser.value?.role?.name === 'admin');
 const hasLegacyAllSettingsAccess = computed(() => {
     const areas = visibleAreas.value;
@@ -951,6 +1003,7 @@ const MENU_ROUTES = {
     'ai-analytics': '/settings/ai-analytics',
     system: '/settings/system',
     'order-numbering': '/settings/system/order-numbering',
+    'platform-tenants': '/platform/tenants',
 };
 
 const MOBILE_BROWSER_BYPASS = 'crm_mobile_browser_cabinet_v1';
@@ -1381,6 +1434,9 @@ const menuItems = computed(() => {
                 if (isAdminUser.value) {
                     administrationChildren.push({ key: 'roles', label: 'Роли' });
                 }
+                if (isPlatformAdmin.value) {
+                    administrationChildren.push({ key: 'platform-tenants', label: 'Арендаторы SaaS' });
+                }
                 if (hasSettingsSystemAccess.value) {
                     administrationChildren.push({ key: 'business-processes', label: 'Бизнес-процессы' });
                 }
@@ -1480,7 +1536,9 @@ const menuItems = computed(() => {
         }
 
         return visibleAreas.value.includes(item.visibilityArea);
-    }).map(withSortedChildren);
+    });
+
+    return filterMenuTreeByTenantFeatures(items.map(withSortedChildren));
 });
 
 watch(

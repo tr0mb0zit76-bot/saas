@@ -11,6 +11,7 @@ use App\Http\Middleware\EnsureVisibilityAreaAccess;
 use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ReconnectOnPreparedStatementError;
 use App\Http\Middleware\SetTenantFromAuthenticatedUser;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verify.astral.epd.signature' => VerifyAstralEpdWebhookSignature::class,
             'verify.onec.token' => VerifyOneCFreshToken::class,
             'feature' => EnsureFeatureEnabled::class,
+            'platform.admin' => EnsurePlatformAdmin::class,
         ]);
 
         $middleware->web(prepend: [

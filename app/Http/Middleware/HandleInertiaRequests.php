@@ -18,6 +18,7 @@ use App\Support\MobileNavPresets;
 use App\Support\MobileNavResolver;
 use App\Support\OrderTableColumns;
 use App\Support\PaymentScheduleTableColumns;
+use App\Support\PlatformAdmin;
 use App\Support\RoleAccess;
 use App\Support\ShowcaseUrl;
 use App\Support\SidebarMenuFavoritesResolver;
@@ -126,6 +127,7 @@ class HandleInertiaRequests extends Middleware
                 'mobile_nav' => MobileNavResolver::forInertiaUser($user),
                 'sidebar_favorites' => SidebarMenuFavoritesResolver::forInertiaUser($user),
                 'pinned_grid_views' => app(GridViewService::class)->pinnedForSidebar($user),
+                'is_platform_admin' => PlatformAdmin::isPlatformAdmin($user),
                 'role' => ! $hasRolesTable ? null : (function () use ($user): ?array {
                     $assignedRoles = RoleAccess::assignedRoles($user);
 
