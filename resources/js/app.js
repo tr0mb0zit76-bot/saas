@@ -22,7 +22,7 @@ function documentTitleSuffixFromPage() {
         return suffix.trim();
     }
 
-    return 'CRM компании Автоальянс Смоленск';
+    return 'Forward CRM';
 }
 
 const savedTheme = localStorage.getItem('theme');

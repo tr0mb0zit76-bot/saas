@@ -10,8 +10,10 @@ use App\Http\Middleware\EnsureSettingsVisibilityAccess;
 use App\Http\Middleware\EnsureVisibilityAreaAccess;
 use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\EnsureFeatureEnabled;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ReconnectOnPreparedStatementError;
+use App\Http\Middleware\SetTenantFromAuthenticatedUser;
 use App\Http\Middleware\RejectExternalFromInternalRoutes;
 use App\Http\Middleware\VerifyAstralEpdWebhookSignature;
 use App\Http\Middleware\VerifyOneCFreshToken;
@@ -43,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'can.manage.sales.scripts' => EnsureCanManageSalesScripts::class,
             'verify.astral.epd.signature' => VerifyAstralEpdWebhookSignature::class,
             'verify.onec.token' => VerifyOneCFreshToken::class,
+            'feature' => EnsureFeatureEnabled::class,
         ]);
 
         $middleware->web(prepend: [
@@ -50,8 +53,28 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(append: [
+            SetTenantFromAuthenticatedUser::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+        ]);
+
+        $middleware->api(prepend: [
+            IdentifyTenant::class,
+        ]);
+
+        $middleware->api(append: [
+            SetTenantFromAuthenticatedUser::class,
+        ]);
+
+        $middleware->priority([
+            IdentifyTenant::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+            \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            SetTenantFromAuthenticatedUser::class,
+            HandleInertiaRequests::class,
         ]);
 
         // Добавляем глобальный middleware для обработки ошибки 1615 Prepared statement

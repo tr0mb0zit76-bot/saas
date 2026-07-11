@@ -91,8 +91,8 @@ return [
     /*
     | Суффикс заголовка вкладки (после названия страницы через « - ») для Inertia.
     */
-    'showcase_browser_title' => env('SHOWCASE_BROWSER_TITLE', 'Автоальянс Смоленск'),
-    'crm_browser_title' => env('CRM_BROWSER_TITLE', 'CRM компании Автоальянс Смоленск'),
+    'showcase_browser_title' => env('SHOWCASE_BROWSER_TITLE', env('APP_NAME', 'Forward CRM')),
+    'crm_browser_title' => env('CRM_BROWSER_TITLE', env('APP_NAME', 'Forward CRM')),
 
     /*
     | Ссылка на карточку компании на checko.ru для виджета «Проверенная компания» на витрине.

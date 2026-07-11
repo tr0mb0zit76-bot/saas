@@ -22,6 +22,7 @@ use App\Support\RoleAccess;
 use App\Support\ShowcaseUrl;
 use App\Support\SidebarMenuFavoritesResolver;
 use App\Support\TableColumnsPreset;
+use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -97,6 +98,7 @@ class HandleInertiaRequests extends Middleware
             'ai_agent_default_slug' => Inertia::always(fn (): string => AiAgentCatalog::defaultSlug()),
             'ai_command_bar_history' => Inertia::always(fn (): array => CommandBarHistoryLimits::profileForUser($request->user())),
             'crm_features' => Inertia::always(fn (): array => CrmFeatureCatalog::snapshot($request->user())),
+            'tenant' => Inertia::always(fn (): ?array => $this->sharedTenant()),
             'mobile_push_enabled' => Inertia::always(static fn (): bool => (bool) config('fcm.enabled')),
         ];
     }
@@ -212,6 +214,27 @@ class HandleInertiaRequests extends Middleware
                     ];
                 })(),
             ],
+        ];
+    }
+
+    /**
+     * @return array{slug: string, name: string, plan: string, features: list<string>, limits: array<string, int|null>, branding: array<string, mixed>}|null
+     */
+    private function sharedTenant(): ?array
+    {
+        $tenant = TenantContext::get();
+
+        if ($tenant === null) {
+            return null;
+        }
+
+        return [
+            'slug' => $tenant->slug,
+            'name' => $tenant->name,
+            'plan' => $tenant->planKey(),
+            'features' => $tenant->enabledFeatures(),
+            'limits' => $tenant->planLimits(),
+            'branding' => $tenant->branding(),
         ];
     }
 

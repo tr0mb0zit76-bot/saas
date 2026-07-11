@@ -17,6 +17,9 @@ class TenantScope implements Scope
 
         $tenantId = TenantContext::id();
         if ($tenantId === null) {
+            // Fail-closed: no query without tenant context (ADR-010).
+            $builder->whereRaw('0 = 1');
+
             return;
         }
 

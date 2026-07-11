@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -43,7 +44,20 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $tenantId = TenantContext::id();
+
+        if ($tenantId === null) {
+            throw ValidationException::withMessages([
+                'email' => 'Не удалось определить организацию. Обновите страницу или обратитесь в поддержку.',
+            ]);
+        }
+
+        $credentials = [
+            ...$this->only('email', 'password'),
+            'tenant_id' => $tenantId,
+        ];
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -60,6 +74,13 @@ class LoginRequest extends FormRequest
             throw ValidationException::withMessages([
                 'email' => 'Учётная запись деактивирована.',
             ]);
+        }
+
+        if ($user instanceof User) {
+            $user->loadMissing('tenant');
+            if ($user->tenant !== null) {
+                TenantContext::set($user->tenant);
+            }
         }
 
         if ($user instanceof User && ($user->mail_sync_enabled ?? true)) {
