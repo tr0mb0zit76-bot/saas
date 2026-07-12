@@ -27,40 +27,42 @@ const t = (key, fallback = '') => {
     return typeof value === 'string' && value.trim() !== '' ? value : fallback;
 };
 
-const featureKeys = [
-    'leads',
-    'orders',
-    'payments',
-    'print',
-    'documents',
-    'scripts',
-    'loadboard',
-    'payroll',
-    'mobile',
-    'rbac',
-    'ai',
-];
-
 const featureFallbackTitles = {
     leads: 'Лиды и воронка',
     orders: 'Мастер заказа',
     payments: 'График оплат',
     print: 'Печать документов',
+    rbac: 'Роли и области видимости',
     documents: 'Реестр документов',
     scripts: 'Скрипты продаж',
-    loadboard: 'Расстановщик грузов',
+    salesbook: 'Книга продаж',
+    howmuchfits: 'Сколько влезет',
     payroll: 'Начисление зарплат',
     mobile: 'Мобильное приложение',
-    rbac: 'Роли и области видимости',
     ai: 'Текстовый помощник',
 };
 
-const features = computed(() => featureKeys.map((key) => ({
+const coreFeatureKeys = ['leads', 'orders', 'payments', 'print', 'rbac'];
+
+const proFeatureKeys = [
+    'documents',
+    'scripts',
+    'salesbook',
+    'howmuchfits',
+    'payroll',
+    'mobile',
+    'ai',
+];
+
+const mapFeatures = (keys) => keys.map((key) => ({
     key,
     title: t(`feature_${key}_title`, featureFallbackTitles[key] ?? key),
     text: t(`feature_${key}_text`),
     label: t(`feature_${key}_label`, `кабинет · ${key}`),
-})));
+}));
+
+const coreFeatures = computed(() => mapFeatures(coreFeatureKeys));
+const proFeatures = computed(() => mapFeatures(proFeatureKeys));
 
 const highlightsFor = (planKey) => {
     const value = props.texts[`plan_${planKey}_highlights`]
@@ -194,7 +196,7 @@ const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
                 </div>
             </section>
 
-            <!-- Features: product-shot rows -->
+            <!-- Features: core + Pro -->
             <section id="features" class="relative border-t border-white/5">
                 <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
                     <div class="mb-14 max-w-2xl">
@@ -208,7 +210,54 @@ const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
 
                     <div class="space-y-16 lg:space-y-24">
                         <article
-                            v-for="(feature, index) in features"
+                            v-for="(feature, index) in coreFeatures"
+                            :key="feature.key"
+                            class="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
+                        >
+                            <div
+                                class="space-y-4"
+                                :class="index % 2 === 1 ? 'lg:order-2' : ''"
+                            >
+                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
+                                    {{ String(index + 1).padStart(2, '0') }}
+                                </p>
+                                <h3 class="traklo-display text-2xl font-semibold text-white sm:text-3xl">
+                                    {{ feature.title }}
+                                </h3>
+                                <p class="max-w-xl text-base leading-7 text-slate-400">
+                                    {{ feature.text }}
+                                </p>
+                            </div>
+
+                            <div :class="index % 2 === 1 ? 'lg:order-1' : ''">
+                                <ShowcaseFeatureShot
+                                    :variant="feature.key"
+                                    :label="feature.label"
+                                    :tilt="index % 2 === 1 ? 'left' : 'right'"
+                                />
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section id="features-pro" class="relative border-t border-white/5 bg-[#0a1220]/40">
+                <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
+                    <div class="mb-14 max-w-2xl">
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
+                            {{ t('plan_pro', 'Про') }}
+                        </p>
+                        <h2 class="traklo-display mt-3 text-3xl font-semibold text-white sm:text-4xl">
+                            {{ t('pro_title', 'На тарифе Про') }}
+                        </h2>
+                        <p class="mt-3 text-lg text-slate-400">
+                            {{ t('pro_subtitle') }}
+                        </p>
+                    </div>
+
+                    <div class="space-y-16 lg:space-y-24">
+                        <article
+                            v-for="(feature, index) in proFeatures"
                             :key="feature.key"
                             class="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
                         >

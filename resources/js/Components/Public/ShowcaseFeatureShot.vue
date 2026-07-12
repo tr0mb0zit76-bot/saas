@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Tilted product UI mock for showcase (placeholder until real screenshots).
- * variant: leads | orders | payments | print | documents | scripts | loadboard | payroll | mobile | rbac | ai
+ * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai
  */
 defineProps({
     variant: {
@@ -45,10 +45,16 @@ const docRows = [
 
 const scriptSteps = ['Приветствие', 'Потребность', 'Возражение', 'Закрытие'];
 
-const boardCols = [
-    { title: 'Свободно', items: ['Москва → Тверь', 'Казань → Уфа'] },
-    { title: 'В работе', items: ['Смоленск · тент'] },
-    { title: 'Закрыто', items: ['Рейс #1042'] },
+const salesbookRows = [
+    { name: 'Возражения по ставке', meta: '12 статей' },
+    { name: 'Тент / негабарит', meta: '8 статей' },
+    { name: 'Ввод нового менеджера', meta: '5 статей' },
+];
+
+const fitItems = [
+    { label: 'Паллеты', value: '18 / 22' },
+    { label: 'Вес', value: '16,4 т' },
+    { label: 'Кузов', value: '13,6 м' },
 ];
 
 const payRules = [
@@ -150,8 +156,8 @@ const payRules = [
 
                 <template v-else-if="variant === 'scripts'">
                     <div class="shot-row shot-row--head">
-                        <span class="shot-pill">Скрипт</span>
-                        <span class="shot-muted">продажа рейса</span>
+                        <span class="shot-pill">Скрипт · тренажёр</span>
+                        <span class="shot-muted">самообучение</span>
                     </div>
                     <div class="shot-steps">
                         <span
@@ -163,20 +169,40 @@ const payRules = [
                     </div>
                     <div class="shot-ai">
                         <div class="shot-ai__reply">
-                            Клиент: «Дорого». Подсказка: сравнить ставку с рынком и предложить окно погрузки.
+                            Клиент: «Дорого». Подсказка усилилась после 14 прохождений: сравнить ставку и окно погрузки.
                         </div>
                     </div>
                 </template>
 
-                <template v-else-if="variant === 'loadboard'">
+                <template v-else-if="variant === 'salesbook'">
                     <div class="shot-row shot-row--head">
-                        <span class="shot-pill shot-pill--amber">Расстановка</span>
-                        <span class="shot-muted">сегодня</span>
+                        <span class="shot-pill">Книга продаж</span>
+                        <span class="shot-muted">25 материалов</span>
                     </div>
-                    <div class="shot-kanban">
-                        <div v-for="col in boardCols" :key="col.title" class="shot-col">
-                            <div class="shot-col__title">{{ col.title }}</div>
-                            <div v-for="item in col.items" :key="item" class="shot-card">{{ item }}</div>
+                    <div class="shot-roles">
+                        <div v-for="row in salesbookRows" :key="row.name" class="shot-role">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.meta }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'howmuchfits'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill shot-pill--amber">Сколько влезет</span>
+                        <span class="shot-muted">тент 13,6</span>
+                    </div>
+                    <div class="shot-fit">
+                        <div class="shot-fit__truck">
+                            <div class="shot-fit__box shot-fit__box--a" />
+                            <div class="shot-fit__box shot-fit__box--b" />
+                            <div class="shot-fit__box shot-fit__box--c" />
+                        </div>
+                        <div class="shot-grid-2">
+                            <div v-for="item in fitItems" :key="item.label" class="shot-field">
+                                <span>{{ item.label }}</span>
+                                <strong>{{ item.value }}</strong>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -616,6 +642,35 @@ const payRules = [
     border: 1px solid rgb(255 255 255 / 0.06);
     padding: 0.65rem;
 }
+
+.shot-fit {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.shot-fit__truck {
+    position: relative;
+    height: 4.6rem;
+    border-radius: 0.65rem;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background:
+        linear-gradient(90deg, rgb(37 99 235 / 0.15), transparent 30%),
+        linear-gradient(180deg, #122033, #0b1524);
+    overflow: hidden;
+}
+
+.shot-fit__box {
+    position: absolute;
+    bottom: 0.55rem;
+    border-radius: 0.25rem;
+    background: rgb(147 197 253 / 0.75);
+    border: 1px solid rgb(191 219 254 / 0.5);
+}
+
+.shot-fit__box--a { left: 12%; width: 22%; height: 42%; }
+.shot-fit__box--b { left: 38%; width: 18%; height: 58%; background: rgb(96 165 250 / 0.85); }
+.shot-fit__box--c { left: 60%; width: 26%; height: 36%; }
 
 @media (prefers-reduced-motion: reduce) {
     .showcase-shot__frame,
