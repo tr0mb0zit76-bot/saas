@@ -173,7 +173,39 @@ const chapters = computed(() => [
 ]);
 
 const activeChapter = ref('hero');
-let chapterObserver = null;
+let chapterFrame = 0;
+
+const syncActiveChapter = () => {
+    // Last section whose top has crossed ~30% of the viewport — works for tall Pro/Enterprise blocks.
+    const marker = window.innerHeight * 0.3;
+    let current = chapters.value[0]?.id ?? 'hero';
+
+    for (const chapter of chapters.value) {
+        const el = document.getElementById(chapter.id);
+        if (!el) {
+            continue;
+        }
+
+        if (el.getBoundingClientRect().top <= marker) {
+            current = chapter.id;
+        }
+    }
+
+    if (activeChapter.value !== current) {
+        activeChapter.value = current;
+    }
+};
+
+const onChapterScroll = () => {
+    if (chapterFrame) {
+        return;
+    }
+
+    chapterFrame = window.requestAnimationFrame(() => {
+        chapterFrame = 0;
+        syncActiveChapter();
+    });
+};
 
 const goToChapter = (id) => {
     const el = document.getElementById(id);
@@ -189,37 +221,18 @@ const goToChapter = (id) => {
 };
 
 onMounted(() => {
-    const nodes = chapters.value
-        .map((chapter) => document.getElementById(chapter.id))
-        .filter(Boolean);
-
-    if (nodes.length === 0) {
-        return;
-    }
-
-    chapterObserver = new IntersectionObserver(
-        (entries) => {
-            const visible = entries
-                .filter((entry) => entry.isIntersecting)
-                .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-
-            if (visible[0]?.target?.id) {
-                activeChapter.value = visible[0].target.id;
-            }
-        },
-        {
-            root: null,
-            rootMargin: '-28% 0px -52% 0px',
-            threshold: [0.08, 0.2, 0.4],
-        },
-    );
-
-    nodes.forEach((node) => chapterObserver.observe(node));
+    syncActiveChapter();
+    window.addEventListener('scroll', onChapterScroll, { passive: true });
+    window.addEventListener('resize', onChapterScroll, { passive: true });
 });
 
 onUnmounted(() => {
-    chapterObserver?.disconnect();
-    chapterObserver = null;
+    window.removeEventListener('scroll', onChapterScroll);
+    window.removeEventListener('resize', onChapterScroll);
+    if (chapterFrame) {
+        window.cancelAnimationFrame(chapterFrame);
+        chapterFrame = 0;
+    }
 });
 </script>
 
