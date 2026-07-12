@@ -249,7 +249,7 @@ onUnmounted(() => {
                 <li v-for="chapter in chapters" :key="chapter.id">
                     <button
                         type="button"
-                        class="traklo-chapter group relative block max-w-[9.5rem] py-1 text-left text-[11px] font-medium uppercase tracking-[0.14em] transition duration-300"
+                        class="traklo-chapter group relative block max-w-[11rem] py-1 text-left text-[13px] font-medium uppercase tracking-[0.12em] transition duration-300"
                         :class="activeChapter === chapter.id
                             ? 'text-white/90'
                             : 'text-white/20 hover:text-white/55'"
