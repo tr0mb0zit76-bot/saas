@@ -41,16 +41,10 @@ After Effects + Bodymovin, или Rive Editor.
 - GIF на градиентном bubble (banding).
 - Ехать растровым crop без empty-кадра (двойной грузовик / синее пятно).
 
-## Практичный план для saas.local
+## Статус (2026-07-12)
 
-**Сделано в репо:**
-1. `scripts/render-traklo-login-frames.php` — empty icon + 24 WebP-кадра (truck по Bezier) + `manifest.json`
-2. `TrakloLoginScene.vue` — проигрывает кадры через `requestAnimationFrame`, затем показывает оригинальный `traklo-icon.png`
-3. Поля Email/Пароль — прозрачные overlays на белых полосах; bubble ~28–32rem
+Анимация **временно отключена** — на логине статичный `traklo-icon.png`.
+Заголовок / remember / «Войти» перенесены **внутрь** пузыря; поля выше.
+Кадры в `traklo-login-frames/` оставлены на потом (когда будет эталон траектории).
 
-Пересобрать кадры:
-```powershell
-php scripts/render-traklo-login-frames.php --frames=24 --size=720
-```
-
-Дальше (опционально): ручной SVG trace или Rive для идеальной траектории без растрового wipe.
+Контрольные точки Bezier — да, задаются в `scripts/render-traklo-login-frames.php` (`$route = [[x,y], ...]` в долях 0..1). Вернёмся после вашего рисунка маршрута.

@@ -3,16 +3,11 @@ import TrakloLoginScene from '@/Components/Auth/TrakloLoginScene.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TrakloGuestLayout from '@/Layouts/TrakloGuestLayout.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
 
 defineProps({
     status: String,
 });
-
-const page = usePage();
-const sceneReady = ref(false);
-const hasValidationErrors = computed(() => Object.keys(page.props.errors ?? {}).length > 0);
 
 const form = useForm({
     email: '',
@@ -31,12 +26,7 @@ const submit = () => {
     <TrakloGuestLayout>
         <Head title="Вход в платформу" />
 
-        <TrakloLoginScene
-            v-model:ready="sceneReady"
-            title="Platform Admin"
-            subtitle="Управление арендаторами, тарифами и модулями"
-            :instant="hasValidationErrors"
-        >
+        <TrakloLoginScene title="Platform Admin" subtitle="Операторский портал">
             <template #email>
                 <label for="email" class="sr-only">Email оператора</label>
                 <input
@@ -46,7 +36,7 @@ const submit = () => {
                     class="traklo-bar-input"
                     placeholder="Email"
                     required
-                    :autofocus="sceneReady || hasValidationErrors"
+                    autofocus
                     autocomplete="username"
                     @keydown.enter="submit"
                 >
@@ -69,17 +59,13 @@ const submit = () => {
             </template>
 
             <template #footer>
-                <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-400">
-                    Operator portal
-                </div>
-
-                <div v-if="status" class="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                <div v-if="status" class="mb-2 rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-100">
                     {{ status }}
                 </div>
 
                 <form @submit.prevent="submit">
                     <PrimaryButton
-                        class="w-full justify-center bg-blue-600 hover:bg-blue-500"
+                        class="w-full justify-center bg-white text-slate-900 hover:bg-blue-50"
                         :disabled="form.processing"
                     >
                         Войти
@@ -93,26 +79,31 @@ const submit = () => {
 <style scoped>
 .traklo-bar-input {
     display: block;
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
     margin: 0;
     border: 0;
     border-radius: 9999px;
-    background: transparent;
-    padding: 0 1rem;
-    font-size: clamp(0.8rem, 2.1vw, 1rem);
-    line-height: 1.1;
+    background: #ffffff;
+    padding: 0 0.9rem;
+    font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+    line-height: 1.2;
     color: #0f172a;
     outline: none;
     caret-color: #1d4ed8;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
 }
 
 .traklo-bar-input::placeholder {
-    color: rgb(100 116 139 / 0.85);
+    color: #94a3b8;
+    line-height: inherit;
 }
 
 .traklo-bar-input:focus {
-    background: rgb(255 255 255 / 0.35);
+    box-shadow:
+        0 0 0 2px rgb(255 255 255 / 0.55),
+        0 0 0 4px rgb(37 99 235 / 0.45);
 }
 
 .traklo-bar-error {

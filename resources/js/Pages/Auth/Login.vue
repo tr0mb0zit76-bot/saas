@@ -5,7 +5,6 @@ import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TrakloGuestLayout from '@/Layouts/TrakloGuestLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 
 defineProps({
     canResetPassword: Boolean,
@@ -13,8 +12,6 @@ defineProps({
 });
 
 const page = usePage();
-const sceneReady = ref(false);
-const hasValidationErrors = computed(() => Object.keys(page.props.errors ?? {}).length > 0);
 
 const form = useForm({
     email: '',
@@ -30,20 +27,15 @@ const submit = () => {
 
 const title = 'Вход в кабинет';
 const subtitle = page.props.tenant?.name
-    ? `Рабочее пространство «${page.props.tenant.name}»`
-    : 'Email и пароль, выданные администратором';
+    ? `«${page.props.tenant.name}»`
+    : 'Traklo Pro';
 </script>
 
 <template>
     <TrakloGuestLayout>
         <Head title="Вход" />
 
-        <TrakloLoginScene
-            v-model:ready="sceneReady"
-            :title="title"
-            :subtitle="subtitle"
-            :instant="hasValidationErrors"
-        >
+        <TrakloLoginScene :title="title" :subtitle="subtitle">
             <template #email>
                 <label for="email" class="sr-only">Email</label>
                 <input
@@ -53,7 +45,7 @@ const subtitle = page.props.tenant?.name
                     class="traklo-bar-input"
                     placeholder="Email"
                     required
-                    :autofocus="sceneReady || hasValidationErrors"
+                    autofocus
                     autocomplete="username"
                     @keydown.enter="submit"
                 >
@@ -76,28 +68,28 @@ const subtitle = page.props.tenant?.name
             </template>
 
             <template #footer>
-                <div v-if="status" class="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                <div v-if="status" class="mb-2 rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-100">
                     {{ status }}
                 </div>
 
-                <form @submit.prevent="submit">
-                    <label class="mb-3 flex items-center gap-2.5">
+                <form class="space-y-2.5" @submit.prevent="submit">
+                    <label class="flex items-center gap-2">
                         <Checkbox v-model:checked="form.remember" name="remember" />
-                        <span class="text-sm text-slate-400">Запомнить меня</span>
+                        <span class="text-[clamp(0.7rem,1.7vw,0.8rem)] text-white/90">Запомнить меня</span>
                     </label>
 
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <Link
                             v-if="canResetPassword"
                             :href="route('password.request')"
-                            class="text-sm text-slate-500 underline decoration-slate-600 underline-offset-4 hover:text-slate-300"
+                            class="text-[clamp(0.65rem,1.6vw,0.75rem)] text-white/80 underline decoration-white/40 underline-offset-2 hover:text-white"
                         >
                             Забыли пароль?
                         </Link>
                         <span v-else />
 
                         <PrimaryButton
-                            class="w-full justify-center bg-blue-600 hover:bg-blue-500 sm:w-auto"
+                            class="min-w-[5.5rem] justify-center bg-white text-slate-900 hover:bg-blue-50"
                             :class="{ 'opacity-50': form.processing }"
                             :disabled="form.processing"
                         >
@@ -111,29 +103,33 @@ const subtitle = page.props.tenant?.name
 </template>
 
 <style scoped>
-/* Transparent field — white bar of the icon is the chrome */
 .traklo-bar-input {
     display: block;
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
     margin: 0;
     border: 0;
     border-radius: 9999px;
-    background: transparent;
-    padding: 0 1rem;
-    font-size: clamp(0.8rem, 2.1vw, 1rem);
-    line-height: 1.1;
+    background: #ffffff;
+    padding: 0 0.9rem;
+    font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+    line-height: 1.2;
     color: #0f172a;
     outline: none;
     caret-color: #1d4ed8;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
 }
 
 .traklo-bar-input::placeholder {
-    color: rgb(100 116 139 / 0.85);
+    color: #94a3b8;
+    line-height: inherit;
 }
 
 .traklo-bar-input:focus {
-    background: rgb(255 255 255 / 0.35);
+    box-shadow:
+        0 0 0 2px rgb(255 255 255 / 0.55),
+        0 0 0 4px rgb(37 99 235 / 0.45);
 }
 
 .traklo-bar-error {
