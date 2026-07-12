@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Tilted product UI mock for showcase (placeholder until real screenshots).
- * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai
+ * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai | accounting | loadboard | fleet | disposition | integrations | customdomain
  */
 defineProps({
     variant: {
@@ -61,6 +61,30 @@ const payRules = [
     { name: 'Менеджер', rule: '8% от маржи' },
     { name: 'РОП', rule: '2% + порог' },
     { name: 'Диспетчер', rule: 'фикс / рейс' },
+];
+
+const boardCols = [
+    { title: 'Нужна машина', items: ['Москва → Тверь', 'Казань → Уфа'] },
+    { title: 'В работе', items: ['Смоленск · тент'] },
+    { title: 'Закрыто', items: ['Рейс #1042'] },
+];
+
+const fleetRows = [
+    { name: 'А123ВС 77', meta: 'свободна' },
+    { name: 'В456ОР 50', meta: 'в рейсе' },
+    { name: 'С789КТ 178', meta: 'ТО' },
+];
+
+const dispositionRows = [
+    { name: 'Утро', meta: '12 / 14 на линии' },
+    { name: 'Вечер', meta: '3 риска срыва' },
+    { name: 'Смена', meta: 'передано' },
+];
+
+const integrationRows = [
+    { name: 'Выгрузки заказов', meta: 'включено' },
+    { name: 'Справочники', meta: 'по договору' },
+    { name: 'Обмен с учётом', meta: 'настройка' },
 ];
 </script>
 
@@ -243,6 +267,85 @@ const payRules = [
                         <div v-for="role in roles" :key="role.name" class="shot-role">
                             <strong>{{ role.name }}</strong>
                             <span>{{ role.scope }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'accounting'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Управленка</span>
+                        <span class="shot-muted">июль</span>
+                    </div>
+                    <div class="shot-grid-2">
+                        <div class="shot-field"><span>Маржа</span><strong>2,4 млн ₽</strong></div>
+                        <div class="shot-field"><span>Расходы</span><strong>1,1 млн ₽</strong></div>
+                        <div class="shot-field"><span>Разнесено</span><strong>86%</strong></div>
+                        <div class="shot-field"><span>В очереди</span><strong>14 строк</strong></div>
+                    </div>
+                    <div class="shot-bar mt-3">
+                        <div class="shot-bar__fill" style="width: 86%" />
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'loadboard'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill shot-pill--amber">Биржа</span>
+                        <span class="shot-muted">сегодня</span>
+                    </div>
+                    <div class="shot-kanban">
+                        <div v-for="col in boardCols" :key="col.title" class="shot-col">
+                            <div class="shot-col__title">{{ col.title }}</div>
+                            <div v-for="item in col.items" :key="item" class="shot-card">{{ item }}</div>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'fleet'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Автопарк</span>
+                        <span class="shot-muted">24 машины</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div v-for="row in fleetRows" :key="row.name" class="shot-role">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.meta }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'disposition'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Диспозиция</span>
+                        <span class="shot-muted">смена</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div v-for="row in dispositionRows" :key="row.name" class="shot-role">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.meta }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'integrations'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Интеграции</span>
+                        <span class="shot-muted">по договору</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div v-for="row in integrationRows" :key="row.name" class="shot-role">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.meta }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'customdomain'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Свой адрес</span>
+                    </div>
+                    <div class="shot-ai">
+                        <div class="shot-ai__reply">
+                            crm.avtoaliyans.ru — постоянная точка входа для команды и партнёров.
                         </div>
                     </div>
                 </template>
