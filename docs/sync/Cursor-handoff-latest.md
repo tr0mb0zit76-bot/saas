@@ -48,7 +48,7 @@
 ### Mail sync (ADR-013)
 - **Lazy attachments** по умолчанию (`MAIL_SYNC_IMPORT_ATTACHMENTS=false`)
 - Sync: текст + metadata вложений; файл — по клику «Скачать»
-- Purge 6 мес.: удаляет файлы вложений + **AI-конспект** (`MailRetentionSummaryService`, fallback truncate)
+- Purge 6 мес.: удаляет файлы вложений + **AI-конспект** (800 символов, input 4k, см. `.env.example`)
 
 ### Tests — **23 passed** (Saas 20 + mail lazy/purge 3)
 

@@ -201,7 +201,7 @@ return [
     ],
 
     'mail_retention' => [
-        'max_tokens' => max(64, min(512, (int) env('AI_MAIL_RETENTION_MAX_TOKENS', 256))),
+        'max_tokens' => max(64, min(512, (int) env('AI_MAIL_RETENTION_MAX_TOKENS', 320))),
         'temperature' => (float) env('AI_MAIL_RETENTION_TEMPERATURE', 0.2),
     ],
 

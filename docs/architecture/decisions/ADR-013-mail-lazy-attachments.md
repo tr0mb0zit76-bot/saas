@@ -20,6 +20,17 @@ Mail IMAP sync imported attachment bodies eagerly (up to 10 × 15 MB per message
 - Download requires live IMAP + mailbox credentials; purged messages lose lazy IMAP refs (metadata names only).
 - AI analysis unchanged — uses `body_text` / `retention_summary`.
 
+### Recommended env (golden middle)
+
+| Variable | Lab | Prod |
+|----------|-----|------|
+| `MAIL_SYNC_IMPORT_ATTACHMENTS` | false | false |
+| `MAIL_RETENTION_SUMMARY_MAX_CHARS` | 800 | 800 |
+| `MAIL_RETENTION_AI_INPUT_MAX_CHARS` | 4000 | 6000 |
+| `AI_MAIL_RETENTION_MAX_TOKENS` | 320 | 384 |
+
+Purge: compress stored text to ~800 chars конспект while feeding LLM up to 4–6k chars of source for quality.
+
 ## Related
 
 - ADR-005 tenant file storage
