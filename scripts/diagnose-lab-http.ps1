@@ -114,6 +114,33 @@ if (Test-Path $hostsFile) {
     Write-Host '  hosts file not found' -ForegroundColor Yellow
 }
 
+Write-Section 'System proxy (browser vs curl)'
+$regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings'
+$settings = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+$proxyEnable = [int]($settings.ProxyEnable ?? 0)
+$proxyServer = [string]($settings.ProxyServer ?? '')
+$proxyOverride = [string]($settings.ProxyOverride ?? '')
+Write-Host "  ProxyEnable:   $proxyEnable"
+Write-Host "  ProxyServer:   $proxyServer"
+Write-Host "  ProxyOverride: $proxyOverride"
+$directProbe = Get-HttpProbe "http://$HostName/"
+$viaProxyCode = $null
+if ($proxyServer -ne '') {
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    if ($curl) {
+        $raw = & curl.exe -s -o NUL -w '%{http_code}' --max-time 5 -x $proxyServer "http://$HostName/"
+        if ($raw -match '^\d{3}$') { $viaProxyCode = [int]$raw }
+    }
+}
+Write-Host "  curl direct -> $($directProbe.Code)"
+if ($null -ne $viaProxyCode) {
+    Write-Host "  curl via $proxyServer -> $viaProxyCode"
+}
+if (($directProbe.Code -eq 200) -and ($viaProxyCode -eq 503)) {
+    Write-Host '  LIKELY CAUSE: browser goes through proxy → 503; curl bypasses → 200' -ForegroundColor Red
+    Write-Host '  Fix: pwsh -File scripts/fix-lab-proxy-bypass.ps1' -ForegroundColor Yellow
+}
+
 Write-Section 'Laravel CLI'
 $php = Get-Command php -ErrorAction SilentlyContinue
 if (-not $php) {
@@ -189,6 +216,11 @@ if ($ospanelOk) {
     Write-Host "    http://$HostName/login"
     Write-Host "    http://platform.$HostName/login"
     Write-Host '  Login: admin@saas.local / password' -ForegroundColor Green
+    if (($directProbe.Code -eq 200) -and ($viaProxyCode -eq 503)) {
+        Write-Host ''
+        Write-Host '  Browser may still show 503 until proxy bypass is fixed:' -ForegroundColor Yellow
+        Write-Host '  pwsh -File scripts/fix-lab-proxy-bypass.ps1' -ForegroundColor Yellow
+    }
 } else {
     Write-Section 'Recommended fixes (503 or errors on OSPanel URLs)'
     Write-Host '  1. OSPanel tray → Restart all'
