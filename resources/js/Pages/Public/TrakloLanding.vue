@@ -27,44 +27,47 @@ const t = (key, fallback = '') => {
     return typeof value === 'string' && value.trim() !== '' ? value : fallback;
 };
 
-const features = computed(() => [
-    {
-        key: 'leads',
-        title: t('feature_leads_title', 'Лиды и воронка'),
-        text: t('feature_leads_text'),
-        label: t('feature_leads_label', 'кабинет · воронка'),
-    },
-    {
-        key: 'orders',
-        title: t('feature_orders_title', 'Мастер заказа'),
-        text: t('feature_orders_text'),
-        label: t('feature_orders_label', 'кабинет · заказ'),
-    },
-    {
-        key: 'payments',
-        title: t('feature_payments_title', 'График оплат'),
-        text: t('feature_payments_text'),
-        label: t('feature_payments_label', 'кабинет · оплаты'),
-    },
-    {
-        key: 'print',
-        title: t('feature_print_title', 'Печать документов'),
-        text: t('feature_print_text'),
-        label: t('feature_print_label', 'кабинет · печать'),
-    },
-    {
-        key: 'rbac',
-        title: t('feature_rbac_title', 'Роли и области видимости'),
-        text: t('feature_rbac_text'),
-        label: t('feature_rbac_label', 'кабинет · доступ'),
-    },
-    {
-        key: 'ai',
-        title: t('feature_ai_title', 'Текстовый помощник'),
-        text: t('feature_ai_text'),
-        label: t('feature_ai_label', 'кабинет · помощник'),
-    },
-]);
+const featureKeys = [
+    'leads',
+    'orders',
+    'payments',
+    'print',
+    'documents',
+    'scripts',
+    'loadboard',
+    'payroll',
+    'mobile',
+    'rbac',
+    'ai',
+];
+
+const featureFallbackTitles = {
+    leads: 'Лиды и воронка',
+    orders: 'Мастер заказа',
+    payments: 'График оплат',
+    print: 'Печать документов',
+    documents: 'Реестр документов',
+    scripts: 'Скрипты продаж',
+    loadboard: 'Расстановщик грузов',
+    payroll: 'Начисление зарплат',
+    mobile: 'Мобильное приложение',
+    rbac: 'Роли и области видимости',
+    ai: 'Текстовый помощник',
+};
+
+const features = computed(() => featureKeys.map((key) => ({
+    key,
+    title: t(`feature_${key}_title`, featureFallbackTitles[key] ?? key),
+    text: t(`feature_${key}_text`),
+    label: t(`feature_${key}_label`, `кабинет · ${key}`),
+})));
+
+const highlightsFor = (planKey) => {
+    const value = props.texts[`plan_${planKey}_highlights`]
+        ?? page.props.publicSite?.texts?.[`plan_${planKey}_highlights`];
+
+    return Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item.trim() !== '') : [];
+};
 
 const steps = computed(() => [
     { title: t('step1_title'), text: t('step1_text') },
@@ -78,11 +81,18 @@ const displayPlans = computed(() => {
     }
 
     return [
-        { key: 'start', label: t('plan_start', 'Start'), users: t('plan_start_users') },
-        { key: 'pro', label: t('plan_pro', 'Pro'), users: t('plan_pro_users'), featured: true },
-        { key: 'enterprise', label: t('plan_enterprise', 'Enterprise'), users: t('plan_enterprise_users') },
+        { key: 'start', label: t('plan_start', 'Старт'), users: t('plan_start_users') },
+        { key: 'pro', label: t('plan_pro', 'Про'), users: t('plan_pro_users'), featured: true },
+        { key: 'enterprise', label: t('plan_enterprise', 'Корпоративный'), users: t('plan_enterprise_users') },
     ];
 });
+
+const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
+    ...plan,
+    label: t(`plan_${plan.key}`, plan.label),
+    users: t(`plan_${plan.key}_users`, plan.users),
+    highlights: highlightsFor(plan.key),
+})));
 </script>
 
 <template>
@@ -207,7 +217,7 @@ const displayPlans = computed(() => {
                                 :class="index % 2 === 1 ? 'lg:order-2' : ''"
                             >
                                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
-                                    0{{ index + 1 }}
+                                    {{ String(index + 1).padStart(2, '0') }}
                                 </p>
                                 <h3 class="traklo-display text-2xl font-semibold text-white sm:text-3xl">
                                     {{ feature.title }}
@@ -237,13 +247,26 @@ const displayPlans = computed(() => {
                     </div>
                     <div class="grid gap-4 lg:grid-cols-3">
                         <article
-                            v-for="plan in displayPlans"
+                            v-for="plan in plansWithHighlights"
                             :key="plan.key"
                             class="rounded-2xl border p-6"
                             :class="plan.featured ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 bg-white/[0.03]'"
                         >
                             <h3 class="traklo-display text-xl font-semibold text-white">{{ plan.label }}</h3>
                             <p class="mt-2 text-sm text-slate-400">{{ plan.users }}</p>
+                            <ul
+                                v-if="plan.highlights.length"
+                                class="mt-5 space-y-2 text-sm leading-6 text-slate-300"
+                            >
+                                <li
+                                    v-for="item in plan.highlights"
+                                    :key="item"
+                                    class="flex gap-2"
+                                >
+                                    <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400/80" aria-hidden="true" />
+                                    <span>{{ item }}</span>
+                                </li>
+                            </ul>
                             <a
                                 href="mailto:hello@traklo.pro"
                                 class="mt-6 inline-flex rounded-lg px-4 py-2 text-sm font-medium"

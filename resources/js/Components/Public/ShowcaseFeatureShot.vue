@@ -1,7 +1,7 @@
 <script setup>
 /**
- * Tilted product UI mock for SaaS showcase (placeholder until real screenshots).
- * variant: leads | orders | payments | print | rbac | ai
+ * Tilted product UI mock for showcase (placeholder until real screenshots).
+ * variant: leads | orders | payments | print | documents | scripts | loadboard | payroll | mobile | rbac | ai
  */
 defineProps({
     variant: {
@@ -35,6 +35,26 @@ const roles = [
     { name: 'Менеджер', scope: 'свои' },
     { name: 'РОП', scope: 'отдел' },
     { name: 'Админ', scope: 'все' },
+];
+
+const docRows = [
+    { name: 'Заявка №1042', meta: 'сегодня' },
+    { name: 'Договор-заявка', meta: 'вчера' },
+    { name: 'Скан ТТН', meta: '18.07' },
+];
+
+const scriptSteps = ['Приветствие', 'Потребность', 'Возражение', 'Закрытие'];
+
+const boardCols = [
+    { title: 'Свободно', items: ['Москва → Тверь', 'Казань → Уфа'] },
+    { title: 'В работе', items: ['Смоленск · тент'] },
+    { title: 'Закрыто', items: ['Рейс #1042'] },
+];
+
+const payRules = [
+    { name: 'Менеджер', rule: '8% от маржи' },
+    { name: 'РОП', rule: '2% + порог' },
+    { name: 'Диспетчер', rule: 'фикс / рейс' },
 ];
 </script>
 
@@ -112,6 +132,80 @@ const roles = [
                         <div class="shot-doc__line shot-doc__line--short" />
                         <div class="shot-doc__block" />
                         <div class="shot-doc__qr" />
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'documents'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Реестр</span>
+                        <span class="shot-muted">заказ #1042</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div v-for="doc in docRows" :key="doc.name" class="shot-role">
+                            <strong>{{ doc.name }}</strong>
+                            <span>{{ doc.meta }}</span>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'scripts'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Скрипт</span>
+                        <span class="shot-muted">продажа рейса</span>
+                    </div>
+                    <div class="shot-steps">
+                        <span
+                            v-for="(s, i) in scriptSteps"
+                            :key="s"
+                            class="shot-step"
+                            :class="{ 'shot-step--on': i === 2 }"
+                        >{{ s }}</span>
+                    </div>
+                    <div class="shot-ai">
+                        <div class="shot-ai__reply">
+                            Клиент: «Дорого». Подсказка: сравнить ставку с рынком и предложить окно погрузки.
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'loadboard'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill shot-pill--amber">Расстановка</span>
+                        <span class="shot-muted">сегодня</span>
+                    </div>
+                    <div class="shot-kanban">
+                        <div v-for="col in boardCols" :key="col.title" class="shot-col">
+                            <div class="shot-col__title">{{ col.title }}</div>
+                            <div v-for="item in col.items" :key="item" class="shot-card">{{ item }}</div>
+                        </div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'payroll'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Зарплата</span>
+                        <span class="shot-muted">июль</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div v-for="row in payRules" :key="row.name" class="shot-role">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.rule }}</span>
+                        </div>
+                    </div>
+                    <div class="shot-bar mt-3">
+                        <div class="shot-bar__fill" style="width: 74%" />
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'mobile'">
+                    <div class="shot-phone">
+                        <div class="shot-phone__notch" />
+                        <div class="shot-phone__body">
+                            <div class="shot-pill">Traklo</div>
+                            <div class="shot-card mt-2">Заказ #1042 · в пути</div>
+                            <div class="shot-card">Задача: позвонить клиенту</div>
+                            <div class="shot-card">Маршрут: Москва → Смоленск</div>
+                        </div>
                     </div>
                 </template>
 
@@ -495,6 +589,32 @@ const roles = [
     background: rgb(255 255 255 / 0.04);
     color: #e2e8f0;
     border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.shot-phone {
+    margin: 0 auto;
+    width: 11.5rem;
+    border-radius: 1.35rem;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    background: #020617;
+    padding: 0.55rem;
+    box-shadow: 0 18px 40px rgb(0 0 0 / 0.35);
+}
+
+.shot-phone__notch {
+    width: 3.2rem;
+    height: 0.35rem;
+    margin: 0.2rem auto 0.55rem;
+    border-radius: 9999px;
+    background: rgb(148 163 184 / 0.35);
+}
+
+.shot-phone__body {
+    min-height: 10.5rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(180deg, #122033, #0b1524);
+    border: 1px solid rgb(255 255 255 / 0.06);
+    padding: 0.65rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

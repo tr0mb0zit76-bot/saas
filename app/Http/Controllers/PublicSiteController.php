@@ -221,8 +221,8 @@ class PublicSiteController extends Controller
 
             $plans[] = [
                 'key' => $key,
-                'label' => (string) ($planConfig[$key]['label'] ?? ucfirst($key)),
-                'users' => $usersLabel,
+                'label' => (string) ($texts['plan_'.$key] ?? $planConfig[$key]['label'] ?? ucfirst($key)),
+                'users' => (string) ($texts['plan_'.$key.'_users'] ?? $usersLabel),
                 'featured' => $key === 'pro',
             ];
         }
