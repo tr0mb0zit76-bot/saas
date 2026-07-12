@@ -86,6 +86,10 @@ class PlatformAuditLogController extends Controller
                 ['value' => 'role.created', 'label' => 'Создание роли'],
                 ['value' => 'user.created', 'label' => 'Создание пользователя'],
                 ['value' => 'payment.recorded', 'label' => 'Оплата по графику'],
+                ['value' => 'payment.reversed', 'label' => 'Отмена оплаты'],
+                ['value' => 'user.roles_updated', 'label' => 'Роли пользователя'],
+                ['value' => 'user.invited', 'label' => 'Приглашение пользователя'],
+                ['value' => 'document.signed', 'label' => 'Подписание документа'],
             ],
         ]);
     }

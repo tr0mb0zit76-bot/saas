@@ -6,6 +6,7 @@ use App\Mail\TenantWelcomeMail;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\TenantContext;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -13,6 +14,10 @@ use Illuminate\Support\Str;
 
 final class TenantOnboardingService
 {
+    public function __construct(
+        private readonly TenantAuditLogger $auditLogger,
+    ) {}
+
     /**
      * @return array{user: User, password: string}
      */
@@ -49,5 +54,15 @@ final class TenantOnboardingService
             user: $user,
             temporaryPassword: $password,
         ));
+
+        $this->auditLogger->log(
+            $tenant->id,
+            null,
+            'user.invited',
+            'user',
+            $user->id,
+            null,
+            ['email' => $user->email, 'tenant_slug' => $tenant->slug],
+        );
     }
 }

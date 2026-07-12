@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M12 · **Ветка:** `cursor/m12-crm-audit-4010`
+**Обновлено:** 2026-07-12 · **Фаза:** Phase 4 · **Ветка:** `cursor/phase4-security-ops-4010`
 
 ---
 
@@ -54,9 +54,18 @@ TENANT_STORAGE_DISK=tenant_local
 - CRM audit hooks: `order.status_changed`, `role.created/updated/deleted`, `user.created`, `payment.recorded`
 - `TenantCrmAuditTest` (3 tests)
 
+## Phase 4 (done — core)
+
+- Audit: `payment.reversed`, `user.roles_updated`, `document.signed`, `user.invited`
+- CI: `.github/workflows/ci.yml`
+- Security headers + optional CSP (`SECURITY_HEADERS_CSP_ENABLED`)
+- API rate limit `throttle:api`
+- `saas:backup-database` + runbooks (`runbook-*`, `browser-smoke-howto.md`)
+
 ## Pending
 
-- M9.5 browser smoke on home-pc (Chrome) — automated `PilotSmokeTest` ✅, manual checklist open
+- M9.5 browser smoke on home-pc — см. **`docs/sync/browser-smoke-howto.md`**
+- Phase 4 backlog: 2FA, staging host, queue migrations, monitoring
 
 ---
 
@@ -77,5 +86,5 @@ npm run build
 
 ## Следующие шаги
 
-1. M9.5 browser smoke (home-pc, Chrome) — `docs/sync/pilot-smoke-checklist.md`
-2. Phase 4 backlog: payment.reversed, user.roles_updated, document signed
+1. **Browser smoke** — `docs/sync/browser-smoke-howto.md` (home-pc, ~30 мин)
+2. 2FA tenant-admin, staging, monitoring (Phase 4 remainder)

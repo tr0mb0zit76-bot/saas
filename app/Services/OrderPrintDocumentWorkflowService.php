@@ -8,6 +8,7 @@ use App\Models\PrintFormTemplate;
 use App\Models\User;
 use App\Services\Pdf\PdfDocumentCertificationService;
 use App\Services\Pdf\PdfVerificationQrStampService;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\OrderDocumentWorkflowStatus;
 use App\Support\OrderPrintFormContext;
 use App\Support\PrintFormVerificationCode;
@@ -22,6 +23,7 @@ class OrderPrintDocumentWorkflowService
         private readonly DocumentStorageService $documentStorage,
         private readonly DocxPdfPreviewService $docxPdfPreviewService,
         private readonly PdfVerificationQrStampService $pdfVerificationQrStamp,
+        private readonly TenantAuditLogger $auditLogger,
     ) {}
 
     /**
@@ -245,6 +247,23 @@ class OrderPrintDocumentWorkflowService
         $updates['metadata'] = $metadata;
 
         $document->update($updates);
+
+        $document->loadMissing('order:id,tenant_id');
+
+        $this->auditLogger->log(
+            $document->tenant_id ?? $document->order?->tenant_id,
+            $user->id,
+            'document.signed',
+            'order_document',
+            $document->id,
+            null,
+            [
+                'order_id' => $document->order_id,
+                'type' => $document->type,
+                'signature_status' => 'signed_internal',
+                'original_name' => $file->getClientOriginalName(),
+            ],
+        );
     }
 
     /**

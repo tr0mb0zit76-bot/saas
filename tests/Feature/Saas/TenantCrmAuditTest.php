@@ -212,4 +212,78 @@ class TenantCrmAuditTest extends SaasTestCase
             'entity_id' => $event->id,
         ]);
     }
+
+    public function test_payment_reversal_writes_audit_log(): void
+    {
+        TenantContext::bypass(true);
+
+        $tenant = Tenant::query()->create([
+            'slug' => 'rev-audit-'.uniqid(),
+            'name' => 'Reversal Audit Co',
+            'status' => 'active',
+            'plan' => 'pro',
+        ]);
+
+        $role = Role::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'admin',
+            'display_name' => 'Admin',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('admin'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('admin'),
+        ]);
+
+        $admin = User::query()->create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => 'Admin',
+            'email' => 'rev-admin-'.uniqid().'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $order = Order::query()->create([
+            'tenant_id' => $tenant->id,
+            'order_number' => 'REV-001',
+            'company_code' => 'REV',
+            'manager_id' => $admin->id,
+            'status' => 'payment',
+            'is_active' => true,
+        ]);
+
+        $schedule = PaymentSchedule::query()->create([
+            'tenant_id' => $tenant->id,
+            'order_id' => $order->id,
+            'party' => 'customer',
+            'amount' => 10000,
+            'due_date' => now()->toDateString(),
+            'status' => 'pending',
+        ]);
+
+        TenantContext::bypass(false);
+        TenantContext::set($tenant);
+
+        $event = app(PaymentSchedulePaymentLedgerService::class)->recordFromPaymentSchedule(
+            $schedule,
+            5000.00,
+            now()->toDateString(),
+            [],
+            $admin->id,
+        );
+
+        app(\App\Services\Finance\PaymentSchedulePaymentReversalService::class)->reverseEvent(
+            $event,
+            $admin,
+            'test reversal',
+        );
+
+        $this->assertDatabaseHas('tenant_audit_logs', [
+            'tenant_id' => $tenant->id,
+            'user_id' => $admin->id,
+            'action' => 'payment.reversed',
+            'entity_type' => 'payment_schedule_payment_event',
+            'entity_id' => $event->id,
+        ]);
+    }
 }

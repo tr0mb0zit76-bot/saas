@@ -4,6 +4,7 @@ require_once __DIR__.'/temp-dir.php';
 
 configure_phpword_temp_dir(dirname(__DIR__));
 
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureCanManageSalesScripts;
 use App\Http\Middleware\EnsureCompanyPlanningAccess;
 use App\Http\Middleware\EnsureSettingsVisibilityAccess;
@@ -75,6 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureOnboardingComplete::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            AddSecurityHeaders::class,
         ]);
 
         $middleware->api(prepend: [
@@ -84,6 +86,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             SetTenantFromAuthenticatedUser::class,
             EnsureTenantWritable::class,
+            AddSecurityHeaders::class,
         ]);
 
         $middleware->priority([

@@ -159,7 +159,25 @@ class UserManagementController extends Controller
         }
 
         if (is_array($roleIds)) {
+            $user->loadMissing('roles');
+            $oldRoleIds = $user->roles->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+
             RoleAccess::syncUserRoles($user, $roleIds);
+
+            $user->load('roles');
+            $newRoleIds = $user->roles->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+
+            if ($oldRoleIds !== $newRoleIds) {
+                $this->auditLogger->log(
+                    $user->tenant_id,
+                    $request->user()?->id,
+                    'user.roles_updated',
+                    'user',
+                    $user->id,
+                    ['role_ids' => $oldRoleIds],
+                    ['role_ids' => $newRoleIds],
+                );
+            }
         }
 
         UserSigningOwnCompanySync::sync(

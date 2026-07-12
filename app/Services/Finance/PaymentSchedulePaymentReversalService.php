@@ -5,6 +5,7 @@ namespace App\Services\Finance;
 use App\Models\PaymentSchedule;
 use App\Models\PaymentSchedulePaymentEvent;
 use App\Models\User;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\PaymentScheduleAutomaticStatus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -12,6 +13,10 @@ use InvalidArgumentException;
 
 class PaymentSchedulePaymentReversalService
 {
+    public function __construct(
+        private readonly TenantAuditLogger $auditLogger,
+    ) {}
+
     public function reverseEvent(PaymentSchedulePaymentEvent $event, User $actor, ?string $reason = null): PaymentSchedulePaymentEvent
     {
         $hasReversalColumns = Schema::hasColumn('payment_schedule_payment_events', 'reversed_at');
@@ -42,6 +47,26 @@ class PaymentSchedulePaymentReversalService
             if ($event->order_id !== null) {
                 PaymentScheduleAutomaticStatus::refreshForOrder((int) $event->order_id);
             }
+
+            $event->loadMissing('order:id,tenant_id');
+
+            $this->auditLogger->log(
+                $event->tenant_id ?? $event->order?->tenant_id,
+                $actor->id,
+                'payment.reversed',
+                'payment_schedule_payment_event',
+                $event->id,
+                [
+                    'order_id' => $event->order_id,
+                    'party' => $event->party,
+                    'amount' => (float) $event->amount,
+                    'payment_date' => $event->payment_date?->toDateString(),
+                ],
+                [
+                    'reason' => $reason,
+                    'reversed_at' => now()->toIso8601String(),
+                ],
+            );
 
             return $event->exists ? $event->fresh() : $event;
         });

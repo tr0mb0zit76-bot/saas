@@ -3,7 +3,7 @@
 use App\Http\Controllers\MessengerController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:sanctum'])
+Route::middleware(['auth:sanctum', 'throttle:api'])
     ->prefix('mobile/messenger')
     ->name('mobile.messenger.')
     ->group(function (): void {

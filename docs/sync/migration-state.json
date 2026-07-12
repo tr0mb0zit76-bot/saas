@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated_at": "2026-07-12T13:00:00Z",
-  "current_phase": "M12",
+  "updated_at": "2026-07-12T14:00:00Z",
+  "current_phase": "P4",
   "phases": {
     "M0": { "name": "Prerequisites", "status": "done" },
     "M1": { "name": "Bootstrap from v5", "status": "done" },
@@ -15,19 +15,21 @@
     "M9": { "name": "Demo access + ops", "status": "done" },
     "M10": { "name": "Export + audit + lab env", "status": "done" },
     "M11": { "name": "Runtime plan limits editing", "status": "done" },
-    "M12": { "name": "CRM audit events", "status": "done" }
+    "M12": { "name": "CRM audit events", "status": "done" },
+    "P4": { "name": "Security & ops", "status": "partial" }
   },
   "steps": {
     "M9.1": { "status": "done", "note": "Demo signup SAAS_DEMO_SIGNUP_ENABLED" },
     "M9.2": { "status": "done", "note": "CRM onboarding wizard" },
     "M9.3": { "status": "done", "note": "saas:record-usage + storage limits" },
     "M9.4": { "status": "done", "note": "Suspended read-only mode" },
-    "M9.5": { "status": "pending", "note": "Browser smoke home-pc; PilotSmokeTest automated PASS (28 assertions)" },
+    "M9.5": { "status": "pending", "note": "Manual browser smoke — docs/sync/browser-smoke-howto.md" },
     "M10.1": { "status": "done", "note": "TenantExportService + saas:export-tenant" },
     "M10.2": { "status": "done", "note": "SaasAuditGateTest P0.10 visibility" },
     "M10.3": { "status": "done", "note": "tenant_audit_logs + platform /audit" },
     "M11.1": { "status": "done", "note": "Plan limits editing in platform + plan.updated audit" },
-    "M12.1": { "status": "done", "note": "CRM audit: order status, roles, user.created, payment.recorded" }
+    "M12.1": { "status": "done", "note": "CRM audit: order status, roles, user.created, payment.recorded" },
+    "P4.1": { "status": "done", "note": "Audit completion, CI, CSP headers, API throttle, backup cmd, runbooks" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",

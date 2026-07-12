@@ -2,6 +2,8 @@
 
 **Цель:** чистый demo-tenant без prod-данных Avtoalyans. Проверка end-to-end за ~30 минут на home-pc lab.
 
+**Пошаговая инструкция:** `docs/sync/browser-smoke-howto.md`
+
 ## Подготовка (home-pc)
 
 ```powershell
