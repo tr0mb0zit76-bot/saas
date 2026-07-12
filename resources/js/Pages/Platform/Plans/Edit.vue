@@ -16,12 +16,42 @@
         <div class="grid gap-4 lg:grid-cols-3">
             <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 class="text-sm font-medium">Лимиты тарифа</h2>
-                <dl class="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    <div class="flex justify-between"><dt>Пользователи</dt><dd>{{ formatLimit(plan.limits?.users) }}</dd></div>
-                    <div class="flex justify-between"><dt>Заказы/мес</dt><dd>{{ formatLimit(plan.limits?.orders_per_month) }}</dd></div>
-                    <div class="flex justify-between"><dt>Хранилище</dt><dd>{{ formatStorage(plan.limits?.storage_mb) }}</dd></div>
-                </dl>
-                <p class="mt-3 text-xs text-zinc-500">Лимиты пока задаются при первичном сиде; редактирование — в следующей итерации.</p>
+                <p class="mt-1 text-xs text-zinc-500">Пустое поле = без ограничения (∞). Изменения применяются ко всем арендаторам на этом тарифе.</p>
+                <div class="mt-3 space-y-3">
+                    <div class="space-y-1">
+                        <label class="text-xs uppercase tracking-wide text-zinc-500">Пользователи</label>
+                        <input
+                            v-model="form.limits.users"
+                            type="number"
+                            min="1"
+                            class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                            placeholder="∞"
+                        />
+                        <p v-if="form.errors['limits.users']" class="text-xs text-rose-600">{{ form.errors['limits.users'] }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs uppercase tracking-wide text-zinc-500">Заказы / месяц</label>
+                        <input
+                            v-model="form.limits.orders_per_month"
+                            type="number"
+                            min="1"
+                            class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                            placeholder="∞"
+                        />
+                        <p v-if="form.errors['limits.orders_per_month']" class="text-xs text-rose-600">{{ form.errors['limits.orders_per_month'] }}</p>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs uppercase tracking-wide text-zinc-500">Хранилище (МБ)</label>
+                        <input
+                            v-model="form.limits.storage_mb"
+                            type="number"
+                            min="1"
+                            class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                            placeholder="∞"
+                        />
+                        <p v-if="form.errors['limits.storage_mb']" class="text-xs text-rose-600">{{ form.errors['limits.storage_mb'] }}</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -48,7 +78,7 @@
                 class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
                 :disabled="form.processing"
             >
-                Сохранить состав тарифа
+                Сохранить тариф
             </button>
         </form>
     </div>
@@ -72,7 +102,16 @@ const initialFeatures = Object.fromEntries(
     props.features.map((feature) => [feature.key, Boolean(feature.enabled)]),
 );
 
-const form = useForm({ features: initialFeatures });
+const initialLimits = {
+    users: props.plan.limits?.users ?? '',
+    orders_per_month: props.plan.limits?.orders_per_month ?? '',
+    storage_mb: props.plan.limits?.storage_mb ?? '',
+};
+
+const form = useForm({
+    features: initialFeatures,
+    limits: initialLimits,
+});
 
 const groupedFeatures = computed(() => {
     const groups = new Map();
@@ -89,20 +128,15 @@ const groupedFeatures = computed(() => {
 });
 
 function submit() {
-    form.patch(route('platform.plans.features.update', props.plan.key), {
+    form.transform((data) => ({
+        ...data,
+        limits: {
+            users: data.limits.users === '' ? null : data.limits.users,
+            orders_per_month: data.limits.orders_per_month === '' ? null : data.limits.orders_per_month,
+            storage_mb: data.limits.storage_mb === '' ? null : data.limits.storage_mb,
+        },
+    })).patch(route('platform.plans.features.update', props.plan.key), {
         preserveScroll: true,
     });
-}
-
-function formatLimit(value) {
-    return value == null ? '∞' : String(value);
-}
-
-function formatStorage(mb) {
-    if (mb == null) {
-        return '∞';
-    }
-
-    return mb >= 1024 ? `${Math.round(mb / 1024)} GB` : `${mb} MB`;
 }
 </script>

@@ -80,6 +80,7 @@ class PlatformAuditLogController extends Controller
                 ['value' => 'tenant.invoice_paid', 'label' => 'Оплата счёта'],
                 ['value' => 'tenant.features_updated', 'label' => 'Модули арендатора'],
                 ['value' => 'tenant.demo_signup', 'label' => 'Демо-регистрация'],
+                ['value' => 'plan.updated', 'label' => 'Изменение тарифа'],
             ],
         ]);
     }

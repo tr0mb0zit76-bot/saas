@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Platform\UpdatePlatformPlanFeaturesRequest;
 use App\Models\SubscriptionPlan;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\SaasFeatureCatalog;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -13,6 +14,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PlatformPlansController extends Controller
 {
+    public function __construct(
+        private readonly TenantAuditLogger $auditLogger,
+    ) {}
     public function index(): Response
     {
         $features = SaasFeatureCatalog::groupedFeatures();
@@ -67,6 +71,11 @@ class PlatformPlansController extends Controller
     {
         $plan = $this->resolvePlan($planKey);
 
+        $oldValues = [
+            'features' => $plan->featuresList(),
+            'limits' => $plan->limitsMap(),
+        ];
+
         $enabledFeatures = [];
 
         foreach ($request->validated('features') as $key => $enabled) {
@@ -75,13 +84,34 @@ class PlatformPlansController extends Controller
             }
         }
 
+        $limits = $request->validated('limits');
+
         $plan->update([
             'features' => array_values(array_unique($enabledFeatures)),
+            'limits' => [
+                'users' => $limits['users'] ?? null,
+                'orders_per_month' => $limits['orders_per_month'] ?? null,
+                'storage_mb' => $limits['storage_mb'] ?? null,
+            ],
         ]);
+
+        $this->auditLogger->log(
+            null,
+            $request->user()?->id,
+            'plan.updated',
+            'subscription_plan',
+            $plan->id,
+            $oldValues,
+            [
+                'plan_key' => $plan->key,
+                'features' => $plan->fresh()->featuresList(),
+                'limits' => $plan->fresh()->limitsMap(),
+            ],
+        );
 
         return to_route('platform.plans.edit', $plan->key)->with('flash', [
             'type' => 'success',
-            'message' => "Модули тарифа «{$plan->label}» обновлены.",
+            'message' => "Тариф «{$plan->label}» обновлён (модули и лимиты).",
         ]);
     }
 

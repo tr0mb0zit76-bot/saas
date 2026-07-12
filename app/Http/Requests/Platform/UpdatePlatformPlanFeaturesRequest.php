@@ -21,6 +21,10 @@ class UpdatePlatformPlanFeaturesRequest extends FormRequest
         return [
             'features' => ['required', 'array'],
             'features.*' => ['boolean', Rule::in([true, false])],
+            'limits' => ['required', 'array'],
+            'limits.users' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'limits.orders_per_month' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'limits.storage_mb' => ['nullable', 'integer', 'min:1', 'max:1048576'],
         ];
     }
 
@@ -28,20 +32,42 @@ class UpdatePlatformPlanFeaturesRequest extends FormRequest
     {
         $features = $this->input('features');
 
-        if (! is_array($features)) {
+        if (is_array($features)) {
+            $normalized = [];
+
+            foreach ($features as $key => $value) {
+                if (! in_array((string) $key, SaasFeatureCatalog::keys(), true)) {
+                    continue;
+                }
+
+                $normalized[(string) $key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            }
+
+            $this->merge(['features' => $normalized]);
+        }
+
+        $limits = $this->input('limits');
+
+        if (! is_array($limits)) {
             return;
         }
 
-        $normalized = [];
+        $normalizedLimits = [];
 
-        foreach ($features as $key => $value) {
-            if (! in_array((string) $key, SaasFeatureCatalog::keys(), true)) {
+        foreach (['users', 'orders_per_month', 'storage_mb'] as $key) {
+            $value = $limits[$key] ?? null;
+
+            if ($value === '' || $value === 'null') {
+                $normalizedLimits[$key] = null;
+
                 continue;
             }
 
-            $normalized[(string) $key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+            if ($value !== null) {
+                $normalizedLimits[$key] = (int) $value;
+            }
         }
 
-        $this->merge(['features' => $normalized]);
+        $this->merge(['limits' => $normalizedLimits]);
     }
 }

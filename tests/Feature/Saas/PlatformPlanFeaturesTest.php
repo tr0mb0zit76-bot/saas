@@ -71,6 +71,11 @@ class PlatformPlanFeaturesTest extends SaasTestCase
                     'orders' => true,
                     'mail' => true,
                 ],
+                'limits' => [
+                    'users' => 5,
+                    'orders_per_month' => 200,
+                    'storage_mb' => 2048,
+                ],
             ])
             ->assertRedirect(route('platform.plans.edit', 'start'));
 
@@ -100,6 +105,68 @@ class PlatformPlanFeaturesTest extends SaasTestCase
 
         $this->assertTrue($tenant->fresh()->featureEnabled('mail'));
         $this->assertFalse($tenant->fresh()->featureEnabled('documents'));
+    }
+
+    public function test_platform_admin_can_edit_plan_limits_in_database(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->patch($this->platformUrl('/plans/start/features'), [
+                'features' => [
+                    'leads' => true,
+                    'orders' => true,
+                    'contractors' => true,
+                    'tasks' => true,
+                    'grid_views' => true,
+                ],
+                'limits' => [
+                    'users' => 3,
+                    'orders_per_month' => 50,
+                    'storage_mb' => 512,
+                ],
+            ])
+            ->assertRedirect(route('platform.plans.edit', 'start'));
+
+        $plan = SubscriptionPlan::query()->where('key', 'start')->first();
+
+        $this->assertNotNull($plan);
+        $this->assertSame(3, $plan->limitsMap()['users']);
+        $this->assertSame(50, $plan->limitsMap()['orders_per_month']);
+        $this->assertSame(512, $plan->limitsMap()['storage_mb']);
+
+        $this->assertDatabaseHas('tenant_audit_logs', [
+            'action' => 'plan.updated',
+            'entity_type' => 'subscription_plan',
+            'entity_id' => $plan->id,
+            'user_id' => $this->platformAdmin->id,
+        ]);
+    }
+
+    public function test_tenant_plan_limits_resolve_from_database(): void
+    {
+        SubscriptionPlan::query()->where('key', 'start')->update([
+            'limits' => [
+                'users' => 2,
+                'orders_per_month' => 10,
+                'storage_mb' => 100,
+            ],
+        ]);
+
+        TenantContext::bypass(true);
+
+        $tenant = Tenant::query()->create([
+            'slug' => 'limit-tenant-'.uniqid(),
+            'name' => 'Limit Tenant',
+            'status' => 'active',
+            'plan' => 'start',
+        ]);
+
+        TenantContext::bypass(false);
+
+        $limits = $tenant->fresh()->planLimits();
+
+        $this->assertSame(2, $limits['users']);
+        $this->assertSame(10, $limits['orders_per_month']);
+        $this->assertSame(100, $limits['storage_mb']);
     }
 
     private function platformUrl(string $path = '/'): string

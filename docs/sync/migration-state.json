@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated_at": "2026-07-12T12:00:00Z",
-  "current_phase": "M10",
+  "updated_at": "2026-07-12T12:30:00Z",
+  "current_phase": "M11",
   "phases": {
     "M0": { "name": "Prerequisites", "status": "done" },
     "M1": { "name": "Bootstrap from v5", "status": "done" },
@@ -13,7 +13,8 @@
     "M7": { "name": "Ready for pilots", "status": "done" },
     "M8": { "name": "Pilot onboarding", "status": "done" },
     "M9": { "name": "Demo access + ops", "status": "done" },
-    "M10": { "name": "Export + audit + lab env", "status": "done" }
+    "M10": { "name": "Export + audit + lab env", "status": "done" },
+    "M11": { "name": "Runtime plan limits editing", "status": "done" }
   },
   "steps": {
     "M9.1": { "status": "done", "note": "Demo signup SAAS_DEMO_SIGNUP_ENABLED" },
@@ -23,7 +24,8 @@
     "M9.5": { "status": "pending", "note": "Browser smoke home-pc; PilotSmokeTest automated PASS (28 assertions)" },
     "M10.1": { "status": "done", "note": "TenantExportService + saas:export-tenant" },
     "M10.2": { "status": "done", "note": "SaasAuditGateTest P0.10 visibility" },
-    "M10.3": { "status": "done", "note": "tenant_audit_logs + platform /audit" }
+    "M10.3": { "status": "done", "note": "tenant_audit_logs + platform /audit" },
+    "M11.1": { "status": "done", "note": "Plan limits editing in platform + plan.updated audit" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",
