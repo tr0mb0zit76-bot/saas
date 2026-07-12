@@ -2,17 +2,6 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-defineProps({
-    title: {
-        type: String,
-        default: 'Вход в кабинет',
-    },
-    subtitle: {
-        type: String,
-        default: 'Traklo Pro',
-    },
-});
-
 const page = usePage();
 const showcaseHomeUrl = computed(() => page.props.showcase_home_url ?? '/');
 const tenantName = computed(() => page.props.tenant?.name ?? null);
@@ -20,8 +9,8 @@ const tenantName = computed(() => page.props.tenant?.name ?? null);
 
 <template>
     <div class="min-h-dvh bg-[#0B1220] text-slate-100">
-        <div class="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-8 sm:px-6">
-            <header class="mb-6 flex items-center justify-between gap-4">
+        <div class="mx-auto flex min-h-dvh w-full max-w-4xl flex-col px-4 py-5 sm:px-6">
+            <header class="mb-4 flex items-center justify-between gap-4">
                 <a
                     :href="showcaseHomeUrl"
                     class="group inline-flex items-center gap-2 rounded-lg text-sm font-medium text-slate-300 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -37,19 +26,7 @@ const tenantName = computed(() => page.props.tenant?.name ?? null);
             </header>
 
             <main class="flex flex-1 flex-col items-center justify-center">
-                <slot name="scene" />
-
-                <div class="mt-6 w-full max-w-md space-y-2 text-center">
-                    <h1 v-if="title" class="text-lg font-semibold tracking-tight text-white">
-                        {{ title }}
-                    </h1>
-                    <p v-if="subtitle" class="text-sm leading-6 text-slate-400">
-                        {{ subtitle }}
-                    </p>
-                    <div class="text-left">
-                        <slot />
-                    </div>
-                </div>
+                <slot />
             </main>
         </div>
     </div>
