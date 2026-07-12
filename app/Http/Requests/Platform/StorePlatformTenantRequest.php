@@ -31,6 +31,9 @@ class StorePlatformTenantRequest extends FormRequest
             'status' => ['required', 'string', Rule::in(['active', 'trial', 'suspended'])],
             'plan' => ['required', 'string', Rule::in(SubscriptionPlan::planKeys())],
             'trial_ends_at' => ['nullable', 'date'],
+            'admin_name' => ['required', 'string', 'max:255'],
+            'admin_email' => ['required', 'string', 'email', 'max:255'],
+            'send_invite' => ['nullable', 'boolean'],
         ];
     }
 }

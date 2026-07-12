@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated_at": "2026-07-11T15:00:00Z",
-  "current_phase": "M7",
+  "updated_at": "2026-07-12T10:30:00Z",
+  "current_phase": "M8",
   "phases": {
     "M0": { "name": "Prerequisites", "status": "done" },
     "M1": { "name": "Bootstrap from v5", "status": "done" },
@@ -10,13 +10,18 @@
     "M4": { "name": "Lab smoke", "status": "done" },
     "M5": { "name": "Tenancy", "status": "done" },
     "M6": { "name": "Audit hardening + tenant security", "status": "done" },
-    "M7": { "name": "Ready for pilots", "status": "done" }
+    "M7": { "name": "Ready for pilots", "status": "done" },
+    "M8": { "name": "Pilot onboarding", "status": "in_progress" }
   },
   "steps": {
     "M7.3": { "status": "done", "note": "TenantProvisioner + default roles on create" },
     "M7.4": { "status": "done", "note": "tenant_subscriptions + tenant_invoices + mark paid" },
     "M7.5": { "status": "done", "note": "saas:expire-trials cron" },
-    "M8.1": { "status": "pending", "note": "onboarding wizard + first pilot" }
+    "M8.1": { "status": "done", "note": "onboarding: admin user + TenantWelcomeMail on platform create" },
+    "M8.2": { "status": "done", "note": "TenantUsageLimiter: users + orders_per_month" },
+    "M8.3": { "status": "done", "note": "TenantInvoicePdfService + platform PDF route" },
+    "M8.4": { "status": "done", "note": "Traklo landing/login verified; pilot-smoke-checklist.md" },
+    "M8.5": { "status": "pending", "note": "first external pilot execution on home-pc" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",

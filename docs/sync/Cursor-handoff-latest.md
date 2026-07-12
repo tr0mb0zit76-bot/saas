@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M7+ · **Ветка:** `main` (все feature-ветки слиты)
+**Обновлено:** 2026-07-12 · **Фаза:** M8 · **Ветка:** `main`
 
 ---
 
@@ -16,41 +16,37 @@
 ## Продукт: Traklo Pro
 
 - **Pilot:** чистый demo-tenant
-- **Billing:** счета / УПД вручную (ADR-009) — skeleton готов
+- **Billing:** счета / УПД вручную (ADR-009) — PDF счёта через Gotenberg
 - **Storage:** S3 prod, `tenant_local` lab
 - **Mobile:** один APK + subdomain
 
 ---
 
-## Сделано (в `main`)
+## Сделано (M8 в `main`)
 
-### Tenancy & security
-- Tier A/B `tenant_id`, fail-closed scope, feature gating, TenantStorage
-- Composite unique email/roles per tenant
-- Platform admin: `/platform/*` (отдельная супер-админка)
+### M8.1 Onboarding
+- Platform create tenant: **admin user** (роль admin) + `TenantWelcomeMail` с временным паролем
+- Поля формы: `admin_name`, `admin_email`, `send_invite`
+- `TenantOnboardingService`, `TenantHost::url()` для login URL в письме
 
-### Platform Super-Admin (`/platform`)
-- **Обзор** — `/platform` (статистика арендаторов, trial expiring)
-- **Арендаторы** — `/platform/tenants` (create/update/billing)
-- **Тарифы и модули** — `/platform/plans` (матрица Start/Pro/Enterprise)
-- **Модули арендатора** — `/platform/tenants/{id}/features` (override `settings.features`)
-- Каталог модулей: `config/saas-features.php` + `SaasFeatureCatalog`
-- Меню CRM: **Настройки → Platform Admin** (для `SAAS_PLATFORM_ADMIN_EMAILS`)
+### M8.2 Usage limits
+- `TenantUsageLimiter`: лимиты `users` и `orders_per_month` из тарифа
+- Проверка при создании пользователя и заказа (ValidationException)
 
-### Dev tooling
-- **Ponytail** rules: `.cursor/rules/ponytail.mdc` + SaaS carve-out
-- **Vite chunking:** ag-grid, mermaid, tiptap, grapesjs, vue-flow, page-* chunks
+### M8.3 Invoice PDF
+- `GET /platform/tenants/{tenant}/invoices/{invoice}/pdf`
+- Blade-шаблон + Gotenberg (как LeadProposalPdfService)
+- Кнопка PDF в списке арендаторов после «Оплачено»
 
-### TenantProvisioner + Billing
-- При создании tenant: storage + 7 default roles + subscription
-- `TenantBillingService::markInvoicePaid()`, `saas:expire-trials` cron
+### M8.4 Landing / login / pilot
+- `SHOWCASE_MODE=traklo_pro` → TrakloLanding (уже было)
+- TrakloLoginScene на `/login` (уже было)
+- Чеклист: `docs/sync/pilot-smoke-checklist.md`
 
-### Mail sync (ADR-013)
-- **Lazy attachments** по умолчанию (`MAIL_SYNC_IMPORT_ATTACHMENTS=false`)
-- Sync: текст + metadata вложений; файл — по клику «Скачать»
-- Purge 6 мес.: удаляет файлы вложений + **AI-конспект** (800 символов, input 4k, см. `.env.example`)
+### Ранее (M7)
+- Platform super-admin, mail lazy attachments + AI retention, Vite chunking, Ponytail rules
 
-### Tests — **23 passed** (Saas 20 + mail lazy/purge 3)
+### Tests — **28+ passed** (Saas + mail)
 
 ---
 
@@ -67,30 +63,31 @@ npm run build
 `.env`:
 
 ```env
+SHOWCASE_MODE=traklo_pro
 TENANT_STORAGE_DISK=tenant_local
 TENANT_STORAGE_FOR_DOCUMENTS=true
 SAAS_DEFAULT_TENANT_SLUG=demo
 SAAS_PLATFORM_ADMIN_EMAILS=admin@saas.local
 SAAS_TRIAL_DAYS=14
+DOC_PREVIEW_DRIVER=gotenberg
+GOTENBERG_URL=http://127.0.0.1:3000
 ```
 
 Login: `admin@saas.local` / `password`  
 Platform: **Настройки → Platform Admin** или `/platform`
 
+**Первый pilot:** см. `docs/sync/pilot-smoke-checklist.md`
+
 ---
 
 ## Следующие шаги
 
-1. Tenant onboarding wizard (admin user + invite email при create)
-2. **Traklo Pro landing** — `SHOWCASE_MODE=traklo_pro`, `/` → `Public/TrakloLanding`
-3. **Animated login** — `TrakloLoginScene` на `/login` и platform login
-4. PDF/УПД export для `tenant_invoices`
-3. Usage limits enforcement (users, orders/month)
-4. Pilot с первым внешним экспедитором
-5. (Опционально) runtime-редактирование тарифов в БД вместо config
+1. **M8.5** — провести pilot с первым внешним экспедитором на home-pc
+2. (Опционально) runtime-редактирование тарифов в БД вместо config
+3. Self-service billing (ЮKassa) — отдельный ADR
 
 ---
 
 ## От вас ничего не требуется
 
-`git pull origin main` + `migrate` + `npm run build` на home-pc.
+`git pull origin main` + `migrate` + `npm run build` на home-pc. Для PDF счетов — Gotenberg в lab.

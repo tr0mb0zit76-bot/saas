@@ -101,6 +101,9 @@ class PlatformTenantManagementTest extends SaasTestCase
             'name' => 'New Company',
             'status' => 'trial',
             'plan' => 'start',
+            'admin_name' => 'New Admin',
+            'admin_email' => 'new-admin-'.uniqid().'@example.com',
+            'send_invite' => false,
         ])->assertRedirect(route('platform.tenants.index'));
 
         TenantContext::bypass(true);

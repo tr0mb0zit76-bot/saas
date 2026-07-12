@@ -24,6 +24,7 @@ use App\Services\Orders\Wizard\OrderWizardIndexService;
 use App\Services\Orders\Wizard\OrderWizardOrderAuthorization;
 use App\Services\Orders\Wizard\OrderWizardPagePresenter;
 use App\Services\OrderWizardService;
+use App\Services\Saas\TenantUsageLimiter;
 use App\Services\PrintFormDraftResponseBuilder;
 use App\Support\ContractorIdentity;
 use App\Support\OrderAgentLexicon;
@@ -49,6 +50,7 @@ class OrderWizardController extends Controller
         private readonly OrderWizardFinancialTermsSyncService $financialTermsSyncService,
         private readonly OrderWizardOrderAuthorization $orderAuthorization,
         private readonly OrderWizardPagePresenter $pagePresenter,
+        private readonly TenantUsageLimiter $usageLimiter,
     ) {}
 
     public function create(Request $request, OrderBasedOnTemplateBuilder $orderBasedOnTemplateBuilder): Response
@@ -80,6 +82,8 @@ class OrderWizardController extends Controller
 
     public function store(StoreOrderRequest $request, OrderWizardService $orderWizardService): RedirectResponse
     {
+        $this->usageLimiter->assertCanCreateOrder();
+
         $validated = $request->validatedForWizard();
         $user = $request->user();
 

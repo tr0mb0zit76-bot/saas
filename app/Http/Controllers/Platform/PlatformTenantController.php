@@ -9,6 +9,7 @@ use App\Http\Requests\Platform\UpdatePlatformTenantRequest;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
 use App\Services\Saas\TenantBillingService;
+use App\Services\Saas\TenantOnboardingService;
 use App\Services\Saas\TenantProvisioner;
 use App\Support\SaasFeatureCatalog;
 use App\Support\TenantContext;
@@ -21,6 +22,7 @@ class PlatformTenantController extends Controller
     public function __construct(
         private readonly TenantProvisioner $provisioner,
         private readonly TenantBillingService $billing,
+        private readonly TenantOnboardingService $onboarding,
     ) {}
 
     public function index(): Response
@@ -28,7 +30,7 @@ class PlatformTenantController extends Controller
         TenantContext::bypass(true);
 
         $tenants = Tenant::query()
-            ->with('subscription')
+            ->with(['subscription', 'invoices' => fn ($query) => $query->latest('id')->limit(1)])
             ->withCount('users')
             ->orderBy('name')
             ->get()
@@ -42,6 +44,11 @@ class PlatformTenantController extends Controller
                 'subscription_status' => $tenant->subscription?->status,
                 'billing_period_end' => $tenant->subscription?->billing_period_end?->toDateString(),
                 'users_count' => $tenant->users_count,
+                'latest_invoice' => $tenant->invoices->first() ? [
+                    'id' => $tenant->invoices->first()->id,
+                    'invoice_number' => $tenant->invoices->first()->invoice_number,
+                    'status' => $tenant->invoices->first()->status,
+                ] : null,
                 'features' => $tenant->enabledFeatures(),
                 'created_at' => $tenant->created_at?->toIso8601String(),
             ])
@@ -79,11 +86,25 @@ class PlatformTenantController extends Controller
 
         $this->provisioner->provision($tenant);
 
+        $onboarded = $this->onboarding->createAdminUser(
+            $tenant,
+            $request->string('admin_name')->toString(),
+            $request->string('admin_email')->toString(),
+        );
+
+        if ($request->boolean('send_invite', true)) {
+            $this->onboarding->sendWelcomeInvite($tenant, $onboarded['user'], $onboarded['password']);
+        }
+
         TenantContext::bypass(false);
+
+        $inviteNote = $request->boolean('send_invite', true)
+            ? ' Приглашение отправлено на '.$onboarded['user']->email.'.'
+            : ' Временный пароль создан (письмо не отправлялось).';
 
         return to_route('platform.tenants.index')->with('flash', [
             'type' => 'success',
-            'message' => "Арендатор «{$tenant->name}» создан (роли и подписка подготовлены).",
+            'message' => "Арендатор «{$tenant->name}» создан. Администратор: {$onboarded['user']->email}.{$inviteNote}",
         ]);
     }
 

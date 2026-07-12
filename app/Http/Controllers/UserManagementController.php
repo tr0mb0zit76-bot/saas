@@ -8,6 +8,7 @@ use App\Models\Contractor;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Saas\TenantUsageLimiter;
 use App\Support\RoleAccess;
 use App\Support\UserDepartmentSync;
 use App\Support\UserSigningOwnCompanySync;
@@ -19,6 +20,10 @@ use Inertia\Response;
 
 class UserManagementController extends Controller
 {
+    public function __construct(
+        private readonly TenantUsageLimiter $usageLimiter,
+    ) {}
+
     public function index(Request $request): Response
     {
         abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
@@ -65,6 +70,8 @@ class UserManagementController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
+        $this->usageLimiter->assertCanAddUser();
+
         $validated = $request->validated();
         $signingOwnCompanyIds = $validated['signing_own_company_ids'] ?? [];
         $roleIds = $validated['role_ids'] ?? [];

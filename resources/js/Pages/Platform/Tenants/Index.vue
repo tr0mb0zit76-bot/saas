@@ -36,6 +36,20 @@
                         <option v-for="status in statusOptions" :key="status.value" :value="status.value">{{ status.label }}</option>
                     </select>
                 </div>
+                <div class="space-y-1">
+                    <label class="text-xs uppercase tracking-wide text-zinc-500">Администратор (ФИО)</label>
+                    <input v-model="createForm.admin_name" type="text" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" placeholder="Иван Иванов" />
+                    <p v-if="createForm.errors.admin_name" class="text-xs text-rose-600">{{ createForm.errors.admin_name }}</p>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs uppercase tracking-wide text-zinc-500">Email администратора</label>
+                    <input v-model="createForm.admin_email" type="email" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" placeholder="admin@company.ru" />
+                    <p v-if="createForm.errors.admin_email" class="text-xs text-rose-600">{{ createForm.errors.admin_email }}</p>
+                </div>
+                <div class="flex items-center gap-2 md:col-span-2 xl:col-span-4">
+                    <input id="send_invite" v-model="createForm.send_invite" type="checkbox" class="rounded border-zinc-300" />
+                    <label for="send_invite" class="text-sm text-zinc-600 dark:text-zinc-300">Отправить приглашение с временным паролем</label>
+                </div>
                 <div class="md:col-span-2 xl:col-span-4">
                     <button type="submit" class="rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50" :disabled="createForm.processing">Создать</button>
                 </div>
@@ -87,6 +101,14 @@
                             <button type="button" class="rounded-lg bg-sky-600 px-2 py-1 text-xs text-white" @click="markPaid(tenant.id)">
                                 Оплачено
                             </button>
+                            <a
+                                v-if="tenant.latest_invoice"
+                                :href="route('platform.tenants.invoices.pdf', { tenant: tenant.id, invoice: tenant.latest_invoice.id })"
+                                target="_blank"
+                                class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700"
+                            >
+                                PDF
+                            </a>
                         </td>
                     </tr>
                 </tbody>
@@ -119,6 +141,9 @@ const createForm = useForm({
     plan: 'start',
     status: 'trial',
     trial_ends_at: null,
+    admin_name: '',
+    admin_email: '',
+    send_invite: true,
 });
 
 const editDrafts = reactive({});
@@ -136,7 +161,7 @@ function submitCreate() {
     createForm.post(route('platform.tenants.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            createForm.reset('slug', 'name');
+            createForm.reset('slug', 'name', 'admin_name', 'admin_email');
             showCreate.value = false;
         },
     });
