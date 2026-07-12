@@ -51,7 +51,7 @@ onMounted(() => {
 
 <template>
     <div
-        class="traklo-login-scene mx-auto w-full max-w-md"
+        class="traklo-login-scene mx-auto w-full max-w-2xl"
         :class="{ 'traklo-login-scene--ready': sceneReady }"
     >
         <div v-if="title || subtitle" class="mb-5 text-center">
@@ -63,7 +63,7 @@ onMounted(() => {
             </p>
         </div>
 
-        <div class="traklo-icon relative mx-auto aspect-square w-full max-w-[20rem] sm:max-w-[22rem]">
+        <div class="traklo-icon relative mx-auto aspect-square w-full max-w-[min(100%,28rem)] sm:max-w-[32rem]">
             <img
                 src="/downloads/traklo-icon.png"
                 alt=""
@@ -107,7 +107,7 @@ onMounted(() => {
         </div>
 
         <div
-            class="traklo-footer mx-auto mt-5 w-full max-w-[20rem] sm:max-w-[22rem]"
+            class="traklo-footer mx-auto mt-5 w-full max-w-[min(100%,28rem)] sm:max-w-[32rem]"
             :class="sceneReady || instant ? 'opacity-100' : 'pointer-events-none opacity-0'"
         >
             <slot name="footer" />
@@ -147,17 +147,17 @@ onMounted(() => {
 }
 
 .traklo-bar--email {
-    top: 61.6%;
+    top: 61.4%;
     left: 36.2%;
     width: 33.9%;
-    height: 3.6%;
+    height: 4.2%;
 }
 
 .traklo-bar--password {
-    top: 67.5%;
+    top: 67.3%;
     left: 36.1%;
     width: 19.4%;
-    height: 3.6%;
+    height: 4.2%;
 }
 
 .traklo-bar--live {

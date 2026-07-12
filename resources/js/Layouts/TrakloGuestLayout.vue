@@ -20,7 +20,7 @@ const tenantName = computed(() => page.props.tenant?.name ?? null);
 
 <template>
     <div class="min-h-dvh bg-[#0B1220] text-slate-100">
-        <div class="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 py-8 sm:px-6">
+        <div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-6 sm:px-6">
             <header class="mb-6 flex items-center justify-between gap-4">
                 <a
                     :href="showcaseHomeUrl"

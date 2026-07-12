@@ -99,9 +99,9 @@ const submit = () => {
     border: 0;
     border-radius: 9999px;
     background: transparent;
-    padding: 0 0.85rem;
-    font-size: clamp(0.65rem, 2.6vw, 0.8rem);
-    line-height: 1;
+    padding: 0 1rem;
+    font-size: clamp(0.8rem, 2.1vw, 1rem);
+    line-height: 1.1;
     color: #0f172a;
     outline: none;
     caret-color: #1d4ed8;
