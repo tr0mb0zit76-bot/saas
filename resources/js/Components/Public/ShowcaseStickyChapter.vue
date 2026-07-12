@@ -2,14 +2,15 @@
 /**
  * Horizontal story chapter driven by vertical scroll.
  * Tall outer track → sticky viewport → panels slide left/right (100vw each).
- * Soft dissolve past the Traklo brand line (~2cm); shots keep an angled view.
+ * Soft dissolve past the Traklo brand line (~3cm); shots keep an angled view
+ * that straightens on hover.
  * ponytail: CSS mocks — swap ShowcaseFeatureShot for real screenshots later.
  */
 import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
-/** Dissolve width past the brand cut (≈ couple of centimeters). */
-const FADE = '2cm';
+/** Dissolve width past the brand cut. */
+const FADE = '3cm';
 
 const props = defineProps({
     eyebrow: { type: String, default: '' },
@@ -29,6 +30,8 @@ const chapterEl = ref(null);
 const progress = ref(0);
 /** Left edge of header brand — start of the dissolve. */
 const cutLeft = ref(0);
+/** Shot index under the pointer — straighten angle on hover. */
+const hoveredIndex = ref(null);
 let frame = 0;
 
 const sceneCount = computed(() => Math.max(props.scenes.length, 1));
@@ -60,14 +63,15 @@ const stageStyle = computed(() => {
         return undefined;
     }
 
-    // Dissolve past the brand line over ~2cm (plus a short soft lead-in).
+    // Dissolve past the brand line over ~3cm (plus a short soft lead-in).
     const mask = [
         'linear-gradient(to right,',
         'transparent 0,',
         `transparent calc(${cut}px - ${FADE}),`,
-        `rgb(0 0 0 / 0.18) calc(${cut}px - 0.85cm),`,
-        `rgb(0 0 0 / 0.72) ${cut}px,`,
-        `#000 calc(${cut}px + 0.55cm),`,
+        `rgb(0 0 0 / 0.16) calc(${cut}px - 1.4cm),`,
+        `rgb(0 0 0 / 0.55) calc(${cut}px - 0.45cm),`,
+        `rgb(0 0 0 / 0.82) ${cut}px,`,
+        `#000 calc(${cut}px + 0.65cm),`,
         '#000 100%)',
     ].join(' ');
 
@@ -89,6 +93,16 @@ const columnStyle = computed(() => {
 
 const shotShellStyle = (index) => {
     const d = index - scenePos.value;
+    const hovered = hoveredIndex.value === index;
+
+    // Hover: ease toward face-on (same idea as ShowcaseFeatureShot hover).
+    if (hovered) {
+        return {
+            transform: 'rotateY(-3.5deg) rotateX(2deg) rotateZ(0deg) scale(1.01) translateY(-4px)',
+            opacity: '1',
+        };
+    }
+
     // Always a clear angled glance; exiting left turns further away.
     const rotY = Math.max(-28, Math.min(8, -16 + d * 10));
     const rotX = 7 + Math.min(4, Math.abs(d) * 1.4);
@@ -224,7 +238,10 @@ onUnmounted(() => {
                                 <div class="showcase-rail__perspective min-h-0 flex-[1.35]">
                                     <div
                                         class="showcase-rail__shot relative h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-[0_28px_60px_-28px_rgba(0,0,0,0.75)] will-change-transform"
+                                        :class="{ 'showcase-rail__shot--hovered': hoveredIndex === index }"
                                         :style="shotShellStyle(index)"
+                                        @mouseenter="hoveredIndex = index"
+                                        @mouseleave="hoveredIndex = null"
                                     >
                                         <ShowcaseFeatureShot
                                             :variant="scene.key"
@@ -291,10 +308,19 @@ onUnmounted(() => {
 .showcase-rail__shot {
     transform-style: preserve-3d;
     transform-origin: 70% 55%;
-    transition: opacity 0.15s linear;
+    transition:
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.25s ease,
+        box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow:
         0 28px 60px -28px rgba(0, 0, 0, 0.75),
         -18px 12px 40px -20px rgba(15, 23, 42, 0.55);
+}
+
+.showcase-rail__shot--hovered {
+    box-shadow:
+        0 34px 70px -24px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .showcase-rail__shot :deep(.showcase-shot) {
