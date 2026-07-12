@@ -34,39 +34,36 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
+
+const title = 'Вход в кабинет';
+const subtitle = page.props.tenant?.name
+    ? `Рабочее пространство «${page.props.tenant.name}»`
+    : 'Email и пароль, выданные администратором';
 </script>
 
 <template>
-    <TrakloGuestLayout
-        title="Вход в кабинет"
-        :subtitle="page.props.tenant?.name ? `Рабочее пространство «${page.props.tenant.name}»` : 'Email и пароль, выданные администратором'"
-    >
+    <TrakloGuestLayout>
         <Head title="Вход" />
 
-        <template #scene>
-            <TrakloLoginScene
-                v-model:ready="sceneReady"
-                :instant="hasValidationErrors"
-            />
-        </template>
-
-        <div
-            class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/20 backdrop-blur-sm transition duration-500 sm:p-6"
-            :class="sceneReady || hasValidationErrors ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'"
+        <TrakloLoginScene
+            v-model:ready="sceneReady"
+            :title="title"
+            :subtitle="subtitle"
+            :instant="hasValidationErrors"
         >
-            <div v-if="status" class="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            <div v-if="status" class="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 {{ status }}
             </div>
 
             <form class="space-y-4" @submit.prevent="submit">
                 <div>
-                    <InputLabel for="email" value="Email" class="text-slate-300" />
+                    <InputLabel for="email" value="Email" class="text-slate-700" />
 
                     <TextInput
                         id="email"
                         v-model="form.email"
                         type="email"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500"
                         required
                         :autofocus="sceneReady || hasValidationErrors"
                         autocomplete="username"
@@ -76,13 +73,13 @@ const submit = () => {
                 </div>
 
                 <div>
-                    <InputLabel for="password" value="Пароль" class="text-slate-300" />
+                    <InputLabel for="password" value="Пароль" class="text-slate-700" />
 
                     <TextInput
                         id="password"
                         v-model="form.password"
                         type="password"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-blue-500"
                         required
                         autocomplete="current-password"
                     />
@@ -92,14 +89,14 @@ const submit = () => {
 
                 <label class="flex items-center gap-3">
                     <Checkbox v-model:checked="form.remember" name="remember" />
-                    <span class="text-sm text-slate-400">Запомнить меня</span>
+                    <span class="text-sm text-slate-600">Запомнить меня</span>
                 </label>
 
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <Link
                         v-if="canResetPassword"
                         :href="route('password.request')"
-                        class="text-sm text-slate-400 underline decoration-white/20 underline-offset-4 hover:text-white"
+                        class="text-sm text-slate-500 underline decoration-slate-300 underline-offset-4 hover:text-slate-800"
                     >
                         Забыли пароль?
                     </Link>
@@ -114,6 +111,6 @@ const submit = () => {
                     </PrimaryButton>
                 </div>
             </form>
-        </div>
+        </TrakloLoginScene>
     </TrakloGuestLayout>
 </template>

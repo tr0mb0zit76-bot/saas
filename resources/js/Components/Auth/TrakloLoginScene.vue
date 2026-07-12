@@ -6,7 +6,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    /** Skip animation (validation errors, reduced motion). */
+    title: {
+        type: String,
+        default: '',
+    },
+    subtitle: {
+        type: String,
+        default: '',
+    },
     instant: {
         type: Boolean,
         default: false,
@@ -17,6 +24,11 @@ const emit = defineEmits(['update:ready']);
 
 const prefersReducedMotion = ref(false);
 const driving = ref(true);
+const iconFailed = ref(false);
+
+const onIconError = () => {
+    iconFailed.value = true;
+};
 
 const sceneReady = computed(() => props.ready || props.instant || !driving.value);
 
@@ -45,187 +57,162 @@ onMounted(() => {
 
     window.setTimeout(() => {
         driving.value = false;
-    }, 1450);
+    }, 1800);
 });
 </script>
 
 <template>
     <div
-        class="traklo-login-scene relative mx-auto aspect-square w-full max-w-[min(100%,18rem)] select-none sm:max-w-[20rem]"
+        class="traklo-login-scene mx-auto w-full max-w-lg"
         :class="{ 'traklo-login-scene--ready': sceneReady }"
     >
-        <svg
-            class="h-full w-full"
-            viewBox="0 0 512 512"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-        >
-            <defs>
-                <linearGradient id="traklo-bubble" x1="120" y1="80" x2="420" y2="420" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#3B82F6" />
-                    <stop offset="1" stop-color="#2563EB" />
-                </linearGradient>
-                <linearGradient id="traklo-bubble-shadow" x1="140" y1="100" x2="440" y2="440" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#1D4ED8" />
-                    <stop offset="1" stop-color="#1E3A8A" />
-                </linearGradient>
-                <filter id="traklo-soft-glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#2563EB" flood-opacity="0.35" />
-                </filter>
-            </defs>
+        <div class="traklo-login-scene__bubble relative overflow-hidden rounded-[2rem] px-5 pb-8 pt-6 shadow-2xl shadow-blue-950/40 sm:px-8 sm:pb-10 sm:pt-8">
+            <div class="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-800" aria-hidden="true" />
+            <div class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+            <div class="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-blue-900/40 blur-2xl" aria-hidden="true" />
 
-            <rect width="512" height="512" rx="108" fill="#0B1220" />
+            <div class="relative z-10">
+                <div v-if="title || subtitle" class="mb-5 text-center sm:mb-6">
+                    <h1 v-if="title" class="text-lg font-semibold tracking-tight text-white sm:text-xl">
+                        {{ title }}
+                    </h1>
+                    <p v-if="subtitle" class="mt-1 text-sm leading-6 text-blue-100/90">
+                        {{ subtitle }}
+                    </p>
+                </div>
 
-            <path
-                d="M148 118C148 94.8172 166.817 76 190 76H360C383.183 76 402 94.8172 402 118V332C402 355.183 383.183 374 360 374H248L196 418V374H190C166.817 374 148 355.183 148 332V118Z"
-                fill="url(#traklo-bubble-shadow)"
-                transform="translate(8 10)"
-            />
+                <!-- Map area: route, pins, truck -->
+                <div class="traklo-login-scene__map relative mx-auto aspect-[5/4] w-full max-w-[22rem] sm:max-w-none">
+                    <svg
+                        class="absolute inset-0 h-full w-full"
+                        viewBox="0 0 400 320"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+                        <path
+                            class="traklo-route-line"
+                            d="M 56 268 C 110 228, 150 188, 198 152 S 268 118, 318 98"
+                            stroke="#BFDBFE"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                        />
 
-            <path
-                d="M140 110C140 86.8172 158.817 68 182 68H352C375.183 68 394 86.8172 394 110V324C394 347.183 375.183 366 352 366H240L188 410V366H182C158.817 366 140 347.183 140 324V110Z"
-                fill="url(#traklo-bubble)"
-                filter="url(#traklo-soft-glow)"
-            />
+                        <!-- Start pin -->
+                        <g transform="translate(56 268)">
+                            <circle cx="0" cy="0" r="22" fill="#FFFFFF" opacity="0.22" />
+                            <path d="M0 -28C11.046 -28 20 -19.046 20 -10C20 0.5 0 26 0 26C0 26 -20 0.5 -20 -10C-20 -19.046 -11.046 -28 0 -28Z" fill="#FFFFFF" />
+                            <circle cx="0" cy="-10" r="7" fill="#2563EB" />
+                        </g>
 
-            <path
-                id="traklo-route-line"
-                class="traklo-route-line"
-                d="M 118 408 C 158 368, 198 328, 238 298 S 298 262, 332 248"
-                stroke="#93C5FD"
-                stroke-width="14"
-                stroke-linecap="round"
-                fill="none"
-            />
+                        <!-- Destination pin -->
+                        <g transform="translate(318 98)">
+                            <circle cx="0" cy="0" r="18" fill="#FFFFFF" opacity="0.18" />
+                            <path d="M0 -24C9.941 -24 18 -15.941 18 -7C18 1.85 0 22 0 22C0 22 -18 1.85 -18 -7C-18 -15.941 -9.941 -24 0 -24Z" fill="#FFFFFF" />
+                            <circle cx="0" cy="-7" r="6" fill="#2563EB" />
+                        </g>
+                    </svg>
 
-            <g transform="translate(118 408)">
-                <circle cx="0" cy="0" r="20" fill="#FFFFFF" opacity="0.25" />
-                <path d="M0 -26C10.493 -26 19 -17.493 19 -8C19 2.5 0 24 0 24C0 24 -19 2.5 -19 -8C-19 -17.493 -10.493 -26 0 -26Z" fill="#FFFFFF" />
-                <circle cx="0" cy="-8" r="7" fill="#2563EB" />
-            </g>
+                    <!-- Driving truck (icon) -->
+                    <div
+                        v-show="driving && !prefersReducedMotion && !instant"
+                        class="traklo-truck-rider pointer-events-none absolute"
+                        aria-hidden="true"
+                    >
+                        <img
+                            v-if="!iconFailed"
+                            src="/downloads/traklo-icon.png"
+                            alt=""
+                            class="h-14 w-14 rounded-xl bg-white/95 object-contain p-1 shadow-lg shadow-blue-950/30 sm:h-16 sm:w-16"
+                            @error="onIconError"
+                        >
+                        <svg v-else viewBox="0 0 64 64" class="h-14 w-14 rounded-xl bg-white p-2 shadow-lg sm:h-16 sm:w-16" aria-hidden="true">
+                            <rect x="22" y="10" width="34" height="22" rx="4" fill="#2563EB" />
+                            <path d="M6 52H58V36C58 30 54 26 48 26H34L26 16H12C6 16 2 20 2 26V52Z" fill="#1D4ED8" />
+                            <circle cx="16" cy="52" r="6" fill="#1E3A8A" />
+                            <circle cx="48" cy="52" r="6" fill="#1E3A8A" />
+                        </svg>
+                    </div>
 
-            <g transform="translate(332 248)">
-                <circle cx="0" cy="0" r="16" fill="#FFFFFF" opacity="0.2" />
-                <path d="M0 -22C8.837 -22 16 -14.837 16 -6C16 2.15 0 20 0 20C0 20 -16 2.15 -16 -6C-16 -14.837 -8.837 -22 0 -22Z" fill="#FFFFFF" />
-                <circle cx="0" cy="-6" r="5" fill="#2563EB" />
-            </g>
+                    <!-- Parked truck at destination -->
+                    <div
+                        class="traklo-truck-parked pointer-events-none absolute"
+                        aria-hidden="true"
+                    >
+                        <img
+                            v-if="!iconFailed"
+                            src="/downloads/traklo-icon.png"
+                            alt=""
+                            class="h-16 w-16 rounded-xl bg-white object-contain p-1.5 shadow-xl shadow-blue-950/35 sm:h-[4.5rem] sm:w-[4.5rem]"
+                            @error="onIconError"
+                        >
+                        <svg v-else viewBox="0 0 64 64" class="h-16 w-16 rounded-xl bg-white p-2 shadow-xl sm:h-[4.5rem] sm:w-[4.5rem]" aria-hidden="true">
+                            <rect x="22" y="10" width="34" height="22" rx="4" fill="#2563EB" />
+                            <path d="M6 52H58V36C58 30 54 26 48 26H34L26 16H12C6 16 2 20 2 26V52Z" fill="#1D4ED8" />
+                            <circle cx="16" cy="52" r="6" fill="#1E3A8A" />
+                            <circle cx="48" cy="52" r="6" fill="#1E3A8A" />
+                        </svg>
+                    </div>
+                </div>
 
-            <path
-                id="traklo-truck-route"
-                d="M 118 408 C 158 368, 198 328, 238 298 S 298 262, 332 248"
-                fill="none"
-                stroke="transparent"
-            />
-
-            <g class="traklo-truck-parked">
-                <rect
-                    class="traklo-cargo-box"
-                    x="304"
-                    y="228"
-                    width="72"
-                    height="44"
-                    rx="6"
-                    fill="#FFFFFF"
-                />
-                <path d="M276 272H384V254C384 246 378 240 370 240H348L338 228H304C292 228 284 236 284 246V272Z" fill="#FFFFFF" />
-                <rect x="290" y="246" width="22" height="16" rx="3" fill="#BFDBFE" />
-                <circle cx="304" cy="272" r="10" fill="#1E3A8A" />
-                <circle cx="304" cy="272" r="5" fill="#93C5FD" />
-                <circle cx="364" cy="272" r="10" fill="#1E3A8A" />
-                <circle cx="364" cy="272" r="5" fill="#93C5FD" />
-            </g>
-
-            <rect x="176" y="318" width="148" height="12" rx="6" fill="#FFFFFF" opacity="0.85" />
-            <rect x="176" y="340" width="96" height="12" rx="6" fill="#FFFFFF" opacity="0.65" />
-        </svg>
-
-        <div
-            v-show="driving && !prefersReducedMotion && !instant"
-            class="traklo-truck-rider pointer-events-none absolute left-0 top-0"
-            aria-hidden="true"
-        >
-            <svg viewBox="0 0 120 70" class="h-[3.25rem] w-[5.5rem] -translate-x-1/2 -translate-y-1/2">
-                <rect x="44" y="8" width="58" height="36" rx="5" fill="#FFFFFF" />
-                <path d="M6 58H114V40C114 32 108 26 100 26H78L66 12H24C12 12 4 20 4 30V58Z" fill="#FFFFFF" />
-                <rect x="10" y="28" width="20" height="14" rx="2" fill="#BFDBFE" />
-                <circle cx="26" cy="58" r="9" fill="#1E3A8A" />
-                <circle cx="26" cy="58" r="4.5" fill="#93C5FD" />
-                <circle cx="92" cy="58" r="9" fill="#1E3A8A" />
-                <circle cx="92" cy="58" r="4.5" fill="#93C5FD" />
-            </svg>
-        </div>
-
-        <!-- Mini fields on cargo (visual); full form sits below in layout -->
-        <div
-            class="traklo-cargo-fields pointer-events-none absolute inset-0"
-            :class="{ 'traklo-cargo-fields--active': sceneReady }"
-            aria-hidden="true"
-        >
-            <div class="traklo-cargo-fields__stack">
-                <span class="traklo-cargo-field" />
-                <span class="traklo-cargo-field traklo-cargo-field--short" />
+                <!-- Cargo panel: real form lives here -->
+                <div
+                    class="traklo-cargo-panel relative z-20 -mt-2 rounded-2xl border border-white/25 bg-white p-4 shadow-xl shadow-blue-950/25 sm:p-5"
+                    :class="sceneReady || instant
+                        ? 'traklo-cargo-panel--visible'
+                        : 'pointer-events-none opacity-0'"
+                >
+                    <slot />
+                </div>
             </div>
+
+            <!-- Speech bubble tail -->
+            <div
+                class="pointer-events-none absolute -bottom-3 left-1/2 h-8 w-8 -translate-x-1/2 rotate-45 bg-blue-700"
+                aria-hidden="true"
+            />
         </div>
     </div>
 </template>
 
 <style scoped>
 .traklo-route-line {
-    stroke-dasharray: 340;
-    stroke-dashoffset: 340;
-    animation: traklo-draw-route 0.85s ease-out forwards;
+    stroke-dasharray: 420;
+    stroke-dashoffset: 420;
+    animation: traklo-draw-route 1s ease-out forwards;
+}
+
+.traklo-truck-rider {
+    left: 10%;
+    top: 76%;
+    animation: traklo-truck-drive 1.35s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
+    opacity: 0;
 }
 
 .traklo-truck-parked {
+    left: 72%;
+    top: 22%;
     opacity: 0;
-    transition: opacity 0.35s ease;
+    transform: translate(-50%, -50%) scale(0.85);
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .traklo-login-scene--ready .traklo-truck-parked {
     opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
 }
 
-.traklo-login-scene--ready .traklo-cargo-box {
-    animation: traklo-cargo-glow 1.6s ease-in-out infinite;
+.traklo-cargo-panel {
+    transform: translateY(12px);
+    transition:
+        opacity 0.45s ease,
+        transform 0.45s ease;
 }
 
-.traklo-truck-rider {
-    left: 12%;
-    top: 68%;
-    animation: traklo-truck-drive 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
-    opacity: 0;
-}
-
-.traklo-cargo-fields {
-    opacity: 0;
-}
-
-.traklo-cargo-fields__stack {
-    position: absolute;
-    left: 59.5%;
-    top: 44.5%;
-    width: 14%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    gap: 0.28rem;
-}
-
-.traklo-cargo-field {
-    display: block;
-    height: 0.42rem;
-    border-radius: 9999px;
-    background: rgb(191 219 254 / 0.95);
-    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35);
-}
-
-.traklo-cargo-field--short {
-    width: 72%;
-}
-
-.traklo-cargo-fields--active {
-    animation: traklo-cargo-fields-in 0.4s ease forwards;
+.traklo-cargo-panel--visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 @keyframes traklo-draw-route {
@@ -237,39 +224,16 @@ onMounted(() => {
 @keyframes traklo-truck-drive {
     0% {
         opacity: 1;
-        left: 12%;
-        top: 68%;
-        transform: rotate(-24deg);
+        left: 10%;
+        top: 76%;
+        transform: translate(-50%, -50%) rotate(-18deg);
     }
 
     100% {
         opacity: 1;
-        left: 54%;
-        top: 38%;
-        transform: rotate(6deg);
-    }
-}
-
-@keyframes traklo-cargo-fields-in {
-    from {
-        opacity: 0;
-        transform: scale(0.92);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-@keyframes traklo-cargo-glow {
-    0%,
-    100% {
-        filter: drop-shadow(0 0 0 rgb(147 197 253 / 0));
-    }
-
-    50% {
-        filter: drop-shadow(0 0 10px rgb(147 197 253 / 0.65));
+        left: 72%;
+        top: 22%;
+        transform: translate(-50%, -50%) rotate(8deg);
     }
 }
 
@@ -284,9 +248,10 @@ onMounted(() => {
     }
 
     .traklo-truck-parked,
-    .traklo-cargo-fields {
-        opacity: 1;
-        animation: none;
+    .traklo-cargo-panel {
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto !important;
     }
 }
 </style>

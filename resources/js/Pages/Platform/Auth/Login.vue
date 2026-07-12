@@ -32,40 +32,32 @@ const submit = () => {
 </script>
 
 <template>
-    <TrakloGuestLayout
-        title="Platform Admin"
-        subtitle="Управление арендаторами, тарифами и модулями платформы"
-    >
+    <TrakloGuestLayout>
         <Head title="Вход в платформу" />
 
-        <template #scene>
-            <TrakloLoginScene
-                v-model:ready="sceneReady"
-                :instant="hasValidationErrors"
-            />
-        </template>
-
-        <div
-            class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/20 backdrop-blur-sm transition duration-500 sm:p-6"
-            :class="sceneReady || hasValidationErrors ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'"
+        <TrakloLoginScene
+            v-model:ready="sceneReady"
+            title="Platform Admin"
+            subtitle="Управление арендаторами, тарифами и модулями платформы"
+            :instant="hasValidationErrors"
         >
-            <div class="mb-4 text-xs uppercase tracking-wide text-blue-300">
+            <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-blue-600">
                 Operator portal
             </div>
 
-            <div v-if="status" class="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            <div v-if="status" class="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                 {{ status }}
             </div>
 
             <form class="space-y-4" @submit.prevent="submit">
                 <div>
-                    <InputLabel for="email" value="Email оператора" class="text-slate-300" />
+                    <InputLabel for="email" value="Email оператора" class="text-slate-700" />
 
                     <TextInput
                         id="email"
                         v-model="form.email"
                         type="email"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full border-slate-200 bg-white text-slate-900 focus:border-blue-500 focus:ring-blue-500"
                         required
                         :autofocus="sceneReady || hasValidationErrors"
                         autocomplete="username"
@@ -75,13 +67,13 @@ const submit = () => {
                 </div>
 
                 <div>
-                    <InputLabel for="password" value="Пароль" class="text-slate-300" />
+                    <InputLabel for="password" value="Пароль" class="text-slate-700" />
 
                     <TextInput
                         id="password"
                         v-model="form.password"
                         type="password"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white focus:border-blue-500 focus:ring-blue-500"
+                        class="mt-1 block w-full border-slate-200 bg-white text-slate-900 focus:border-blue-500 focus:ring-blue-500"
                         required
                         autocomplete="current-password"
                     />
@@ -96,6 +88,6 @@ const submit = () => {
                     Войти
                 </PrimaryButton>
             </form>
-        </div>
+        </TrakloLoginScene>
     </TrakloGuestLayout>
 </template>
