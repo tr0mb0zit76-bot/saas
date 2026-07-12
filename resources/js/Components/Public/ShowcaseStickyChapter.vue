@@ -90,9 +90,9 @@ const columnStyle = computed(() => {
 const shotShellStyle = (index) => {
     const d = index - scenePos.value;
     // Always a clear angled glance; exiting left turns further away.
-    const rotY = Math.max(-24, Math.min(6, -13 + d * 9));
-    const rotX = 6.5 + Math.min(3.5, Math.abs(d) * 1.3);
-    const rotZ = 1.2 - Math.min(1.5, Math.abs(d) * 0.5) * Math.sign(d || -1);
+    const rotY = Math.max(-28, Math.min(8, -16 + d * 10));
+    const rotX = 7 + Math.min(4, Math.abs(d) * 1.4);
+    const rotZ = 1.4 - Math.min(1.6, Math.abs(d) * 0.55) * Math.sign(d || -1);
     const scale = 1 - Math.min(0.08, Math.abs(d) * 0.04);
     const opacity = 1 - Math.min(0.28, Math.abs(d) * 0.14);
 
@@ -276,15 +276,25 @@ onUnmounted(() => {
 }
 
 .showcase-rail__perspective {
-    perspective: 1600px;
-    perspective-origin: 50% 45%;
+    perspective: 1200px;
+    perspective-origin: 58% 42%;
+    transform-style: preserve-3d;
+}
+
+.showcase-rail__track,
+.showcase-rail__panel,
+.showcase-rail__panel > div,
+.showcase-rail__panel > div > div {
     transform-style: preserve-3d;
 }
 
 .showcase-rail__shot {
     transform-style: preserve-3d;
-    transform-origin: 50% 55%;
+    transform-origin: 70% 55%;
     transition: opacity 0.15s linear;
+    box-shadow:
+        0 28px 60px -28px rgba(0, 0, 0, 0.75),
+        -18px 12px 40px -20px rgba(15, 23, 42, 0.55);
 }
 
 .showcase-rail__shot :deep(.showcase-shot) {
