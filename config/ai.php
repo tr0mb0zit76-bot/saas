@@ -200,6 +200,11 @@ return [
         'temperature' => (float) env('AI_MAIL_ANALYSIS_TEMPERATURE', 0.3),
     ],
 
+    'mail_retention' => [
+        'max_tokens' => max(64, min(512, (int) env('AI_MAIL_RETENTION_MAX_TOKENS', 256))),
+        'temperature' => (float) env('AI_MAIL_RETENTION_TEMPERATURE', 0.2),
+    ],
+
     'insight_drafts' => [
         'max_tokens' => max(256, min(2048, (int) env('AI_INSIGHT_DRAFTS_MAX_TOKENS', 900))),
         'temperature' => (float) env('AI_INSIGHT_DRAFTS_TEMPERATURE', 0.2),

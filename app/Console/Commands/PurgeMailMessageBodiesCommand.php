@@ -3,13 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\MailMessage;
+use App\Services\Commercial\MailRetentionSummaryService;
 use App\Support\MailSync\MailMessageAttachmentJanitor;
 use App\Support\MailSync\MailMessageBodyPresenter;
 use App\Support\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class PurgeMailMessageBodiesCommand extends Command
 {
@@ -19,6 +19,7 @@ class PurgeMailMessageBodiesCommand extends Command
 
     public function __construct(
         private readonly MailMessageAttachmentJanitor $attachmentJanitor,
+        private readonly MailRetentionSummaryService $retentionSummary,
     ) {
         parent::__construct();
     }
@@ -34,7 +35,6 @@ class PurgeMailMessageBodiesCommand extends Command
         $months = (int) ($this->option('months')
             ?: config('commercial_intelligence.mail_retention.purge_older_than_months', 6));
         $cutoff = Carbon::now()->subMonths($months);
-        $maxChars = (int) config('commercial_intelligence.mail_retention.summary_max_chars', 500);
 
         $query = MailMessage::query()
             ->where('is_important', false)
@@ -50,16 +50,14 @@ class PurgeMailMessageBodiesCommand extends Command
 
         TenantContext::bypass(true);
 
-        $query->orderBy('id')->chunkById(100, function ($messages) use (&$count, $maxChars): void {
+        $query->orderBy('id')->chunkById(100, function ($messages) use (&$count): void {
             foreach ($messages as $message) {
                 $body = MailMessageBodyPresenter::plainText($message) ?? '';
 
                 $this->attachmentJanitor->deleteStoredFiles($message);
 
                 $message->forceFill([
-                    'retention_summary' => $body !== ''
-                        ? Str::limit($body, $maxChars)
-                        : ($message->retention_summary ?: '—'),
+                    'retention_summary' => $this->retentionSummary->build($message, $body),
                     'body_text' => null,
                     'body_html' => null,
                     'attachments' => $this->attachmentJanitor->retentionMetadata($message),
