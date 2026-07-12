@@ -5,6 +5,7 @@ namespace Tests\Feature\Saas;
 use App\Mail\TenantWelcomeMail;
 use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\TenantAuditLog;
 use App\Models\User;
 use App\Services\Saas\TenantBillingService;
 use App\Services\Saas\TenantUsageLimiter;
@@ -30,6 +31,7 @@ class PilotSmokeTest extends SaasTestCase
         config([
             'app.platform_domain' => 'platform.test',
             'saas.platform_admin_emails' => ['pilot-platform@saas.local'],
+            'saas.demo_signup_enabled' => true,
             'showcase.mode' => 'traklo_pro',
             'document_preview.driver' => 'gotenberg',
             'document_preview.gotenberg.url' => 'http://gotenberg.test',
@@ -45,6 +47,30 @@ class PilotSmokeTest extends SaasTestCase
 
         // 1. Витрина Traklo Pro
         $this->get($this->showcaseUrl('/'))->assertOk();
+
+        // 1b. Demo signup (M9)
+        $this->get($this->crmUrl('/demo/signup'))->assertOk();
+
+        $demoEmail = 'demo-'.uniqid().'@pilot.example.com';
+
+        $this->post($this->crmUrl('/demo/signup'), [
+            'company_name' => 'Demo Pilot LLC',
+            'admin_name' => 'Demo User',
+            'admin_email' => $demoEmail,
+        ])->assertRedirect();
+
+        Mail::assertSent(TenantWelcomeMail::class, fn (TenantWelcomeMail $mail): bool => $mail->hasTo($demoEmail));
+
+        TenantContext::bypass(true);
+
+        $demoTenant = Tenant::query()->where('name', 'Demo Pilot LLC')->first();
+        $this->assertNotNull($demoTenant);
+        $this->assertTrue($demoTenant->isDemoTenant());
+
+        $this->assertDatabaseHas('tenant_audit_logs', [
+            'tenant_id' => $demoTenant->id,
+            'action' => 'tenant.demo_signup',
+        ]);
 
         // 2. Login page
         TenantContext::bypass(true);
@@ -79,6 +105,12 @@ class PilotSmokeTest extends SaasTestCase
         $pilotTenant = Tenant::query()->where('slug', $slug)->first();
         $this->assertNotNull($pilotTenant);
         $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', $pilotTenant->id)->count());
+
+        $this->assertDatabaseHas('tenant_audit_logs', [
+            'tenant_id' => $pilotTenant->id,
+            'action' => 'tenant.created',
+            'user_id' => $platformAdmin->id,
+        ]);
 
         $owner = User::query()->withoutGlobalScopes()
             ->where('tenant_id', $pilotTenant->id)
@@ -143,6 +175,16 @@ class PilotSmokeTest extends SaasTestCase
 
         $pdfResponse->assertOk();
         $this->assertStringStartsWith('%PDF', $pdfResponse->getContent());
+
+        $this->actingAs($platformAdmin)->get(PlatformHost::url('/audit'))
+            ->assertOk()
+            ->assertSee('tenant.created', false)
+            ->assertSee('tenant.demo_signup', false);
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            TenantAuditLog::query()->whereIn('action', ['tenant.created', 'tenant.demo_signup', 'tenant.invoice_paid'])->count(),
+        );
 
         // 7. Feature override grants mail on Start
         TenantContext::bypass(true);

@@ -20,7 +20,7 @@
     "M9.2": { "status": "done", "note": "CRM onboarding wizard" },
     "M9.3": { "status": "done", "note": "saas:record-usage + storage limits" },
     "M9.4": { "status": "done", "note": "Suspended read-only mode" },
-    "M9.5": { "status": "pending", "note": "Browser smoke on home-pc with demo signup flow" },
+    "M9.5": { "status": "pending", "note": "Browser smoke home-pc; PilotSmokeTest automated PASS (28 assertions)" },
     "M10.1": { "status": "done", "note": "TenantExportService + saas:export-tenant" },
     "M10.2": { "status": "done", "note": "SaasAuditGateTest P0.10 visibility" },
     "M10.3": { "status": "done", "note": "tenant_audit_logs + platform /audit" }

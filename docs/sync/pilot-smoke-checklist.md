@@ -7,12 +7,13 @@
 ```powershell
 cd C:\OSPanel\home\saas\saas.local
 git pull origin main
+pwsh -File scripts/apply-saas-lab-env.ps1 -HostName saas.local
 composer install --no-interaction
 php artisan migrate --force
 npm run build
 ```
 
-`.env` (минимум):
+`.env` применяется скриптом; ключевые значения:
 
 ```env
 SHOWCASE_MODE=traklo_pro
@@ -54,6 +55,7 @@ GOTENBERG_URL=http://127.0.0.1:3000
 - [ ] Platform → «Оплачено» для tenant
 - [ ] Кнопка **PDF** — счёт открывается (Gotenberg)
 - [ ] Статус tenant → active, billing_period_end продлён
+- [ ] Platform → **Аудит** (`/audit`) — записи `tenant.created`, `tenant.demo_signup`, `tenant.invoice_paid`
 
 ## 6. Модули (опционально Pro)
 

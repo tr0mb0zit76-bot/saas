@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M10 · **Ветка:** `main`
+**Обновлено:** 2026-07-12 · **Фаза:** M10 done · **Ветка:** `main` (PR #14 merged)
 
 ---
 
@@ -46,7 +46,7 @@ TENANT_STORAGE_DISK=tenant_local
 
 ## Pending
 
-- M9.5 browser smoke on home-pc (Chrome, demo signup flow)
+- M9.5 browser smoke on home-pc (Chrome) — automated `PilotSmokeTest` ✅, manual checklist open
 
 ---
 
