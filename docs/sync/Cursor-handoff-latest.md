@@ -77,7 +77,9 @@ Platform: **Настройки → Platform Admin** или `/platform`
 ## Следующие шаги
 
 1. Tenant onboarding wizard (admin user + invite email при create)
-2. PDF/УПД export для `tenant_invoices`
+2. **Traklo Pro landing** — `SHOWCASE_MODE=traklo_pro`, `/` → `Public/TrakloLanding`
+3. **Animated login** — `TrakloLoginScene` на `/login` и platform login
+4. PDF/УПД export для `tenant_invoices`
 3. Usage limits enforcement (users, orders/month)
 4. Pilot с первым внешним экспедитором
 5. (Опционально) runtime-редактирование тарифов в БД вместо config
