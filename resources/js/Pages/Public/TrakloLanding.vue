@@ -242,7 +242,7 @@ onUnmounted(() => {
         </Head>
 
         <nav
-            class="traklo-chapters pointer-events-none fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 xl:block 2xl:left-5"
+            class="traklo-chapters pointer-events-none fixed left-8 top-1/2 z-30 hidden -translate-y-1/2 xl:block 2xl:left-12"
             aria-label="Разделы страницы"
         >
             <ul class="pointer-events-auto flex flex-col gap-1.5 border-l border-white/10 pl-3">
