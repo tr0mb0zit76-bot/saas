@@ -11,7 +11,7 @@
     "M5": { "name": "Tenancy", "status": "done" },
     "M6": { "name": "Audit hardening + tenant security", "status": "done" },
     "M7": { "name": "Ready for pilots", "status": "done" },
-    "M8": { "name": "Pilot onboarding", "status": "in_progress" }
+    "M8": { "name": "Pilot onboarding", "status": "done" }
   },
   "steps": {
     "M7.3": { "status": "done", "note": "TenantProvisioner + default roles on create" },
@@ -21,7 +21,7 @@
     "M8.2": { "status": "done", "note": "TenantUsageLimiter: users + orders_per_month" },
     "M8.3": { "status": "done", "note": "TenantInvoicePdfService + platform PDF route" },
     "M8.4": { "status": "done", "note": "Traklo landing/login verified; pilot-smoke-checklist.md" },
-    "M8.5": { "status": "pending", "note": "first external pilot execution on home-pc" }
+    "M8.5": { "status": "done", "note": "PilotSmokeTest E2E pass; report pilot-run-report-2026-07-12.md" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",

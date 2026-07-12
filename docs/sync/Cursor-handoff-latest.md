@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M8 · **Ветка:** `main`
+**Обновлено:** 2026-07-12 · **Фаза:** M8 done → M9 prep · **Ветка:** `main`
 
 ---
 
@@ -43,6 +43,11 @@
 - TrakloLoginScene на `/login` (уже было)
 - Чеклист: `docs/sync/pilot-smoke-checklist.md`
 
+### M8.5 Pilot
+- **Automated pilot:** `PilotSmokeTest` — PASS (2026-07-12)
+- Отчёт: `docs/sync/pilot-run-report-2026-07-12.md`
+- Manual browser smoke на home-pc — по `pilot-smoke-checklist.md`
+
 ### Ранее (M7)
 - Platform super-admin, mail lazy attachments + AI retention, Vite chunking, Ponytail rules
 
@@ -80,11 +85,15 @@ Platform: **Настройки → Platform Admin** или `/platform`
 
 ---
 
-## Следующие шаги
+## Следующие шаги (M9)
 
-1. **M8.5** — провести pilot с первым внешним экспедитором на home-pc
-2. (Опционально) runtime-редактирование тарифов в БД вместо config
-3. Self-service billing (ЮKassa) — отдельный ADR
+1. **Self-service signup** — регистрация без platform admin (Phase 2 architecture-plan)
+2. **Onboarding wizard в CRM** — own company, timezone, первый контрагент
+3. **Usage metering cron** — `tenant_usage_logs`, storage limits
+4. **Suspend read-only mode** — при неоплате блок create/update
+5. **ЮKassa webhook skeleton** — ADR-009 amendment (опционально)
+6. **P0.10 / P1.1 audit** — если ещё не закрыто в prod paths
+7. **Первый реальный внешний экспедитор** — browser smoke на home-pc
 
 ---
 
