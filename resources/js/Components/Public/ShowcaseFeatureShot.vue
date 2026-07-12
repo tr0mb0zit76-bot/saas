@@ -1,6 +1,7 @@
 <script setup>
 /**
  * Tilted product UI mock for showcase (placeholder until real screenshots).
+ * ponytail: CSS mocks — swap for real cabinet shots when ready; keep variant keys stable.
  * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai | accounting | budgeting | companyplanning | aianalytics | loadboard | fleet | disposition | integrations | customdomain
  */
 defineProps({
