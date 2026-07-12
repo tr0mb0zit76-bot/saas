@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Tilted product UI mock for showcase (placeholder until real screenshots).
- * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai | accounting | loadboard | fleet | disposition | integrations | customdomain
+ * variant: leads | orders | payments | print | documents | scripts | salesbook | howmuchfits | payroll | mobile | rbac | ai | accounting | budgeting | companyplanning | aianalytics | loadboard | fleet | disposition | integrations | customdomain
  */
 defineProps({
     variant: {
@@ -284,6 +284,44 @@ const integrationRows = [
                     </div>
                     <div class="shot-bar mt-3">
                         <div class="shot-bar__fill" style="width: 86%" />
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'budgeting'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Бюджет</span>
+                        <span class="shot-muted">сценарий A</span>
+                    </div>
+                    <div class="shot-grid-2">
+                        <div class="shot-field"><span>План продаж</span><strong>18 млн ₽</strong></div>
+                        <div class="shot-field"><span>OPEX</span><strong>4,2 млн ₽</strong></div>
+                        <div class="shot-field"><span>Факт</span><strong>72%</strong></div>
+                        <div class="shot-field"><span>Отклонение</span><strong>−3%</strong></div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'companyplanning'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">План компании</span>
+                        <span class="shot-muted">Q3</span>
+                    </div>
+                    <div class="shot-roles">
+                        <div class="shot-role"><strong>Найм логистов</strong><span>этап 2/4</span></div>
+                        <div class="shot-role"><strong>Новый склад</strong><span>срок 28.08</span></div>
+                        <div class="shot-role"><strong>Скрипты Pro</strong><span>в работе</span></div>
+                    </div>
+                </template>
+
+                <template v-else-if="variant === 'aianalytics'">
+                    <div class="shot-row shot-row--head">
+                        <span class="shot-pill">Аналитика ИИ</span>
+                        <span class="shot-muted">7 дней</span>
+                    </div>
+                    <div class="shot-grid-2">
+                        <div class="shot-field"><span>Запросы</span><strong>186</strong></div>
+                        <div class="shot-field"><span>Пробелы знаний</span><strong>9</strong></div>
+                        <div class="shot-field"><span>Слабые скрипты</span><strong>3</strong></div>
+                        <div class="shot-field"><span>Зацикливания</span><strong>12</strong></div>
                     </div>
                 </template>
 

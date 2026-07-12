@@ -17,6 +17,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    planMatrix: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -41,6 +45,9 @@ const featureFallbackTitles = {
     mobile: 'Мобильное приложение',
     ai: 'Текстовый помощник',
     accounting: 'Управленческий учёт',
+    budgeting: 'Бюджетирование',
+    companyplanning: 'Планирование компании',
+    aianalytics: 'Аналитика ИИ',
     loadboard: 'Биржа и доска грузов',
     fleet: 'Свой автопарк',
     disposition: 'Диспозиция',
@@ -88,6 +95,9 @@ const featureSections = computed(() => [
         tone: 'enterprise',
         features: mapFeatures([
             'accounting',
+            'budgeting',
+            'companyplanning',
+            'aianalytics',
             'loadboard',
             'fleet',
             'disposition',
@@ -96,13 +106,6 @@ const featureSections = computed(() => [
         ]),
     },
 ]);
-
-const highlightsFor = (planKey) => {
-    const value = props.texts[`plan_${planKey}_highlights`]
-        ?? page.props.publicSite?.texts?.[`plan_${planKey}_highlights`];
-
-    return Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item.trim() !== '') : [];
-};
 
 const steps = computed(() => [
     { title: t('step1_title'), text: t('step1_text') },
@@ -116,9 +119,27 @@ const displayPlans = computed(() => {
     }
 
     return [
-        { key: 'start', label: t('plan_start', 'Старт'), users: t('plan_start_users') },
-        { key: 'pro', label: t('plan_pro', 'Про'), users: t('plan_pro_users'), featured: true },
-        { key: 'enterprise', label: t('plan_enterprise', 'Корпоративный'), users: t('plan_enterprise_users') },
+        {
+            key: 'start',
+            label: t('plan_start', 'Старт'),
+            users: t('plan_start_users'),
+            limits: { users: 5, orders_per_month: 200, storage_mb: 2048 },
+            featured: false,
+        },
+        {
+            key: 'pro',
+            label: t('plan_pro', 'Про'),
+            users: t('plan_pro_users'),
+            limits: { users: 25, orders_per_month: 2000, storage_mb: 20480 },
+            featured: true,
+        },
+        {
+            key: 'enterprise',
+            label: t('plan_enterprise', 'Корпоративный'),
+            users: t('plan_enterprise_users'),
+            limits: { users: null, orders_per_month: null, storage_mb: null },
+            featured: false,
+        },
     ];
 });
 
@@ -126,8 +147,21 @@ const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
     ...plan,
     label: t(`plan_${plan.key}`, plan.label),
     users: t(`plan_${plan.key}_users`, plan.users),
-    highlights: highlightsFor(plan.key),
 })));
+
+const comparisonPlans = computed(() => plansWithHighlights.value);
+
+const comparisonRows = computed(() => (Array.isArray(props.planMatrix) ? props.planMatrix : []));
+
+const formatLimit = (value) => (value == null ? 'без лимита' : String(value));
+
+const formatStorage = (mb) => {
+    if (mb == null) {
+        return 'без лимита';
+    }
+
+    return mb >= 1024 ? `${Math.round(mb / 1024)} ГБ` : `${mb} МБ`;
+};
 </script>
 
 <template>
@@ -298,31 +332,72 @@ const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
                         <h2 class="traklo-display text-3xl font-semibold text-white">{{ t('pricing_title') }}</h2>
                         <p class="mt-3 text-slate-400">{{ t('pricing_subtitle') }}</p>
                     </div>
-                    <div class="grid gap-4 lg:grid-cols-3">
+
+                    <div class="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
+                        <table class="min-w-full text-sm">
+                            <thead class="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-3 font-medium">{{ t('pricing_col_module', 'Модуль') }}</th>
+                                    <th class="px-4 py-3 font-medium">{{ t('pricing_col_group', 'Группа') }}</th>
+                                    <th
+                                        v-for="plan in comparisonPlans"
+                                        :key="plan.key"
+                                        class="px-4 py-3 text-center font-medium"
+                                        :class="plan.featured ? 'text-blue-300' : 'text-slate-400'"
+                                    >
+                                        {{ plan.label }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in comparisonRows"
+                                    :key="row.key"
+                                    class="border-b border-white/5"
+                                >
+                                    <td class="px-4 py-2.5 text-slate-200">{{ row.label }}</td>
+                                    <td class="px-4 py-2.5 text-slate-500">{{ row.group_label }}</td>
+                                    <td
+                                        v-for="plan in comparisonPlans"
+                                        :key="plan.key"
+                                        class="px-4 py-2.5 text-center"
+                                    >
+                                        <span
+                                            v-if="row.plans?.[plan.key]"
+                                            class="font-semibold text-emerald-400"
+                                        >✓</span>
+                                        <span v-else class="text-slate-600">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 grid gap-4 lg:grid-cols-3">
                         <article
-                            v-for="plan in plansWithHighlights"
+                            v-for="plan in comparisonPlans"
                             :key="plan.key"
-                            class="rounded-2xl border p-6"
+                            class="rounded-2xl border p-5"
                             :class="plan.featured ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 bg-white/[0.03]'"
                         >
-                            <h3 class="traklo-display text-xl font-semibold text-white">{{ plan.label }}</h3>
-                            <p class="mt-2 text-sm text-slate-400">{{ plan.users }}</p>
-                            <ul
-                                v-if="plan.highlights.length"
-                                class="mt-5 space-y-2 text-sm leading-6 text-slate-300"
-                            >
-                                <li
-                                    v-for="item in plan.highlights"
-                                    :key="item"
-                                    class="flex gap-2"
-                                >
-                                    <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400/80" aria-hidden="true" />
-                                    <span>{{ item }}</span>
-                                </li>
-                            </ul>
+                            <h3 class="traklo-display text-lg font-semibold text-white">{{ plan.label }}</h3>
+                            <dl class="mt-3 space-y-1.5 text-sm text-slate-400">
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_users', 'Пользователи') }}</dt>
+                                    <dd class="text-slate-200">{{ formatLimit(plan.limits?.users) }}</dd>
+                                </div>
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_orders', 'Заказы / мес') }}</dt>
+                                    <dd class="text-slate-200">{{ formatLimit(plan.limits?.orders_per_month) }}</dd>
+                                </div>
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_storage', 'Хранилище') }}</dt>
+                                    <dd class="text-slate-200">{{ formatStorage(plan.limits?.storage_mb) }}</dd>
+                                </div>
+                            </dl>
                             <a
                                 href="mailto:hello@traklo.pro"
-                                class="mt-6 inline-flex rounded-lg px-4 py-2 text-sm font-medium"
+                                class="mt-5 inline-flex rounded-lg px-4 py-2 text-sm font-medium"
                                 :class="plan.featured ? 'bg-blue-600 text-white hover:bg-blue-500' : 'border border-white/10 text-white hover:bg-white/5'"
                             >
                                 {{ t('plan_cta', 'Обсудить') }}
