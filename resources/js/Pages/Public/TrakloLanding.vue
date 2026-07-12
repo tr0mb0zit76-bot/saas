@@ -269,7 +269,7 @@ onUnmounted(() => {
         </Head>
 
         <nav
-            class="traklo-chapters pointer-events-none fixed left-8 top-1/2 z-30 hidden -translate-y-1/2 xl:block 2xl:left-12"
+            class="traklo-chapters pointer-events-none fixed left-8 top-1/2 z-40 hidden -translate-y-1/2 xl:block 2xl:left-12"
             aria-label="Разделы страницы"
         >
             <ul class="pointer-events-auto flex flex-col gap-1.5 border-l border-white/10 pl-3">
@@ -298,7 +298,11 @@ onUnmounted(() => {
 
         <header class="sticky top-0 z-20 border-b border-white/5 bg-[#070B14]/80 backdrop-blur-md">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-                <a href="#" class="inline-flex items-center gap-2 font-semibold text-white">
+                <a
+                    id="traklo-brand"
+                    href="#"
+                    class="inline-flex items-center gap-2 font-semibold text-white"
+                >
                     <img src="/downloads/traklo-icon.png" alt="" class="h-9 w-9 rounded-xl" />
                     <span class="traklo-display">{{ t('brand', 'Traklo Pro') }}</span>
                 </a>
