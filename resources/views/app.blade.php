@@ -5,7 +5,11 @@
             is_array(auth()->user()->ui_preferences) ? auth()->user()->ui_preferences : null,
         );
     }
-    $crmThemeColor = ($crmHtmlAppearance['workspace_skin'] ?? 'classic') === 'sky' ? '#0284c7' : '#18181b';
+    $crmThemeColor = match ($crmHtmlAppearance['workspace_skin'] ?? 'classic') {
+        'sky' => '#0284c7',
+        'traklo' => '#2563eb',
+        default => '#18181b',
+    };
 @endphp
 <!DOCTYPE html>
 <html

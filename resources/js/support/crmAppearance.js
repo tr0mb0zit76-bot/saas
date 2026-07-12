@@ -57,7 +57,7 @@ function pickAppearanceFields(source) {
         result.tab_style = source.tab_style;
     }
 
-    if (source.workspace_skin === 'classic' || source.workspace_skin === 'sky') {
+    if (source.workspace_skin === 'classic' || source.workspace_skin === 'sky' || source.workspace_skin === 'traklo') {
         result.workspace_skin = source.workspace_skin;
     }
 
