@@ -2,12 +2,14 @@
 /**
  * Horizontal story chapter driven by vertical scroll.
  * Tall outer track → sticky viewport → panels slide left/right (100vw each).
- * Large shot fills the panel; caption sits under it (not overlaid).
- * Left clip follows #traklo-brand so panels never cover the chapter TOC.
+ * Soft dissolve past the Traklo brand line (~2cm); shots keep an angled view.
  * ponytail: CSS mocks — swap ShowcaseFeatureShot for real screenshots later.
  */
 import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+
+/** Dissolve width past the brand cut (≈ couple of centimeters). */
+const FADE = '2cm';
 
 const props = defineProps({
     eyebrow: { type: String, default: '' },
@@ -25,7 +27,7 @@ const props = defineProps({
 
 const chapterEl = ref(null);
 const progress = ref(0);
-/** Left edge of header brand — vertical cut for the sliding rail. */
+/** Left edge of header brand — start of the dissolve. */
 const cutLeft = ref(0);
 let frame = 0;
 
@@ -40,9 +42,11 @@ const activeIndex = computed(() => {
     return Math.min(max, Math.max(0, Math.round(progress.value * max)));
 });
 
+/** Continuous scene position for angle interpolation. */
+const scenePos = computed(() => progress.value * Math.max(sceneCount.value - 1, 0));
+
 const trackStyle = computed(() => {
     const max = sceneCount.value - 1;
-    // Use vw: % of transform is relative to the track element itself (too wide).
     const shiftVw = max <= 0 ? 0 : progress.value * max * 100;
 
     return {
@@ -51,13 +55,17 @@ const trackStyle = computed(() => {
 });
 
 const stageStyle = computed(() => {
-    if (cutLeft.value <= 0) {
+    const cut = Math.round(cutLeft.value);
+    if (cut <= 0) {
         return undefined;
     }
 
-    // Hard vertical cut: sliding panels disappear at the brand line.
+    // Opaque from brand line to the right; dissolve over ~2cm to the left of it.
+    const mask = `linear-gradient(to right, transparent 0, transparent calc(${cut}px - ${FADE}), rgb(0 0 0 / 0.2) calc(${cut}px - 0.7cm), #000 ${cut}px, #000 100%)`;
+
     return {
-        clipPath: `inset(0 0 0 ${Math.round(cutLeft.value)}px)`,
+        maskImage: mask,
+        WebkitMaskImage: mask,
     };
 });
 
@@ -66,11 +74,25 @@ const columnStyle = computed(() => {
         return undefined;
     }
 
-    // Match header brand column: content starts at the same X as Traklo icon.
     return {
         paddingLeft: `${Math.round(cutLeft.value)}px`,
     };
 });
+
+const shotShellStyle = (index) => {
+    const d = index - scenePos.value;
+    // Always a noticeable glance; more yaw as the panel drifts off-center.
+    const rotY = Math.max(-22, Math.min(16, -12 + d * -11));
+    const rotX = 6 + Math.min(4, Math.abs(d) * 1.4);
+    const rotZ = 1.1 + Math.min(1.2, Math.abs(d) * 0.4) * Math.sign(d || 1);
+    const scale = 1 - Math.min(0.08, Math.abs(d) * 0.04);
+    const opacity = 1 - Math.min(0.28, Math.abs(d) * 0.14);
+
+    return {
+        transform: `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${scale.toFixed(3)})`,
+        opacity: opacity.toFixed(3),
+    };
+};
 
 const syncCut = () => {
     const brand = document.getElementById('traklo-brand');
@@ -174,7 +196,7 @@ onUnmounted(() => {
             </div>
 
             <div
-                class="relative min-h-0 flex-1 overflow-hidden"
+                class="showcase-rail__stage relative min-h-0 flex-1 overflow-hidden"
                 :style="stageStyle"
             >
                 <div
@@ -182,7 +204,7 @@ onUnmounted(() => {
                     :style="trackStyle"
                 >
                     <article
-                        v-for="scene in scenes"
+                        v-for="(scene, index) in scenes"
                         :key="scene.key"
                         class="showcase-rail__panel relative flex h-full w-screen shrink-0 flex-col"
                     >
@@ -191,12 +213,18 @@ onUnmounted(() => {
                             :style="columnStyle"
                         >
                             <div class="flex min-h-0 w-full max-w-6xl flex-1 flex-col">
-                                <div class="showcase-rail__shot relative min-h-0 flex-[1.35] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220]">
-                                    <ShowcaseFeatureShot
-                                        :variant="scene.key"
-                                        :label="scene.label"
-                                        fill
-                                    />
+                                <div class="showcase-rail__perspective min-h-0 flex-[1.35]">
+                                    <div
+                                        class="showcase-rail__shot relative h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-[0_28px_60px_-28px_rgba(0,0,0,0.75)] will-change-transform"
+                                        :style="shotShellStyle(index)"
+                                    >
+                                        <ShowcaseFeatureShot
+                                            :variant="scene.key"
+                                            :label="scene.label"
+                                            fill
+                                            tilt="right"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div class="showcase-rail__caption shrink-0 px-1 pb-1 pt-3 sm:px-2 sm:pt-4">
@@ -239,6 +267,18 @@ onUnmounted(() => {
     font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
+.showcase-rail__perspective {
+    perspective: 1600px;
+    perspective-origin: 50% 45%;
+    transform-style: preserve-3d;
+}
+
+.showcase-rail__shot {
+    transform-style: preserve-3d;
+    transform-origin: 50% 55%;
+    transition: opacity 0.15s linear;
+}
+
 .showcase-rail__shot :deep(.showcase-shot) {
     height: 100%;
 }
@@ -248,6 +288,7 @@ onUnmounted(() => {
     border-radius: 0;
     border: 0;
     box-shadow: none;
+    transform: none !important;
 }
 
 .showcase-rail__shot :deep(.showcase-shot__screen) {
@@ -268,8 +309,18 @@ onUnmounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .showcase-rail__track {
+    .showcase-rail__track,
+    .showcase-rail__shot {
         transition: none;
+    }
+
+    .showcase-rail__perspective {
+        perspective: none;
+    }
+
+    .showcase-rail__shot {
+        transform: none !important;
+        opacity: 1 !important;
     }
 }
 </style>
