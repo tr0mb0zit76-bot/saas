@@ -1,22 +1,36 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** Phase 4 · **Ветка:** `cursor/phase4-security-ops-4010`
+**Обновлено:** 2026-07-12 · **Фаза:** Phase 4 · **Ветка:** `cursor/traklo-session-integrate-9d42` → PR в `main`
+
+---
+
+## ОТДАТЬ (эта сессия)
+
+Склеены ветки сессии в **`cursor/traklo-session-integrate-9d42`**:
+
+| Влито | Содержание |
+| --- | --- |
+| `restore-traklo-login-bubble` | Bubble-логин (поля в пузыре, «Почта») |
+| `traklo-workspace-skin` | Опция внешнего вида **Traklo** (палитра витрины) |
+| `traklo-showcase-feature-shots` | Лендинг: главы, horizontal rail, dissolve у TOC, матрица тарифов |
+| `fix-lab-503` | Lab scripts + relative `/login` на одном хосте |
+
+Не влито (уже в main или устарело / конфликты без выгоды): `platform-portal`, `subscription-plans`, `traklo-landing-login-animation`, `fix-platform-login-419`, `fix-embedded-browser`.
 
 ---
 
 ## Env (lab / home-pc)
 
-Применить одной командой:
-
 ```powershell
+git pull origin cursor/traklo-session-integrate-9d42
+# или после merge в main:
+git pull origin main
+
 pwsh -File scripts/apply-saas-lab-env.ps1 -HostName saas.local
+composer install --no-interaction
+php artisan migrate --force
+npm run build
 ```
-
-```bash
-./scripts/apply-saas-lab-env.sh saas.local
-```
-
-Ключевые значения:
 
 ```env
 SHOWCASE_MODE=traklo_pro
@@ -29,43 +43,19 @@ TENANT_STORAGE_DISK=tenant_local
 
 ---
 
-## M9 (done)
+## UX (готово в integrate)
 
-- Demo signup `/demo/signup` — **только trial demo**, не paid signup
-- CRM onboarding wizard `/onboarding`
-- `saas:record-usage` + `tenant_usage_logs` + storage limit
-- Suspended → read-only + banner
-- Billing: **безнал**, ЮKassa не используется
+1. **Витрина** `/` — главы База/Про/Корпоративный, sticky horizontal rail, мягкое растворение у линии бренда, мгновенный jump по оглавлению.
+2. **Логин** — bubble Traklo, не карточка под иконкой.
+3. **CRM → Внешний вид → Traklo** — `workspace_skin=traklo` (navy + синий). Лучше с тёмной темой.
 
-## M10 (done)
+---
 
-- `TenantExportService` + `php artisan saas:export-tenant {slug}` — manifest ZIP (152-ФЗ prep)
-- `SaasAuditGateTest` — P0.10 order visibility gate
-- `tenant_audit_logs` + `/audit` в platform admin (tenant create/update/paid/features + demo signup)
-- Lab env scripts: `apply-saas-lab-env.sh` / `.ps1` (`SAAS_DEMO_SIGNUP_ENABLED=true`, `SHOWCASE_MODE=traklo_pro`)
+## M9–P4 (без изменений статуса)
 
-## M11 (done)
-
-- Runtime plan editing: лимиты `users`, `orders_per_month`, `storage_mb` на `/plans/{key}/features`
-- Audit `plan.updated` в `tenant_audit_logs`
-
-## M12 (done)
-
-- CRM audit hooks: `order.status_changed`, `role.created/updated/deleted`, `user.created`, `payment.recorded`
-- `TenantCrmAuditTest` (3 tests)
-
-## Phase 4 (done — core)
-
-- Audit: `payment.reversed`, `user.roles_updated`, `document.signed`, `user.invited`
-- CI: `.github/workflows/ci.yml`
-- Security headers + optional CSP (`SECURITY_HEADERS_CSP_ENABLED`)
-- API rate limit `throttle:api`
-- `saas:backup-database` + runbooks (`runbook-*`, `browser-smoke-howto.md`)
-
-## Pending
-
-- M9.5 browser smoke on home-pc — см. **`docs/sync/browser-smoke-howto.md`**
-- Phase 4 backlog: 2FA, staging host, queue migrations, monitoring
+- M9–M12, P4.1 core — **done** (см. предыдущий handoff)
+- **Pending:** M9.5 browser smoke (`docs/sync/browser-smoke-howto.md`)
+- Phase 4 backlog: 2FA, staging, monitoring
 
 ---
 
@@ -79,12 +69,15 @@ php artisan migrate --force
 npm run build
 ```
 
-**Demo flow:** `/` → Демо-доступ → email → login → onboarding → CRM  
+При 503 в браузере: `pwsh -File scripts/fix-lab-proxy-bypass.ps1` / `scripts/diagnose-lab-http.ps1`
+
+**Demo:** `/` → Демо-доступ → email → login → onboarding → CRM  
 **Checklist:** `docs/sync/pilot-smoke-checklist.md`
 
 ---
 
 ## Следующие шаги
 
-1. **Browser smoke** — `docs/sync/browser-smoke-howto.md` (home-pc, ~30 мин)
-2. 2FA tenant-admin, staging, monitoring (Phase 4 remainder)
+1. Merge PR integrate → `main`
+2. Browser smoke на home-pc
+3. 2FA / staging / monitoring (P4 remainder)
