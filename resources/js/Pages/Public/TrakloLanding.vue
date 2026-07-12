@@ -1,7 +1,7 @@
 <script setup>
 import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     canLogin: Boolean,
@@ -162,6 +162,65 @@ const formatStorage = (mb) => {
 
     return mb >= 1024 ? `${Math.round(mb / 1024)} ГБ` : `${mb} МБ`;
 };
+
+const chapters = computed(() => [
+    { id: 'hero', label: t('nav_chapter_hero', 'Введение') },
+    { id: 'features', label: t('nav_chapter_base', 'База') },
+    { id: 'features-pro', label: t('nav_chapter_pro', 'Про') },
+    { id: 'features-enterprise', label: t('nav_chapter_enterprise', 'Корпоративный') },
+    { id: 'pricing', label: t('nav_chapter_pricing', 'Тарифы') },
+    { id: 'connect', label: t('nav_chapter_connect', 'Подключение') },
+]);
+
+const activeChapter = ref('hero');
+let chapterObserver = null;
+
+const goToChapter = (id) => {
+    const el = document.getElementById(id);
+    if (!el) {
+        return;
+    }
+
+    activeChapter.value = id;
+    el.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+    });
+};
+
+onMounted(() => {
+    const nodes = chapters.value
+        .map((chapter) => document.getElementById(chapter.id))
+        .filter(Boolean);
+
+    if (nodes.length === 0) {
+        return;
+    }
+
+    chapterObserver = new IntersectionObserver(
+        (entries) => {
+            const visible = entries
+                .filter((entry) => entry.isIntersecting)
+                .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+            if (visible[0]?.target?.id) {
+                activeChapter.value = visible[0].target.id;
+            }
+        },
+        {
+            root: null,
+            rootMargin: '-28% 0px -52% 0px',
+            threshold: [0.08, 0.2, 0.4],
+        },
+    );
+
+    nodes.forEach((node) => chapterObserver.observe(node));
+});
+
+onUnmounted(() => {
+    chapterObserver?.disconnect();
+    chapterObserver = null;
+});
 </script>
 
 <template>
@@ -181,6 +240,34 @@ const formatStorage = (mb) => {
                 rel="stylesheet"
             >
         </Head>
+
+        <nav
+            class="traklo-chapters pointer-events-none fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 xl:block 2xl:left-5"
+            aria-label="Разделы страницы"
+        >
+            <ul class="pointer-events-auto flex flex-col gap-1.5 border-l border-white/10 pl-3">
+                <li v-for="chapter in chapters" :key="chapter.id">
+                    <button
+                        type="button"
+                        class="traklo-chapter group relative block max-w-[9.5rem] py-1 text-left text-[11px] font-medium uppercase tracking-[0.14em] transition duration-300"
+                        :class="activeChapter === chapter.id
+                            ? 'text-white/90'
+                            : 'text-white/20 hover:text-white/55'"
+                        :aria-current="activeChapter === chapter.id ? 'true' : undefined"
+                        @click="goToChapter(chapter.id)"
+                    >
+                        <span
+                            class="absolute -left-[13px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full transition duration-300"
+                            :class="activeChapter === chapter.id
+                                ? 'bg-blue-400 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
+                                : 'bg-white/20 group-hover:bg-white/40'"
+                            aria-hidden="true"
+                        />
+                        {{ chapter.label }}
+                    </button>
+                </li>
+            </ul>
+        </nav>
 
         <header class="sticky top-0 z-20 border-b border-white/5 bg-[#070B14]/80 backdrop-blur-md">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
@@ -212,7 +299,7 @@ const formatStorage = (mb) => {
 
         <main>
             <!-- Hero: brand + one CTA group + product visual -->
-            <section class="relative overflow-hidden">
+            <section id="hero" class="relative scroll-mt-24 overflow-hidden">
                 <div class="pointer-events-none absolute inset-0">
                     <div class="absolute -left-24 top-0 h-[28rem] w-[28rem] rounded-full bg-blue-600/20 blur-3xl" />
                     <div class="absolute right-0 top-20 h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-3xl" />
@@ -268,7 +355,7 @@ const formatStorage = (mb) => {
                 v-for="section in featureSections"
                 :id="section.id"
                 :key="section.id"
-                class="relative border-t border-white/5"
+                class="relative scroll-mt-24 border-t border-white/5"
                 :class="{
                     'bg-[#0a1220]/40': section.tone === 'pro',
                     'bg-[#0b1020]/70': section.tone === 'enterprise',
@@ -326,7 +413,7 @@ const formatStorage = (mb) => {
                 </div>
             </section>
 
-            <section id="pricing" class="border-y border-white/5 bg-[#0a1220]/80">
+            <section id="pricing" class="scroll-mt-24 border-y border-white/5 bg-[#0a1220]/80">
                 <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
                     <div class="mb-10 max-w-2xl">
                         <h2 class="traklo-display text-3xl font-semibold text-white">{{ t('pricing_title') }}</h2>
@@ -407,7 +494,7 @@ const formatStorage = (mb) => {
                 </div>
             </section>
 
-            <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <section id="connect" class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:py-20">
                 <h2 class="traklo-display text-3xl font-semibold text-white">{{ t('steps_title') }}</h2>
                 <ol class="mt-8 grid gap-6 lg:grid-cols-3">
                     <li
@@ -442,5 +529,15 @@ const formatStorage = (mb) => {
 
 .traklo-display {
     font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.traklo-chapter {
+    font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .traklo-chapter {
+        transition: none;
+    }
 }
 </style>
