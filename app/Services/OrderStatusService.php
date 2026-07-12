@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderStatusLog;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\OrderManagerSalaryPaymentResolver;
 use App\Support\OrderPartyPaymentSettlementResolver;
 use App\Support\PerformerRouteActualDates;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\Schema;
 class OrderStatusService
 {
     public function __construct(
-        private readonly OrderDocumentRequirementService $orderDocumentRequirementService
+        private readonly OrderDocumentRequirementService $orderDocumentRequirementService,
+        private readonly TenantAuditLogger $auditLogger,
     ) {}
 
     /**
@@ -94,6 +96,19 @@ class OrderStatusService
                 'created_by' => $userId,
             ]);
         }
+
+        $this->auditLogger->log(
+            $order->tenant_id,
+            $userId ?? auth()->id(),
+            'order.status_changed',
+            'order',
+            $order->id,
+            ['status' => $previousStatus],
+            [
+                'status' => $derivedStatus,
+                'status_label' => $this->label($derivedStatus),
+            ],
+        );
 
         return $derivedStatus;
     }

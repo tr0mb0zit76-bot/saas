@@ -4,10 +4,15 @@ namespace App\Services\Finance;
 
 use App\Models\PaymentSchedule;
 use App\Models\PaymentSchedulePaymentEvent;
+use App\Services\Saas\TenantAuditLogger;
 use Illuminate\Support\Facades\Schema;
 
 class PaymentSchedulePaymentLedgerService
 {
+    public function __construct(
+        private readonly TenantAuditLogger $auditLogger,
+    ) {}
+
     public function ledgerTableExists(): bool
     {
         return Schema::hasTable('payment_schedule_payment_events');
@@ -31,7 +36,7 @@ class PaymentSchedulePaymentLedgerService
         $party = strtolower(trim((string) $schedule->party));
         $contractorId = $this->resolveContractorId($schedule, $party);
 
-        return PaymentSchedulePaymentEvent::query()->create([
+        $event = PaymentSchedulePaymentEvent::query()->create([
             'order_id' => $schedule->order_id,
             'contractor_id' => $contractorId,
             'payment_schedule_id' => $partialScheduleId ?? $schedule->id,
@@ -43,6 +48,26 @@ class PaymentSchedulePaymentLedgerService
             'notes' => $payload['notes'] ?? null,
             'recorded_by' => $recordedBy,
         ]);
+
+        $schedule->loadMissing('order:id,tenant_id');
+
+        $this->auditLogger->log(
+            $event->tenant_id ?? $schedule->order?->tenant_id,
+            $recordedBy,
+            'payment.recorded',
+            'payment_schedule_payment_event',
+            $event->id,
+            null,
+            [
+                'order_id' => $schedule->order_id,
+                'party' => $party,
+                'amount' => round($amount, 2),
+                'payment_date' => $paymentDate,
+                'payment_schedule_id' => $partialScheduleId ?? $schedule->id,
+            ],
+        );
+
+        return $event;
     }
 
     private function resolveContractorId(PaymentSchedule $schedule, string $party): ?int

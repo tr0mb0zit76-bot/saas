@@ -8,6 +8,7 @@ use App\Models\Contractor;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Saas\TenantAuditLogger;
 use App\Services\Saas\TenantUsageLimiter;
 use App\Support\RoleAccess;
 use App\Support\UserDepartmentSync;
@@ -22,6 +23,7 @@ class UserManagementController extends Controller
 {
     public function __construct(
         private readonly TenantUsageLimiter $usageLimiter,
+        private readonly TenantAuditLogger $auditLogger,
     ) {}
 
     public function index(Request $request): Response
@@ -105,6 +107,21 @@ class UserManagementController extends Controller
             $user,
             $primaryDepartmentId > 0 ? $primaryDepartmentId : null,
             is_array($approvalDepartmentIds) ? $approvalDepartmentIds : [],
+        );
+
+        $this->auditLogger->log(
+            $user->tenant_id,
+            $request->user()?->id,
+            'user.created',
+            'user',
+            $user->id,
+            null,
+            [
+                'email' => $user->email,
+                'name' => $user->name,
+                'role_ids' => is_array($roleIds) ? array_values($roleIds) : [],
+                'is_active' => (bool) $user->is_active,
+            ],
         );
 
         return to_route('settings.users.index');

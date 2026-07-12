@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRoleRequest;
 use App\Http\Requests\UpdateRoleRequest;
 use App\Models\Role;
+use App\Services\Saas\TenantAuditLogger;
 use App\Support\MobileNavCatalog;
 use App\Support\MobileNavPresets;
 use App\Support\RoleAccess;
@@ -18,6 +19,10 @@ use Inertia\Response;
 
 class RoleManagementController extends Controller
 {
+    public function __construct(
+        private readonly TenantAuditLogger $auditLogger,
+    ) {}
+
     public function index(Request $request): Response
     {
         abort_unless($request->user()?->isAdmin(), 403);
@@ -57,14 +62,36 @@ class RoleManagementController extends Controller
 
     public function store(StoreRoleRequest $request): RedirectResponse
     {
-        Role::query()->create($this->rolePersistAttributesFromFormRequest($request));
+        $role = Role::query()->create($this->rolePersistAttributesFromFormRequest($request));
+
+        $this->auditLogger->log(
+            $role->tenant_id,
+            $request->user()?->id,
+            'role.created',
+            'role',
+            $role->id,
+            null,
+            $this->roleAuditSnapshot($role),
+        );
 
         return to_route('settings.roles.index');
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
+        $oldValues = $this->roleAuditSnapshot($role);
+
         $role->update($this->rolePersistAttributesFromFormRequest($request));
+
+        $this->auditLogger->log(
+            $role->tenant_id,
+            $request->user()?->id,
+            'role.updated',
+            'role',
+            $role->id,
+            $oldValues,
+            $this->roleAuditSnapshot($role->fresh()),
+        );
 
         return to_route('settings.roles.index');
     }
@@ -75,7 +102,21 @@ class RoleManagementController extends Controller
         abort_if($role->users()->exists(), 422, 'Нельзя удалить роль, которая назначена пользователям.');
         abort_if($role->name === 'admin', 422, 'Нельзя удалить системную роль администратора.');
 
+        $oldValues = $this->roleAuditSnapshot($role);
+        $tenantId = $role->tenant_id;
+        $roleId = $role->id;
+
         $role->delete();
+
+        $this->auditLogger->log(
+            $tenantId,
+            $request->user()?->id,
+            'role.deleted',
+            'role',
+            $roleId,
+            $oldValues,
+            null,
+        );
 
         return to_route('settings.roles.index');
     }
@@ -138,5 +179,20 @@ class RoleManagementController extends Controller
         }
 
         return $attributes;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function roleAuditSnapshot(Role $role): array
+    {
+        return [
+            'tenant_id' => $role->tenant_id,
+            'name' => $role->name,
+            'display_name' => $role->display_name,
+            'permissions' => $role->permissions ?? [],
+            'visibility_areas' => $role->visibility_areas ?? [],
+            'visibility_scopes' => $role->visibility_scopes ?? [],
+        ];
     }
 }

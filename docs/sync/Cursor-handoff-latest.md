@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M11 · **Ветка:** `cursor/m11-plan-limits-4010`
+**Обновлено:** 2026-07-12 · **Фаза:** M12 · **Ветка:** `cursor/m12-crm-audit-4010`
 
 ---
 
@@ -49,6 +49,11 @@ TENANT_STORAGE_DISK=tenant_local
 - Runtime plan editing: лимиты `users`, `orders_per_month`, `storage_mb` на `/plans/{key}/features`
 - Audit `plan.updated` в `tenant_audit_logs`
 
+## M12 (done)
+
+- CRM audit hooks: `order.status_changed`, `role.created/updated/deleted`, `user.created`, `payment.recorded`
+- `TenantCrmAuditTest` (3 tests)
+
 ## Pending
 
 - M9.5 browser smoke on home-pc (Chrome) — automated `PilotSmokeTest` ✅, manual checklist open
@@ -73,4 +78,4 @@ npm run build
 ## Следующие шаги
 
 1. M9.5 browser smoke (home-pc, Chrome) — `docs/sync/pilot-smoke-checklist.md`
-2. M12 CRM-side audit events (order status, roles) — phase 4
+2. Phase 4 backlog: payment.reversed, user.roles_updated, document signed
