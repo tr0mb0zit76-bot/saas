@@ -3,7 +3,7 @@
  * Horizontal story chapter driven by vertical scroll.
  * Tall outer track → sticky viewport → panels slide left/right (100vw each).
  * Soft dissolve past the Traklo brand line (~3cm); shots keep an angled view
- * that straightens on hover.
+ * that straightens on hover over the whole scene (shot + caption).
  * ponytail: CSS mocks — swap ShowcaseFeatureShot for real screenshots later.
  */
 import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
@@ -30,8 +30,6 @@ const chapterEl = ref(null);
 const progress = ref(0);
 /** Left edge of header brand — start of the dissolve. */
 const cutLeft = ref(0);
-/** Shot index under the pointer — straighten angle on hover. */
-const hoveredIndex = ref(null);
 let frame = 0;
 
 const sceneCount = computed(() => Math.max(props.scenes.length, 1));
@@ -93,17 +91,8 @@ const columnStyle = computed(() => {
 
 const shotShellStyle = (index) => {
     const d = index - scenePos.value;
-    const hovered = hoveredIndex.value === index;
-
-    // Hover: ease toward face-on (same idea as ShowcaseFeatureShot hover).
-    if (hovered) {
-        return {
-            transform: 'rotateY(-3.5deg) rotateX(2deg) rotateZ(0deg) scale(1.01) translateY(-4px)',
-            opacity: '1',
-        };
-    }
-
-    // Always a clear angled glance; exiting left turns further away.
+    // Angled glance; hover straighten is CSS (:hover !important) so scroll
+    // progress updates cannot fight the pointer state.
     const rotY = Math.max(-28, Math.min(8, -16 + d * 10));
     const rotX = 7 + Math.min(4, Math.abs(d) * 1.4);
     const rotZ = 1.4 - Math.min(1.6, Math.abs(d) * 0.55) * Math.sign(d || -1);
@@ -234,14 +223,11 @@ onUnmounted(() => {
                             class="flex min-h-0 w-full flex-1 flex-col pr-4 sm:pr-6"
                             :style="columnStyle"
                         >
-                            <div class="flex min-h-0 w-full max-w-6xl flex-1 flex-col">
+                            <div class="showcase-rail__scene flex min-h-0 w-full max-w-6xl flex-1 flex-col">
                                 <div class="showcase-rail__perspective min-h-0 flex-[1.35]">
                                     <div
-                                        class="showcase-rail__shot relative h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] shadow-[0_28px_60px_-28px_rgba(0,0,0,0.75)] will-change-transform"
-                                        :class="{ 'showcase-rail__shot--hovered': hoveredIndex === index }"
+                                        class="showcase-rail__shot relative h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] will-change-transform"
                                         :style="shotShellStyle(index)"
-                                        @mouseenter="hoveredIndex = index"
-                                        @mouseleave="hoveredIndex = null"
                                     >
                                         <ShowcaseFeatureShot
                                             :variant="scene.key"
@@ -317,7 +303,10 @@ onUnmounted(() => {
         -18px 12px 40px -20px rgba(15, 23, 42, 0.55);
 }
 
-.showcase-rail__shot--hovered {
+/* Hover anywhere on shot + caption: force face-on over inline scroll tilt. */
+.showcase-rail__scene:hover .showcase-rail__shot {
+    transform: rotateY(-3.5deg) rotateX(2deg) rotateZ(0deg) scale(1.01) translateY(-4px) !important;
+    opacity: 1 !important;
     box-shadow:
         0 34px 70px -24px rgba(0, 0, 0, 0.8),
         0 0 0 1px rgba(255, 255, 255, 0.06);
@@ -362,7 +351,8 @@ onUnmounted(() => {
         perspective: none;
     }
 
-    .showcase-rail__shot {
+    .showcase-rail__shot,
+    .showcase-rail__scene:hover .showcase-rail__shot {
         transform: none !important;
         opacity: 1 !important;
     }
