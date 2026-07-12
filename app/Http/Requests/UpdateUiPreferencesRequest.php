@@ -35,6 +35,7 @@ class UpdateUiPreferencesRequest extends FormRequest
             'workspace_skin' => ['sometimes', Rule::in([
                 CrmAppearance::WORKSPACE_SKIN_CLASSIC,
                 CrmAppearance::WORKSPACE_SKIN_SKY,
+                CrmAppearance::WORKSPACE_SKIN_TRAKLO,
             ])],
             'ag_grid_density' => ['sometimes', Rule::in(['compact', 'normal', 'comfortable'])],
         ];

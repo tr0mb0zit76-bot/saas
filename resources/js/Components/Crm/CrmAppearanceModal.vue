@@ -87,6 +87,11 @@ const workspaceSkinOptions = [
         label: 'Sky',
         hint: 'Мягкие карточки и голубой акцент, как в модуле «Сколько влезет».',
     },
+    {
+        value: 'traklo',
+        label: 'Traklo',
+        hint: 'Палитра витрины Traklo Pro: глубокий navy и синий акцент.',
+    },
 ];
 </script>
 

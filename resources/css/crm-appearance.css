@@ -160,7 +160,8 @@ html[data-crm-accent='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active
     @apply border-sky-600 text-sky-800 dark:border-sky-400 dark:text-sky-200;
 }
 
-html[data-crm-workspace-skin='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
+html[data-crm-workspace-skin='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled,
+html[data-crm-workspace-skin='traklo'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
     border-bottom-color: rgb(var(--crm-accent));
     color: rgb(var(--crm-accent));
 }
