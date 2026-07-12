@@ -176,9 +176,11 @@ const activeChapter = ref('hero');
 let chapterFrame = 0;
 
 const syncActiveChapter = () => {
-    // Last section whose top has crossed ~30% of the viewport — works for tall Pro/Enterprise blocks.
-    const marker = window.innerHeight * 0.3;
+    // Prefer the section that currently covers the focus line — keeps «Введение»
+    // active while the hero is still on screen (tall later chapters still work).
+    const markerY = window.innerHeight * 0.28;
     let current = chapters.value[0]?.id ?? 'hero';
+    let covered = null;
 
     for (const chapter of chapters.value) {
         const el = document.getElementById(chapter.id);
@@ -186,13 +188,22 @@ const syncActiveChapter = () => {
             continue;
         }
 
-        if (el.getBoundingClientRect().top <= marker) {
+        const rect = el.getBoundingClientRect();
+
+        if (rect.top <= markerY && rect.bottom > markerY) {
+            covered = chapter.id;
+            break;
+        }
+
+        if (rect.top <= markerY) {
             current = chapter.id;
         }
     }
 
-    if (activeChapter.value !== current) {
-        activeChapter.value = current;
+    const next = covered ?? current;
+
+    if (activeChapter.value !== next) {
+        activeChapter.value = next;
     }
 };
 
@@ -312,7 +323,7 @@ onUnmounted(() => {
 
         <main>
             <!-- Hero: brand + one CTA group + product visual -->
-            <section id="hero" class="relative scroll-mt-24 overflow-hidden">
+            <section id="hero" class="relative scroll-mt-28 overflow-hidden">
                 <div class="pointer-events-none absolute inset-0">
                     <div class="absolute -left-24 top-0 h-[28rem] w-[28rem] rounded-full bg-blue-600/20 blur-3xl" />
                     <div class="absolute right-0 top-20 h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-3xl" />
@@ -322,7 +333,7 @@ onUnmounted(() => {
                     />
                 </div>
 
-                <div class="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
+                <div class="relative mx-auto grid max-w-6xl gap-12 px-4 pb-28 pt-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-36 lg:pt-24">
                     <div class="space-y-6">
                         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300/90">
                             {{ t('hero_eyebrow') }}
@@ -330,9 +341,10 @@ onUnmounted(() => {
                         <h1 class="traklo-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
                             {{ t('hero_title') }}
                         </h1>
-                        <p class="max-w-xl text-lg leading-8 text-slate-400">
-                            {{ t('hero_subtitle') }}
-                        </p>
+                        <div class="max-w-xl space-y-4 text-lg leading-8 text-slate-400">
+                            <p>{{ t('hero_subtitle') }}</p>
+                            <p>{{ t('hero_subtitle_more', 'Без обещаний «закрыть все процессы мира» — просто чтобы рейсы, бумаги и деньги не разъезжались по разным окнам.') }}</p>
+                        </div>
                         <div class="flex flex-wrap gap-3">
                             <a
                                 href="#pricing"
