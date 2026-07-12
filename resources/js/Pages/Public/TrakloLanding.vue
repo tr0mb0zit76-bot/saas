@@ -430,21 +430,19 @@ onUnmounted(() => {
                 </div>
             </section>
 
-            <!-- Pro: sticky scroll prototype -->
+            <!-- Pro: horizontal rail driven by vertical scroll -->
             <section
                 v-if="proFeatureSection"
                 :id="proFeatureSection.id"
                 class="relative scroll-mt-24 border-t border-white/5 bg-[#0a1220]/40"
             >
-                <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
-                    <ShowcaseStickyChapter
-                        :eyebrow="proFeatureSection.eyebrow"
-                        :title="proFeatureSection.title"
-                        :subtitle="proFeatureSection.subtitle"
-                        :scenes="proFeatureSection.features"
-                        :hint="t('sticky_chapter_hint', 'Прокручивайте сцены ниже — кадр справа меняется вместе с текстом.')"
-                    />
-                </div>
+                <ShowcaseStickyChapter
+                    :eyebrow="proFeatureSection.eyebrow"
+                    :title="proFeatureSection.title"
+                    :subtitle="proFeatureSection.subtitle"
+                    :scenes="proFeatureSection.features"
+                    :hint="t('sticky_chapter_hint', 'Крутите вниз — сцены с кадрами едут влево–вправо. Текст под крупным кадром на всю ширину.')"
+                />
             </section>
 
             <!-- Enterprise: classic (for now) -->
