@@ -18,18 +18,20 @@ npm run build
 SHOWCASE_MODE=traklo_pro
 TENANT_STORAGE_DISK=tenant_local
 SAAS_PLATFORM_ADMIN_EMAILS=admin@saas.local
+SAAS_DEMO_SIGNUP_ENABLED=true
 SESSION_SECURE_COOKIE=false
 DOC_PREVIEW_DRIVER=gotenberg
 GOTENBERG_URL=http://127.0.0.1:3000
 ```
 
-## 1. Витрина и вход
+## 1. Витрина и demo signup
 
-- [ ] `/` → Traklo Pro landing (тарифы Start/Pro/Enterprise)
-- [ ] `/login` → анимированная сцена TrakloLoginScene
-- [ ] Platform login: `http://platform.saas.local/login` (не Simple Browser — Chrome/Edge)
+- [ ] `/` → Traklo Pro landing
+- [ ] CTA «Демо-доступ» → `/demo/signup` (`SAAS_DEMO_SIGNUP_ENABLED=true`)
+- [ ] Форма demo → email с паролем → login → `/onboarding` → dashboard
+- [ ] `/login` → TrakloLoginScene
 
-## 2. Создание арендатора (Platform)
+## 2. Platform (если не через demo)
 
 - [ ] `/platform/tenants` → «Новый арендатор»
 - [ ] Slug, название, тариф Start, trial

@@ -65,6 +65,12 @@ class Tenant extends Model
         return $this->hasMany(TenantUsageLog::class);
     }
 
+    /** @return HasMany<TenantAuditLog, $this> */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(TenantAuditLog::class);
+    }
+
     public function isSuspended(): bool
     {
         return $this->status === 'suspended';

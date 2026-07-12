@@ -55,6 +55,7 @@ const navItems = [
     { key: 'dashboard', label: 'Обзор', href: route('platform.dashboard') },
     { key: 'tenants', label: 'Арендаторы', href: route('platform.tenants.index') },
     { key: 'plans', label: 'Тарифы и модули', href: route('platform.plans.index') },
+    { key: 'audit', label: 'Аудит', href: route('platform.audit.index') },
 ];
 
 function logout() {

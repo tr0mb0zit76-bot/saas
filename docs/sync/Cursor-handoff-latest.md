@@ -1,84 +1,72 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M9 · **Ветка:** `main`
+**Обновлено:** 2026-07-12 · **Фаза:** M10 · **Ветка:** `main`
 
 ---
 
-## Platform login 419 (lab HTTP)
+## Env (lab / home-pc)
 
-- **Fix:** `configureLabHttpSessionCookies()`, `SESSION_SECURE_COOKIE=false`, Chrome/Edge (не Simple Browser).
+Применить одной командой:
 
----
+```powershell
+pwsh -File scripts/apply-saas-lab-env.ps1 -HostName saas.local
+```
 
-## Продукт: Traklo Pro
+```bash
+./scripts/apply-saas-lab-env.sh saas.local
+```
 
-- **Pilot / demo:** self-service **только demo-доступ** (trial Start), не paid signup
-- **Billing:** безнал, счета/УПД вручную (ADR-009). **ЮKassa не планируется.**
-- **Storage:** S3 prod, `tenant_local` lab
+Ключевые значения:
 
----
-
-## Сделано (M9)
-
-### M9.1 Demo signup (demo access only)
-- `GET/POST /demo/signup` при `SAAS_DEMO_SIGNUP_ENABLED=true`
-- `DemoSignupService`: trial Start, `settings.demo_tenant=true`, welcome mail
-- CTA на Traklo landing → `demoSignupUrl`
-- Throttle 3/hour
-
-### M9.2 CRM onboarding wizard
-- `/onboarding` — own company, ИНН, timezone, опционально первый заказчик
-- `EnsureOnboardingComplete` middleware (authenticated only)
-- Platform routes исключены
-
-### M9.3 Usage metering
-- Таблица `tenant_usage_logs`
-- Cron `saas:record-usage` daily 06:15
-- Лимит `storage_mb` enforced в `TenantStorage::put`
-
-### M9.4 Suspend read-only
-- `IdentifyTenant` пропускает `suspended`
-- `EnsureTenantWritable` — блок POST/PATCH/DELETE, GET разрешён
-- Banner в `CrmLayout` при `tenant.read_only`
-
-### M8 (ранее)
-- Platform onboarding, usage limits, invoice PDF, pilot smoke
-
-### Tests — **40/41 SaaS passed** (1 pre-existing PlatformPortalTest flake)
+```env
+SHOWCASE_MODE=traklo_pro
+SAAS_DEMO_SIGNUP_ENABLED=true
+SAAS_DEFAULT_TENANT_SLUG=demo
+PLATFORM_DOMAIN=platform.saas.local
+SESSION_SECURE_COOKIE=false
+TENANT_STORAGE_DISK=tenant_local
+```
 
 ---
 
-## На home-pc
+## M9 (done)
+
+- Demo signup `/demo/signup` — **только trial demo**, не paid signup
+- CRM onboarding wizard `/onboarding`
+- `saas:record-usage` + `tenant_usage_logs` + storage limit
+- Suspended → read-only + banner
+- Billing: **безнал**, ЮKassa не используется
+
+## M10 (done)
+
+- `TenantExportService` + `php artisan saas:export-tenant {slug}` — manifest ZIP (152-ФЗ prep)
+- `SaasAuditGateTest` — P0.10 order visibility gate
+- `tenant_audit_logs` + `/audit` в platform admin (tenant create/update/paid/features + demo signup)
+- Lab env scripts: `apply-saas-lab-env.sh` / `.ps1` (`SAAS_DEMO_SIGNUP_ENABLED=true`, `SHOWCASE_MODE=traklo_pro`)
+
+## Pending
+
+- M9.5 browser smoke on home-pc (Chrome, demo signup flow)
+
+---
+
+## На home-pc после pull
 
 ```powershell
 git pull origin main
+pwsh -File scripts/apply-saas-lab-env.ps1 -HostName saas.local
 composer install --no-interaction
 php artisan migrate --force
 npm run build
 ```
 
-`.env` для demo landing:
-
-```env
-SHOWCASE_MODE=traklo_pro
-SAAS_DEMO_SIGNUP_ENABLED=true
-SAAS_TRIAL_DAYS=14
-```
-
-Demo: витрина → «Демо-доступ» → `/demo/signup` → email с паролем → `/onboarding` → CRM.
+**Demo flow:** `/` → Демо-доступ → email → login → onboarding → CRM  
+**Checklist:** `docs/sync/pilot-smoke-checklist.md`
 
 ---
 
 ## Следующие шаги
 
-1. **M9.5** — browser smoke с первым внешним экспедитором (home-pc)
-2. P0.10 / P1.1 audit (finance/leads scope) — по `saas-audit-remediation.md`
-3. TenantExportService (152-ФЗ)
-4. Audit log `tenant_audit_logs`
-5. Runtime plan editing в platform (опционально)
-
----
-
-## От вас
-
-`git pull` + `migrate` + `npm run build`. Для demo signup: `SAAS_DEMO_SIGNUP_ENABLED=true`.
+1. M9.5 browser smoke (home-pc, Chrome) — `docs/sync/pilot-smoke-checklist.md`
+2. Runtime plan editing in platform (optional)
+3. CRM-side audit events (order status, roles) — phase 4 backlog

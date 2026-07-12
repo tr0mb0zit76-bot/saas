@@ -8,6 +8,7 @@ use App\Http\Requests\Platform\UpdatePlatformTenantFeaturesRequest;
 use App\Http\Requests\Platform\UpdatePlatformTenantRequest;
 use App\Models\SubscriptionPlan;
 use App\Models\Tenant;
+use App\Services\Saas\TenantAuditLogger;
 use App\Services\Saas\TenantBillingService;
 use App\Services\Saas\TenantOnboardingService;
 use App\Services\Saas\TenantProvisioner;
@@ -23,6 +24,7 @@ class PlatformTenantController extends Controller
         private readonly TenantProvisioner $provisioner,
         private readonly TenantBillingService $billing,
         private readonly TenantOnboardingService $onboarding,
+        private readonly TenantAuditLogger $auditLogger,
     ) {}
 
     public function index(): Response
@@ -96,6 +98,22 @@ class PlatformTenantController extends Controller
             $this->onboarding->sendWelcomeInvite($tenant, $onboarded['user'], $onboarded['password']);
         }
 
+        $this->auditLogger->log(
+            $tenant->id,
+            $request->user()?->id,
+            'tenant.created',
+            'tenant',
+            $tenant->id,
+            null,
+            [
+                'slug' => $tenant->slug,
+                'name' => $tenant->name,
+                'status' => $tenant->status,
+                'plan' => $tenant->planKey(),
+                'admin_email' => $onboarded['user']->email,
+            ],
+        );
+
         TenantContext::bypass(false);
 
         $inviteNote = $request->boolean('send_invite', true)
@@ -112,6 +130,13 @@ class PlatformTenantController extends Controller
     {
         TenantContext::bypass(true);
 
+        $oldValues = [
+            'name' => $tenant->name,
+            'status' => $tenant->status,
+            'plan' => $tenant->planKey(),
+            'trial_ends_at' => $tenant->trial_ends_at?->toDateString(),
+        ];
+
         $tenant->update([
             'name' => $request->string('name')->toString(),
             'status' => $request->string('status')->toString(),
@@ -119,7 +144,24 @@ class PlatformTenantController extends Controller
             'trial_ends_at' => $request->date('trial_ends_at'),
         ]);
 
-        $this->provisioner->syncSubscription($tenant->fresh());
+        $tenant->refresh();
+
+        $this->auditLogger->log(
+            $tenant->id,
+            $request->user()?->id,
+            'tenant.updated',
+            'tenant',
+            $tenant->id,
+            $oldValues,
+            [
+                'name' => $tenant->name,
+                'status' => $tenant->status,
+                'plan' => $tenant->planKey(),
+                'trial_ends_at' => $tenant->trial_ends_at?->toDateString(),
+            ],
+        );
+
+        $this->provisioner->syncSubscription($tenant);
 
         TenantContext::bypass(false);
 
@@ -134,6 +176,22 @@ class PlatformTenantController extends Controller
         TenantContext::bypass(true);
 
         $this->billing->markInvoicePaid($tenant);
+
+        $tenant->refresh()->load('subscription');
+
+        $this->auditLogger->log(
+            $tenant->id,
+            request()->user()?->id,
+            'tenant.invoice_paid',
+            'tenant',
+            $tenant->id,
+            null,
+            [
+                'plan' => $tenant->planKey(),
+                'subscription_status' => $tenant->subscription?->status,
+                'billing_period_end' => $tenant->subscription?->billing_period_end?->toDateString(),
+            ],
+        );
 
         TenantContext::bypass(false);
 
@@ -193,6 +251,8 @@ class PlatformTenantController extends Controller
         }
 
         $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        $oldOverrides = data_get($settings, 'features');
+        $oldOverrides = is_array($oldOverrides) && ! array_is_list($oldOverrides) ? $oldOverrides : [];
 
         if ($overrides === []) {
             unset($settings['features']);
@@ -201,6 +261,16 @@ class PlatformTenantController extends Controller
         }
 
         $tenant->update(['settings' => $settings]);
+
+        $this->auditLogger->log(
+            $tenant->id,
+            $request->user()?->id,
+            'tenant.features_updated',
+            'tenant',
+            $tenant->id,
+            ['features' => $oldOverrides],
+            ['features' => $overrides],
+        );
 
         TenantContext::bypass(false);
 

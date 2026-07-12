@@ -32,6 +32,7 @@ $replacements = [ordered]@{
     'PLATFORM_DOMAIN'            = "platform.$HostName"
     'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local,platform-admin@saas.local'
     'SAAS_TRIAL_DAYS'            = '14'
+    'SAAS_DEMO_SIGNUP_ENABLED'   = 'true'
     'SESSION_SECURE_COOKIE'      = 'false'
 }
 
@@ -52,6 +53,7 @@ Write-Host "  CRM_DOMAIN=$HostName"
 Write-Host "  SHOWCASE_DOMAIN=$HostName"
 Write-Host "  SHOWCASE_MODE=traklo_pro"
 Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
+Write-Host "  SAAS_DEMO_SIGNUP_ENABLED=true"
 Write-Host "  SESSION_SECURE_COOKIE=false (lab HTTP — avoids Secure cookies → 419)"
 
 if ($SkipArtisanClear) { return }

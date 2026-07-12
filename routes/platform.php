@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\PlatformAuditLogController;
 use App\Http\Controllers\Platform\PlatformAuthenticatedSessionController;
 use App\Http\Controllers\Platform\PlatformDashboardController;
 use App\Http\Controllers\Platform\PlatformPlansController;
@@ -38,5 +39,6 @@ Route::domain($platformDomain)->group(function (): void {
         Route::patch('/tenants/{tenant}/features', [PlatformTenantController::class, 'updateFeatures'])->name('platform.tenants.features.update');
         Route::post('/tenants/{tenant}/mark-paid', [PlatformTenantController::class, 'markPaid'])->name('platform.tenants.mark-paid');
         Route::get('/tenants/{tenant}/invoices/{invoice}/pdf', [PlatformTenantInvoiceController::class, 'pdf'])->name('platform.tenants.invoices.pdf');
+        Route::get('/audit', [PlatformAuditLogController::class, 'index'])->name('platform.audit.index');
     });
 });

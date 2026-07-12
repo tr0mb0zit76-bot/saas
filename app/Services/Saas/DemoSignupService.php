@@ -13,6 +13,7 @@ final class DemoSignupService
     public function __construct(
         private readonly TenantProvisioner $provisioner,
         private readonly TenantOnboardingService $onboarding,
+        private readonly TenantAuditLogger $auditLogger,
     ) {}
 
     /**
@@ -49,6 +50,21 @@ final class DemoSignupService
 
         $onboarded = $this->onboarding->createAdminUser($tenant, $adminName, $adminEmail);
         $this->onboarding->sendWelcomeInvite($tenant, $onboarded['user'], $onboarded['password']);
+
+        $this->auditLogger->log(
+            $tenant->id,
+            null,
+            'tenant.demo_signup',
+            'tenant',
+            $tenant->id,
+            null,
+            [
+                'slug' => $tenant->slug,
+                'name' => $companyName,
+                'admin_email' => $adminEmail,
+                'plan' => 'start',
+            ],
+        );
 
         TenantContext::bypass(false);
 

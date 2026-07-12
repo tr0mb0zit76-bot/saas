@@ -32,6 +32,10 @@ if [[ ! -f .env && -f .env.example ]]; then
   cp .env.example .env
 fi
 
+if [[ -x scripts/apply-saas-lab-env.sh ]]; then
+  bash scripts/apply-saas-lab-env.sh "${SAAS_LAB_HOST:-saas.local}"
+fi
+
 if grep -q '^DB_CONNECTION=sqlite' .env 2>/dev/null || ! grep -q '^DB_DATABASE=' .env 2>/dev/null; then
   cat >> .env <<'EOF'
 DB_CONNECTION=mysql
