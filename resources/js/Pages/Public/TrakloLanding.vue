@@ -108,8 +108,7 @@ const featureSections = computed(() => [
     },
 ]);
 
-const classicFeatureSections = computed(() => featureSections.value.filter((section) => section.tone !== 'pro'));
-const proFeatureSection = computed(() => featureSections.value.find((section) => section.tone === 'pro') ?? null);
+const railFeatureSections = computed(() => featureSections.value);
 
 const steps = computed(() => [
     { title: t('step1_title'), text: t('step1_text') },
@@ -380,122 +379,24 @@ onUnmounted(() => {
                 </div>
             </section>
 
-            <!-- Features: base (classic) -->
+            <!-- Feature chapters: horizontal rail driven by vertical scroll -->
             <section
-                v-for="section in classicFeatureSections.filter((item) => item.tone === 'base')"
+                v-for="section in railFeatureSections"
                 :id="section.id"
                 :key="section.id"
                 class="relative scroll-mt-24 border-t border-white/5"
-            >
-                <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
-                    <div class="mb-14 max-w-2xl">
-                        <h2 class="traklo-display text-3xl font-semibold text-white sm:text-4xl">
-                            {{ section.title }}
-                        </h2>
-                        <p class="mt-3 text-lg text-slate-400">
-                            {{ section.subtitle }}
-                        </p>
-                    </div>
-
-                    <div class="space-y-16 lg:space-y-24">
-                        <article
-                            v-for="(feature, index) in section.features"
-                            :key="feature.key"
-                            class="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
-                        >
-                            <div
-                                class="space-y-4"
-                                :class="index % 2 === 1 ? 'lg:order-2' : ''"
-                            >
-                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
-                                    {{ String(index + 1).padStart(2, '0') }}
-                                </p>
-                                <h3 class="traklo-display text-2xl font-semibold text-white sm:text-3xl">
-                                    {{ feature.title }}
-                                </h3>
-                                <p class="max-w-xl text-base leading-7 text-slate-400">
-                                    {{ feature.text }}
-                                </p>
-                            </div>
-
-                            <div :class="index % 2 === 1 ? 'lg:order-1' : ''">
-                                <ShowcaseFeatureShot
-                                    :variant="feature.key"
-                                    :label="feature.label"
-                                    :tilt="index % 2 === 1 ? 'left' : 'right'"
-                                />
-                            </div>
-                        </article>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Pro: horizontal rail driven by vertical scroll -->
-            <section
-                v-if="proFeatureSection"
-                :id="proFeatureSection.id"
-                class="relative scroll-mt-24 border-t border-white/5 bg-[#0a1220]/40"
+                :class="{
+                    'bg-[#0a1220]/40': section.tone === 'pro',
+                    'bg-[#0b1020]/70': section.tone === 'enterprise',
+                }"
             >
                 <ShowcaseStickyChapter
-                    :eyebrow="proFeatureSection.eyebrow"
-                    :title="proFeatureSection.title"
-                    :subtitle="proFeatureSection.subtitle"
-                    :scenes="proFeatureSection.features"
-                    :hint="t('sticky_chapter_hint', 'Крутите вниз — сцены с кадрами едут влево–вправо. Текст под крупным кадром на всю ширину.')"
+                    :eyebrow="section.eyebrow"
+                    :title="section.title"
+                    :subtitle="section.subtitle"
+                    :scenes="section.features"
+                    :hint="t('sticky_chapter_hint', '')"
                 />
-            </section>
-
-            <!-- Enterprise: classic (for now) -->
-            <section
-                v-for="section in classicFeatureSections.filter((item) => item.tone === 'enterprise')"
-                :id="section.id"
-                :key="section.id"
-                class="relative scroll-mt-24 border-t border-white/5 bg-[#0b1020]/70"
-            >
-                <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
-                    <div class="mb-14 max-w-2xl">
-                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
-                            {{ section.eyebrow }}
-                        </p>
-                        <h2 class="traklo-display mt-3 text-3xl font-semibold text-white sm:text-4xl">
-                            {{ section.title }}
-                        </h2>
-                        <p class="mt-3 text-lg text-slate-400">
-                            {{ section.subtitle }}
-                        </p>
-                    </div>
-
-                    <div class="space-y-16 lg:space-y-24">
-                        <article
-                            v-for="(feature, index) in section.features"
-                            :key="feature.key"
-                            class="grid items-center gap-8 lg:grid-cols-2 lg:gap-12"
-                        >
-                            <div
-                                class="space-y-4"
-                                :class="index % 2 === 1 ? 'lg:order-2' : ''"
-                            >
-                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-blue-300/80">
-                                    {{ String(index + 1).padStart(2, '0') }}
-                                </p>
-                                <h3 class="traklo-display text-2xl font-semibold text-white sm:text-3xl">
-                                    {{ feature.title }}
-                                </h3>
-                                <p class="max-w-xl text-base leading-7 text-slate-400">
-                                    {{ feature.text }}
-                                </p>
-                            </div>
-
-                            <div :class="index % 2 === 1 ? 'lg:order-1' : ''">
-                                <ShowcaseFeatureShot
-                                    :variant="feature.key"
-                                    :label="feature.label"
-                                    :tilt="index % 2 === 1 ? 'left' : 'right'"
-                                />
-                            </div>
-                        </article>
-                    </div>
-                </div>
             </section>
 
             <section id="pricing" class="scroll-mt-24 border-y border-white/5 bg-[#0a1220]/80">

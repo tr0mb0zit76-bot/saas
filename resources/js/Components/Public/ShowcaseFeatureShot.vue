@@ -17,6 +17,11 @@ defineProps({
         type: String,
         default: 'right',
     },
+    /** Flat full-bleed mock for horizontal rail chapters */
+    fill: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const leadCols = [
@@ -92,7 +97,9 @@ const integrationRows = [
 <template>
     <div
         class="showcase-shot"
-        :class="tilt === 'left' ? 'showcase-shot--left' : 'showcase-shot--right'"
+        :class="[
+            fill ? 'showcase-shot--fill' : (tilt === 'left' ? 'showcase-shot--left' : 'showcase-shot--right'),
+        ]"
     >
         <div class="showcase-shot__glow" aria-hidden="true" />
         <div class="showcase-shot__frame">
@@ -407,6 +414,29 @@ const integrationRows = [
     position: relative;
     perspective: 1400px;
     padding: 1.25rem 0.5rem 1.5rem;
+}
+
+.showcase-shot--fill {
+    perspective: none;
+    padding: 0;
+    height: 100%;
+}
+
+.showcase-shot--fill .showcase-shot__glow {
+    display: none;
+}
+
+.showcase-shot--fill .showcase-shot__frame {
+    height: 100%;
+    min-height: 100%;
+    transform: none !important;
+    border-radius: 1rem;
+    box-shadow: none;
+}
+
+.showcase-shot--fill .showcase-shot__screen {
+    min-height: clamp(20rem, 62vh, 36rem);
+    height: calc(100% - 2.75rem);
 }
 
 .showcase-shot__glow {
