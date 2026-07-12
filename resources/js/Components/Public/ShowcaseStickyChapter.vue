@@ -60,8 +60,16 @@ const stageStyle = computed(() => {
         return undefined;
     }
 
-    // Opaque from brand line to the right; dissolve over ~2cm to the left of it.
-    const mask = `linear-gradient(to right, transparent 0, transparent calc(${cut}px - ${FADE}), rgb(0 0 0 / 0.2) calc(${cut}px - 0.7cm), #000 ${cut}px, #000 100%)`;
+    // Dissolve past the brand line over ~2cm (plus a short soft lead-in).
+    const mask = [
+        'linear-gradient(to right,',
+        'transparent 0,',
+        `transparent calc(${cut}px - ${FADE}),`,
+        `rgb(0 0 0 / 0.18) calc(${cut}px - 0.85cm),`,
+        `rgb(0 0 0 / 0.72) ${cut}px,`,
+        `#000 calc(${cut}px + 0.55cm),`,
+        '#000 100%)',
+    ].join(' ');
 
     return {
         maskImage: mask,
@@ -81,10 +89,10 @@ const columnStyle = computed(() => {
 
 const shotShellStyle = (index) => {
     const d = index - scenePos.value;
-    // Always a noticeable glance; more yaw as the panel drifts off-center.
-    const rotY = Math.max(-22, Math.min(16, -12 + d * -11));
-    const rotX = 6 + Math.min(4, Math.abs(d) * 1.4);
-    const rotZ = 1.1 + Math.min(1.2, Math.abs(d) * 0.4) * Math.sign(d || 1);
+    // Always a clear angled glance; exiting left turns further away.
+    const rotY = Math.max(-24, Math.min(6, -13 + d * 9));
+    const rotX = 6.5 + Math.min(3.5, Math.abs(d) * 1.3);
+    const rotZ = 1.2 - Math.min(1.5, Math.abs(d) * 0.5) * Math.sign(d || -1);
     const scale = 1 - Math.min(0.08, Math.abs(d) * 0.04);
     const opacity = 1 - Math.min(0.28, Math.abs(d) * 0.14);
 
