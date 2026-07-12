@@ -11,6 +11,74 @@ final class MailMimeAttachmentExtractor
 {
     /**
      * @param  Connection|resource  $connection
+     * @return list<array{filename: string, mime_type: string|null, size: int, part_number: string}>
+     */
+    public function extractMetadata($connection, int $uid): array
+    {
+        if (! is_resource($connection) && ! $connection instanceof Connection) {
+            return [];
+        }
+
+        $structure = @imap_fetchstructure($connection, $uid, FT_UID);
+
+        if ($structure === false) {
+            return [];
+        }
+
+        if (! isset($structure->parts) || ! is_array($structure->parts) || $structure->parts === []) {
+            $meta = $this->singlePartMetadata($structure, '1');
+
+            return $meta === null ? [] : [$meta];
+        }
+
+        return $this->collectAttachmentMetadata($structure->parts, '');
+    }
+
+    /**
+     * @param  Connection|resource  $connection
+     * @return array{filename: string, content: string, mime_type: string|null, size: int}|null
+     */
+    public function fetchPart($connection, int $uid, string $partNumber): ?array
+    {
+        if (! is_resource($connection) && ! $connection instanceof Connection) {
+            return null;
+        }
+
+        $structure = @imap_fetchstructure($connection, $uid, FT_UID);
+
+        if ($structure === false) {
+            return null;
+        }
+
+        $part = $this->resolvePartStructure($structure, $partNumber);
+
+        if ($part === null || ! $this->isAttachmentPart($part)) {
+            return null;
+        }
+
+        $raw = imap_fetchbody($connection, $uid, $partNumber, FT_UID);
+
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $encoding = (int) ($part->encoding ?? 1);
+        $decoded = MailMimeBodyExtractor::decodeBinaryContent($raw, $encoding);
+
+        if ($decoded === '') {
+            return null;
+        }
+
+        return [
+            'filename' => $this->resolveFilename($part, 1),
+            'content' => $decoded,
+            'mime_type' => $this->resolveMimeType($part),
+            'size' => strlen($decoded),
+        ];
+    }
+
+    /**
+     * @param  Connection|resource  $connection
      * @return list<array{filename: string, content: string, mime_type: string|null, size: int}>
      */
     public function extract($connection, int $uid): array
@@ -110,6 +178,82 @@ final class MailMimeAttachmentExtractor
             'mime_type' => $this->resolveMimeType($structure),
             'size' => strlen($decoded),
         ]];
+    }
+
+    /**
+     * @param  list<object>  $parts
+     * @return list<array{filename: string, mime_type: string|null, size: int, part_number: string}>
+     */
+    private function collectAttachmentMetadata(array $parts, string $prefix): array
+    {
+        $attachments = [];
+
+        foreach ($parts as $index => $part) {
+            $partNumber = $prefix === '' ? (string) ($index + 1) : $prefix.'.'.($index + 1);
+
+            if (isset($part->parts) && is_array($part->parts) && $part->parts !== []) {
+                $attachments = [
+                    ...$attachments,
+                    ...$this->collectAttachmentMetadata($part->parts, $partNumber),
+                ];
+
+                continue;
+            }
+
+            if (! $this->isAttachmentPart($part)) {
+                continue;
+            }
+
+            $attachments[] = [
+                'filename' => $this->resolveFilename($part, count($attachments) + 1),
+                'mime_type' => $this->resolveMimeType($part),
+                'size' => max(0, (int) ($part->bytes ?? 0)),
+                'part_number' => $partNumber,
+            ];
+        }
+
+        return $attachments;
+    }
+
+    private function singlePartMetadata(object $structure, string $partNumber): ?array
+    {
+        if (! $this->isAttachmentPart($structure)) {
+            return null;
+        }
+
+        return [
+            'filename' => $this->resolveFilename($structure, 1),
+            'mime_type' => $this->resolveMimeType($structure),
+            'size' => max(0, (int) ($structure->bytes ?? 0)),
+            'part_number' => $partNumber,
+        ];
+    }
+
+    private function resolvePartStructure(object $structure, string $partNumber): ?object
+    {
+        $segments = array_values(array_filter(explode('.', $partNumber), static fn (string $part): bool => $part !== ''));
+
+        if ($segments === []) {
+            return null;
+        }
+
+        if (! isset($structure->parts) || ! is_array($structure->parts) || $structure->parts === []) {
+            return count($segments) === 1 && $segments[0] === '1' ? $structure : null;
+        }
+
+        $current = $structure;
+
+        foreach ($segments as $segment) {
+            $index = ((int) $segment) - 1;
+
+            if (! isset($current->parts[$index])) {
+                return null;
+            }
+
+            $current = $current->parts[$index];
+        }
+
+        return $current;
     }
 
     private function isAttachmentPart(object $part): bool

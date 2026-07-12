@@ -17,6 +17,7 @@ class MailInboxImportHtmlAttachmentsTest extends TestCase
     #[Test]
     public function it_imports_html_body_and_inbound_attachments(): void
     {
+        config(['mail_sync.inbound_attachments.enabled' => true]);
         Storage::fake('local');
 
         $role = Role::query()->create([

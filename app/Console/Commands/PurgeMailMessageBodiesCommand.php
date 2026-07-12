@@ -3,6 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\MailMessage;
+use App\Support\MailSync\MailMessageAttachmentJanitor;
+use App\Support\MailSync\MailMessageBodyPresenter;
+use App\Support\TenantContext;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
@@ -13,6 +16,12 @@ class PurgeMailMessageBodiesCommand extends Command
     protected $signature = 'mail:purge-non-important-bodies {--months= : Порог в месяцах (по умолчанию из config)}';
 
     protected $description = 'Сохраняет краткий контекст и очищает тело неважных писем старше порога';
+
+    public function __construct(
+        private readonly MailMessageAttachmentJanitor $attachmentJanitor,
+    ) {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
@@ -39,9 +48,13 @@ class PurgeMailMessageBodiesCommand extends Command
 
         $count = 0;
 
+        TenantContext::bypass(true);
+
         $query->orderBy('id')->chunkById(100, function ($messages) use (&$count, $maxChars): void {
             foreach ($messages as $message) {
                 $body = MailMessageBodyPresenter::plainText($message) ?? '';
+
+                $this->attachmentJanitor->deleteStoredFiles($message);
 
                 $message->forceFill([
                     'retention_summary' => $body !== ''
@@ -49,12 +62,15 @@ class PurgeMailMessageBodiesCommand extends Command
                         : ($message->retention_summary ?: '—'),
                     'body_text' => null,
                     'body_html' => null,
+                    'attachments' => $this->attachmentJanitor->retentionMetadata($message),
                     'content_purged_at' => now(),
                 ])->save();
 
                 $count++;
             }
         });
+
+        TenantContext::bypass(false);
 
         $this->info("Обработано сообщений: {$count} (старше {$months} мес., не «важно»).");
 

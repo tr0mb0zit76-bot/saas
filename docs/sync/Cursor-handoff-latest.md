@@ -36,7 +36,12 @@
 - При создании tenant: storage + 7 default roles + subscription
 - `TenantBillingService::markInvoicePaid()`, `saas:expire-trials` cron
 
-### Tests — **20 passed** in `tests/Feature/Saas`
+### Mail sync (ADR-013)
+- **Lazy attachments** по умолчанию (`MAIL_SYNC_IMPORT_ATTACHMENTS=false`)
+- Sync: текст + metadata вложений; файл — по клику «Скачать»
+- Purge 6 мес.: удаляет файлы вложений + `retention_summary` (500 символов)
+
+### Tests — **23 passed** (Saas 20 + mail lazy/purge 3)
 
 ---
 

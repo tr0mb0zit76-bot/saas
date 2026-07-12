@@ -72,7 +72,8 @@ return [
     'max_html_body_chars' => max(10_000, min(500_000, (int) env('MAIL_SYNC_MAX_HTML_CHARS', 200_000))),
 
     'inbound_attachments' => [
-        'enabled' => filter_var(env('MAIL_SYNC_IMPORT_ATTACHMENTS', true), FILTER_VALIDATE_BOOL),
+        // false = только метаданные при sync; файл подтягивается по клику «Скачать»
+        'enabled' => filter_var(env('MAIL_SYNC_IMPORT_ATTACHMENTS', false), FILTER_VALIDATE_BOOL),
         'max_files_per_message' => max(1, min(20, (int) env('MAIL_SYNC_INBOUND_MAX_ATTACHMENTS', 10))),
         'max_file_kb' => max(256, min(51200, (int) env('MAIL_SYNC_INBOUND_MAX_ATTACHMENT_KB', 15360))),
     ],
