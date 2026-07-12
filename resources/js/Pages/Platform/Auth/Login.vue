@@ -63,9 +63,15 @@ const submit = () => {
                     {{ status }}
                 </div>
 
-                <form @submit.prevent="submit">
+                <form class="traklo-footer-form" @submit.prevent="submit">
+                    <div class="traklo-footer-links">
+                        <span class="text-[clamp(0.75rem,1.8vw,0.85rem)] font-semibold text-white/90">
+                            Operator portal
+                        </span>
+                    </div>
+
                     <PrimaryButton
-                        class="w-full justify-center bg-white text-slate-900 hover:bg-blue-50"
+                        class="traklo-footer-submit justify-center bg-white text-slate-900 hover:bg-blue-50"
                         :disabled="form.processing"
                     >
                         Войти
@@ -114,5 +120,25 @@ const submit = () => {
     font-size: 0.65rem;
     color: #fecaca;
     white-space: nowrap;
+}
+
+.traklo-footer-form {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: 0.75rem;
+}
+
+.traklo-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-bottom: 0.15rem;
+}
+
+.traklo-footer-submit {
+    min-width: 6rem;
+    align-self: end;
 }
 </style>

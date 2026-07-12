@@ -1,7 +1,7 @@
 <script setup>
 /**
- * Static traklo-icon login stage (no animation for now).
- * Overlays: title, email/password on white bars, footer controls inside the bubble.
+ * Static traklo-icon login stage.
+ * Soft edge blend into page bg; title above bubble; controls in lower bubble.
  */
 defineProps({
     title: { type: String, default: '' },
@@ -11,40 +11,42 @@ defineProps({
 
 <template>
     <div class="traklo-login-scene mx-auto w-full max-w-3xl">
-        <div class="traklo-icon relative mx-auto aspect-square w-full max-w-[min(100%,34rem)] sm:max-w-[38rem]">
-            <img
-                src="/downloads/traklo-icon.png"
-                alt=""
-                class="pointer-events-none block h-full w-full select-none object-contain"
-                draggable="false"
-            >
+        <!-- Title sits above the bubble so it doesn't collide with the icon rim -->
+        <div
+            v-if="title || subtitle"
+            class="traklo-caption mx-auto mb-3 max-w-[min(100%,34rem)] text-center sm:mb-4 sm:max-w-[38rem]"
+        >
+            <h1 v-if="title" class="text-[clamp(1.05rem,2.8vw,1.4rem)] font-semibold leading-tight tracking-tight text-white">
+                {{ title }}
+            </h1>
+            <p v-if="subtitle" class="mt-1.5 text-[clamp(0.8rem,2vw,0.95rem)] font-medium leading-snug text-slate-300">
+                {{ subtitle }}
+            </p>
+        </div>
 
-            <!-- Title inside bubble (upper zone) -->
-            <div
-                v-if="title || subtitle"
-                class="traklo-caption absolute left-[18%] right-[18%] top-[9%] text-center"
-            >
-                <h1 v-if="title" class="text-[clamp(0.95rem,2.6vw,1.25rem)] font-semibold leading-tight tracking-tight text-white drop-shadow">
-                    {{ title }}
-                </h1>
-                <p v-if="subtitle" class="mt-1 text-[clamp(0.7rem,1.8vw,0.875rem)] leading-snug text-white/90">
-                    {{ subtitle }}
-                </p>
+        <div class="traklo-icon relative mx-auto aspect-square w-full max-w-[min(100%,34rem)] sm:max-w-[38rem]">
+            <!-- Soft glow so bubble merges with page atmosphere -->
+            <div class="traklo-icon-glow pointer-events-none absolute inset-[6%] -z-0" aria-hidden="true" />
+
+            <div class="traklo-icon-frame relative z-[1] h-full w-full">
+                <img
+                    src="/downloads/traklo-icon.png"
+                    alt=""
+                    class="traklo-icon-img pointer-events-none block h-full w-full select-none object-contain"
+                    draggable="false"
+                >
+                <!-- Fade square PNG corners / bevel into page background -->
+                <div class="traklo-icon-fade pointer-events-none absolute inset-0" aria-hidden="true" />
             </div>
 
-            <!--
-              Bars measured on 1024² icon; height increased for readable text
-              (taller than painted bars — inputs have solid white fill).
-            -->
-            <div class="traklo-bar traklo-bar--email absolute">
+            <div class="traklo-bar traklo-bar--email absolute z-[2]">
                 <slot name="email" />
             </div>
-            <div class="traklo-bar traklo-bar--password absolute">
+            <div class="traklo-bar traklo-bar--password absolute z-[2]">
                 <slot name="password" />
             </div>
 
-            <!-- Remember / submit inside lower bubble -->
-            <div class="traklo-controls absolute left-[18%] right-[14%] top-[74%]">
+            <div class="traklo-controls absolute z-[2]">
                 <slot name="footer" />
             </div>
         </div>
@@ -52,8 +54,26 @@ defineProps({
 </template>
 
 <style scoped>
-.traklo-bar {
-    z-index: 2;
+.traklo-icon-glow {
+    border-radius: 50%;
+    background: radial-gradient(circle, rgb(56 160 255 / 0.28) 0%, rgb(11 18 32 / 0) 68%);
+    filter: blur(28px);
+}
+
+.traklo-icon-frame {
+    /* Soft circular reveal — hides hard square corners of the PNG */
+    -webkit-mask-image: radial-gradient(circle at 50% 46%, #000 52%, transparent 73%);
+    mask-image: radial-gradient(circle at 50% 46%, #000 52%, transparent 73%);
+}
+
+.traklo-icon-fade {
+    background: radial-gradient(
+        circle at 50% 46%,
+        transparent 48%,
+        rgb(11 18 32 / 0.35) 62%,
+        rgb(11 18 32 / 0.92) 78%,
+        #0b1220 100%
+    );
 }
 
 .traklo-bar--email {
@@ -70,8 +90,11 @@ defineProps({
     height: 5.8%;
 }
 
-.traklo-caption,
+/* Lower + a bit right; room for button in bottom-right of bubble face */
 .traklo-controls {
-    z-index: 2;
+    top: 78%;
+    left: 30%;
+    right: 11%;
+    bottom: 7%;
 }
 </style>

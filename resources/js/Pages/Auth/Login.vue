@@ -72,30 +72,31 @@ const subtitle = page.props.tenant?.name
                     {{ status }}
                 </div>
 
-                <form class="space-y-2.5" @submit.prevent="submit">
-                    <label class="flex items-center gap-2">
-                        <Checkbox v-model:checked="form.remember" name="remember" />
-                        <span class="text-[clamp(0.7rem,1.7vw,0.8rem)] text-white/90">Запомнить меня</span>
-                    </label>
+                <form class="traklo-footer-form" @submit.prevent="submit">
+                    <div class="traklo-footer-links">
+                        <label class="flex items-center gap-2.5">
+                            <Checkbox v-model:checked="form.remember" name="remember" />
+                            <span class="text-[clamp(0.78rem,1.9vw,0.9rem)] font-semibold text-white">
+                                Запомнить меня
+                            </span>
+                        </label>
 
-                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <Link
                             v-if="canResetPassword"
                             :href="route('password.request')"
-                            class="text-[clamp(0.65rem,1.6vw,0.75rem)] text-white/80 underline decoration-white/40 underline-offset-2 hover:text-white"
+                            class="text-[clamp(0.75rem,1.8vw,0.85rem)] font-semibold text-white/95 underline decoration-white/50 underline-offset-4 hover:text-white"
                         >
                             Забыли пароль?
                         </Link>
-                        <span v-else />
-
-                        <PrimaryButton
-                            class="min-w-[5.5rem] justify-center bg-white text-slate-900 hover:bg-blue-50"
-                            :class="{ 'opacity-50': form.processing }"
-                            :disabled="form.processing"
-                        >
-                            Войти
-                        </PrimaryButton>
                     </div>
+
+                    <PrimaryButton
+                        class="traklo-footer-submit justify-center bg-white text-slate-900 hover:bg-blue-50"
+                        :class="{ 'opacity-50': form.processing }"
+                        :disabled="form.processing"
+                    >
+                        Войти
+                    </PrimaryButton>
                 </form>
             </template>
         </TrakloLoginScene>
@@ -140,5 +141,25 @@ const subtitle = page.props.tenant?.name
     font-size: 0.65rem;
     color: #fecaca;
     white-space: nowrap;
+}
+
+.traklo-footer-form {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: 0.75rem;
+}
+
+.traklo-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-bottom: 0.15rem;
+}
+
+.traklo-footer-submit {
+    min-width: 6rem;
+    align-self: end;
 }
 </style>
