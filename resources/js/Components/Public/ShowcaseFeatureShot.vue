@@ -435,8 +435,9 @@ const integrationRows = [
 }
 
 .showcase-shot--fill .showcase-shot__screen {
-    min-height: clamp(20rem, 62vh, 36rem);
-    height: calc(100% - 2.75rem);
+    min-height: 0;
+    height: calc(100% - 2.5rem);
+    box-sizing: border-box;
 }
 
 .showcase-shot__glow {
