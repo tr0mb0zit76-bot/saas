@@ -2,7 +2,6 @@
 import TrakloLoginScene from '@/Components/Auth/TrakloLoginScene.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import TrakloGuestLayout from '@/Layouts/TrakloGuestLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -28,9 +27,6 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
-
-const barInputClass =
-    'block h-9 w-full rounded-full border-0 bg-white/95 px-3.5 text-sm text-slate-800 shadow-sm ring-1 ring-white/80 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-400 sm:h-10 sm:px-4';
 </script>
 
 <template>
@@ -44,37 +40,35 @@ const barInputClass =
             :instant="hasValidationErrors"
         >
             <template #bars>
-                <div class="space-y-[0.55rem] sm:space-y-[0.65rem]">
-                    <div>
-                        <label for="email" class="sr-only">Email оператора</label>
-                        <TextInput
-                            id="email"
-                            v-model="form.email"
-                            type="email"
-                            :class="barInputClass"
-                            placeholder="Email"
-                            required
-                            :autofocus="sceneReady || hasValidationErrors"
-                            autocomplete="username"
-                            @keydown.enter="submit"
-                        />
-                        <InputError class="mt-1 text-xs text-red-200" :message="form.errors.email" />
-                    </div>
+                <div>
+                    <label for="email" class="sr-only">Email оператора</label>
+                    <input
+                        id="email"
+                        v-model="form.email"
+                        type="email"
+                        class="traklo-bar-field"
+                        placeholder="Email"
+                        required
+                        :autofocus="sceneReady || hasValidationErrors"
+                        autocomplete="username"
+                        @keydown.enter="submit"
+                    >
+                    <InputError class="mt-1 text-xs text-red-200" :message="form.errors.email" />
+                </div>
 
-                    <div class="max-w-[62%]">
-                        <label for="password" class="sr-only">Пароль</label>
-                        <TextInput
-                            id="password"
-                            v-model="form.password"
-                            type="password"
-                            :class="barInputClass"
-                            placeholder="Пароль"
-                            required
-                            autocomplete="current-password"
-                            @keydown.enter="submit"
-                        />
-                        <InputError class="mt-1 text-xs text-red-200" :message="form.errors.password" />
-                    </div>
+                <div class="w-[61%]">
+                    <label for="password" class="sr-only">Пароль</label>
+                    <input
+                        id="password"
+                        v-model="form.password"
+                        type="password"
+                        class="traklo-bar-field"
+                        placeholder="Пароль"
+                        required
+                        autocomplete="current-password"
+                        @keydown.enter="submit"
+                    >
+                    <InputError class="mt-1 text-xs text-red-200" :message="form.errors.password" />
                 </div>
             </template>
 
@@ -99,3 +93,36 @@ const barInputClass =
         </TrakloLoginScene>
     </TrakloGuestLayout>
 </template>
+
+<style scoped>
+.traklo-bar-field {
+    display: block;
+    width: 100%;
+    height: 2.35rem;
+    border-radius: 9999px;
+    border: 0;
+    background: #ffffff;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+    outline: none;
+}
+
+.traklo-bar-field::placeholder {
+    color: #94a3b8;
+}
+
+.traklo-bar-field:focus {
+    box-shadow:
+        0 0 0 2px rgb(59 130 246 / 0.55),
+        0 1px 2px rgb(15 23 42 / 0.08);
+}
+
+@media (min-width: 640px) {
+    .traklo-bar-field {
+        height: 2.5rem;
+    }
+}
+</style>
