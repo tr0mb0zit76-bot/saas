@@ -137,16 +137,20 @@ $urls = @(
     "http://$HostName/login",
     "http://platform.$HostName/login"
 )
+$ospanelCodes = @()
 foreach ($u in $urls) {
     $p = Get-HttpProbe $u
+    $ospanelCodes += $p.Code
     $color = if ($p.Code -ge 200 -and $p.Code -lt 400) { 'Green' } elseif ($p.Code -eq 503) { 'Red' } else { 'Yellow' }
     Write-Host ("  {0} -> {1}" -f $u, $p.Code) -ForegroundColor $color
     if ($p.Server) { Write-Host "    Server: $($p.Server)" }
     if ($p.PoweredBy) { Write-Host "    X-Powered-By: $($p.PoweredBy)" }
     if ($p.Code -eq 503 -and $p.Body) { Write-Host "    Body: $($p.Body)" }
 }
+$ospanelOk = ($ospanelCodes | Where-Object { $_ -ge 200 -and $_ -lt 400 }).Count -eq $urls.Count
 
 Write-Section 'HTTP probe (php artisan serve fallback)'
+$artisanOk = $false
 if (-not (Test-Path 'artisan')) {
     Write-Host '  skipped — no artisan'
 } else {
@@ -166,18 +170,30 @@ if (-not (Test-Path 'artisan')) {
     }
     Stop-Job $serveJob -ErrorAction SilentlyContinue | Out-Null
     Remove-Job $serveJob -Force -ErrorAction SilentlyContinue | Out-Null
+    $artisanOk = $p.Code -ge 200 -and $p.Code -lt 400
 
-    if ($p.Code -ge 200 -and $p.Code -lt 400) {
-        Write-Host "  $fallbackUrl -> $($p.Code) — Laravel OK, problem is OSPanel/Apache" -ForegroundColor Green
+    if ($ospanelOk) {
+        Write-Host "  skipped — OSPanel already returns 200" -ForegroundColor Green
+    } elseif ($artisanOk) {
+        Write-Host "  $fallbackUrl -> $($p.Code) — Laravel OK, fix OSPanel/Apache (see below)" -ForegroundColor Yellow
     } else {
         Write-Host "  $fallbackUrl -> $($p.Code) — Laravel itself may be broken" -ForegroundColor Red
         if ($p.Body) { Write-Host "    Body: $($p.Body)" }
     }
 }
 
-Write-Section 'Recommended fixes (503 on all URLs, .env OK)'
-Write-Host '  1. OSPanel tray → Restart all'
-Write-Host '  2. Domains: saas.local → C:\OSPanel\home\saas\saas.local (web root = public\)'
-Write-Host '  3. pwsh -File scripts/fix-nested-repo-path.ps1'
-Write-Host '  4. pwsh -File scripts/setup-platform-portal-host.ps1   # as Administrator'
-Write-Host '  5. pwsh -File scripts/repair-lab-after-pull.ps1 -Full'
+if ($ospanelOk) {
+    Write-Section 'Result'
+    Write-Host "  Lab is healthy. Open in browser:" -ForegroundColor Green
+    Write-Host "    http://$HostName/"
+    Write-Host "    http://$HostName/login"
+    Write-Host "    http://platform.$HostName/login"
+    Write-Host '  Login: admin@saas.local / password' -ForegroundColor Green
+} else {
+    Write-Section 'Recommended fixes (503 or errors on OSPanel URLs)'
+    Write-Host '  1. OSPanel tray → Restart all'
+    Write-Host '  2. Domains: saas.local → C:\OSPanel\home\saas\saas.local (web root = public\)'
+    Write-Host '  3. pwsh -File scripts/fix-nested-repo-path.ps1'
+    Write-Host '  4. pwsh -File scripts/setup-platform-portal-host.ps1   # as Administrator'
+    Write-Host '  5. pwsh -File scripts/repair-lab-after-pull.ps1 -Full'
+}
