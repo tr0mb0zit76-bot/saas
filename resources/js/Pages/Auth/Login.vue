@@ -2,26 +2,16 @@
 import Checkbox from '@/Components/Checkbox.vue';
 import TrakloLoginScene from '@/Components/Auth/TrakloLoginScene.vue';
 import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
 import TrakloGuestLayout from '@/Layouts/TrakloGuestLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 
 defineProps({
-    canResetPassword: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
+    canResetPassword: Boolean,
+    status: String,
 });
 
 const page = usePage();
-const sceneReady = ref(false);
-
-const hasValidationErrors = computed(() => Object.keys(page.props.errors ?? {}).length > 0);
 
 const form = useForm({
     email: '',
@@ -34,86 +24,142 @@ const submit = () => {
         onFinish: () => form.reset('password'),
     });
 };
+
+const title = 'Вход в кабинет';
+const subtitle = page.props.tenant?.name
+    ? `«${page.props.tenant.name}»`
+    : 'Traklo Pro';
 </script>
 
 <template>
-    <TrakloGuestLayout
-        title="Вход в кабинет"
-        :subtitle="page.props.tenant?.name ? `Рабочее пространство «${page.props.tenant.name}»` : 'Email и пароль, выданные администратором'"
-    >
+    <TrakloGuestLayout>
         <Head title="Вход" />
 
-        <template #scene>
-            <TrakloLoginScene
-                v-model:ready="sceneReady"
-                :instant="hasValidationErrors"
-            />
-        </template>
+        <TrakloLoginScene :title="title" :subtitle="subtitle">
+            <template #email>
+                <label for="email" class="sr-only">Почта</label>
+                <input
+                    id="email"
+                    v-model="form.email"
+                    type="email"
+                    class="traklo-bar-input"
+                    placeholder="Почта"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    @keydown.enter="submit"
+                >
+                <InputError class="traklo-bar-error" :message="form.errors.email" />
+            </template>
 
-        <div
-            class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-xl shadow-black/20 backdrop-blur-sm transition duration-500 sm:p-6"
-            :class="sceneReady || hasValidationErrors ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'"
-        >
-            <div v-if="status" class="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {{ status }}
-            </div>
+            <template #password>
+                <label for="password" class="sr-only">Пароль</label>
+                <input
+                    id="password"
+                    v-model="form.password"
+                    type="password"
+                    class="traklo-bar-input"
+                    placeholder="Пароль"
+                    required
+                    autocomplete="current-password"
+                    @keydown.enter="submit"
+                >
+                <InputError class="traklo-bar-error" :message="form.errors.password" />
+            </template>
 
-            <form class="space-y-4" @submit.prevent="submit">
-                <div>
-                    <InputLabel for="email" value="Email" class="text-slate-300" />
-
-                    <TextInput
-                        id="email"
-                        v-model="form.email"
-                        type="email"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
-                        required
-                        :autofocus="sceneReady || hasValidationErrors"
-                        autocomplete="username"
-                    />
-
-                    <InputError class="mt-2" :message="form.errors.email" />
+            <template #footer>
+                <div v-if="status" class="mb-2 rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-100">
+                    {{ status }}
                 </div>
 
-                <div>
-                    <InputLabel for="password" value="Пароль" class="text-slate-300" />
+                <form class="traklo-footer-form" @submit.prevent="submit">
+                    <div class="traklo-footer-links">
+                        <label class="flex items-center gap-2.5">
+                            <Checkbox v-model:checked="form.remember" name="remember" />
+                            <span class="text-[clamp(0.78rem,1.9vw,0.9rem)] font-semibold text-white">
+                                Запомнить меня
+                            </span>
+                        </label>
 
-                    <TextInput
-                        id="password"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 block w-full border-white/10 bg-[#111827] text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
-                        required
-                        autocomplete="current-password"
-                    />
-
-                    <InputError class="mt-2" :message="form.errors.password" />
-                </div>
-
-                <label class="flex items-center gap-3">
-                    <Checkbox v-model:checked="form.remember" name="remember" />
-                    <span class="text-sm text-slate-400">Запомнить меня</span>
-                </label>
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <Link
-                        v-if="canResetPassword"
-                        :href="route('password.request')"
-                        class="text-sm text-slate-400 underline decoration-white/20 underline-offset-4 hover:text-white"
-                    >
-                        Забыли пароль?
-                    </Link>
-                    <span v-else />
+                        <Link
+                            v-if="canResetPassword"
+                            :href="route('password.request')"
+                            class="text-[clamp(0.75rem,1.8vw,0.85rem)] font-semibold text-white/95 underline decoration-white/50 underline-offset-4 hover:text-white"
+                        >
+                            Забыли пароль?
+                        </Link>
+                    </div>
 
                     <PrimaryButton
-                        class="w-full justify-center bg-blue-600 hover:bg-blue-500 sm:w-auto"
+                        class="traklo-footer-submit justify-center bg-white text-slate-900 hover:bg-blue-50"
                         :class="{ 'opacity-50': form.processing }"
                         :disabled="form.processing"
                     >
                         Войти
                     </PrimaryButton>
-                </div>
-            </form>
-        </div>
+                </form>
+            </template>
+        </TrakloLoginScene>
     </TrakloGuestLayout>
 </template>
+
+<style scoped>
+.traklo-bar-input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: #ffffff;
+    padding: 0 0.9rem;
+    font-size: clamp(0.85rem, 2.2vw, 1.05rem);
+    line-height: 1.2;
+    color: #0f172a;
+    outline: none;
+    caret-color: #1d4ed8;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+}
+
+.traklo-bar-input::placeholder {
+    color: #94a3b8;
+    line-height: inherit;
+}
+
+.traklo-bar-input:focus {
+    box-shadow:
+        0 0 0 2px rgb(255 255 255 / 0.55),
+        0 0 0 4px rgb(37 99 235 / 0.45);
+}
+
+.traklo-bar-error {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 2px);
+    margin: 0;
+    font-size: 0.65rem;
+    color: #fecaca;
+    white-space: nowrap;
+}
+
+.traklo-footer-form {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    column-gap: 0.75rem;
+}
+
+.traklo-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding-bottom: 0.15rem;
+}
+
+.traklo-footer-submit {
+    min-width: 6rem;
+    align-self: end;
+}
+</style>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SaasFeatureCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -203,26 +204,28 @@ class PublicSiteController extends Controller
             $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
         }
         $crmScheme = request()->isSecure() ? 'https' : 'http';
+        $crmLoginUrl = sprintf('%s://%s/login', $crmScheme, $crmHost);
 
-        /** @var array<string, array{label: string, limits: array<string, int|null>}> $planConfig */
-        $planConfig = config('saas-plans.plans', []);
+        $planSummaries = SaasFeatureCatalog::planSummaries();
         $plans = [];
 
-        foreach (['start', 'pro', 'enterprise'] as $key) {
-            if (! isset($planConfig[$key])) {
+        foreach ($planSummaries as $summary) {
+            $key = (string) ($summary['key'] ?? '');
+            if ($key === '') {
                 continue;
             }
 
-            $limits = $planConfig[$key]['limits'] ?? [];
+            $limits = is_array($summary['limits'] ?? null) ? $summary['limits'] : [];
             $users = $limits['users'] ?? null;
             $usersLabel = $users === null
-                ? 'без лимита по договору'
-                : 'до '.$users.' пользователей';
+                ? (string) ($texts['plan_'.$key.'_users'] ?? 'без лимита по договору')
+                : (string) ($texts['plan_'.$key.'_users'] ?? ('до '.$users.' пользователей'));
 
             $plans[] = [
                 'key' => $key,
-                'label' => (string) ($planConfig[$key]['label'] ?? ucfirst($key)),
+                'label' => (string) ($texts['plan_'.$key] ?? $summary['label'] ?? ucfirst($key)),
                 'users' => $usersLabel,
+                'limits' => $limits,
                 'featured' => $key === 'pro',
             ];
         }
@@ -230,11 +233,12 @@ class PublicSiteController extends Controller
         return [
             'canLogin' => \Route::has('login'),
             'texts' => $texts,
-            'crmLoginUrl' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            'crmLoginUrl' => $crmLoginUrl,
             'plans' => $plans,
+            'planMatrix' => SaasFeatureCatalog::planMatrix(),
             'publicSite' => [
                 'texts' => $texts,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $crmLoginUrl,
             ],
         ];
     }

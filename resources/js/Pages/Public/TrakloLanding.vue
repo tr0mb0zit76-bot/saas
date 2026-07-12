@@ -1,6 +1,8 @@
 <script setup>
+import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
+import ShowcaseStickyChapter from '@/Components/Public/ShowcaseStickyChapter.vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     canLogin: Boolean,
@@ -16,6 +18,10 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    planMatrix: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
@@ -26,14 +32,83 @@ const t = (key, fallback = '') => {
     return typeof value === 'string' && value.trim() !== '' ? value : fallback;
 };
 
-const features = computed(() => [
-    { key: 'leads', title: t('feature_leads_title', 'Лиды и воронка'), text: t('feature_leads_text') },
-    { key: 'orders', title: t('feature_orders_title', 'Мастер заказа'), text: t('feature_orders_text') },
-    { key: 'payments', title: t('feature_payments_title', 'График оплат'), text: t('feature_payments_text') },
-    { key: 'print', title: t('feature_print_title', 'DOCX и PDF'), text: t('feature_print_text') },
-    { key: 'rbac', title: t('feature_rbac_title', 'RBAC и scopes'), text: t('feature_rbac_text') },
-    { key: 'ai', title: t('feature_ai_title', 'AI Command Bar'), text: t('feature_ai_text') },
+const featureFallbackTitles = {
+    leads: 'Лиды и воронка',
+    orders: 'Мастер заказа',
+    payments: 'График оплат',
+    print: 'Печать документов',
+    rbac: 'Роли и области видимости',
+    documents: 'Реестр документов',
+    scripts: 'Скрипты продаж',
+    salesbook: 'Книга продаж',
+    howmuchfits: 'Сколько влезет',
+    payroll: 'Начисление зарплат',
+    mobile: 'Мобильное приложение',
+    ai: 'Текстовый помощник',
+    accounting: 'Управленческий учёт',
+    budgeting: 'Бюджетирование',
+    companyplanning: 'Планирование компании',
+    aianalytics: 'Аналитика ИИ',
+    loadboard: 'Биржа и доска грузов',
+    fleet: 'Свой автопарк',
+    disposition: 'Диспозиция',
+    integrations: 'Интеграции',
+    customdomain: 'Свой адрес кабинета',
+};
+
+const mapFeatures = (keys) => keys.map((key) => ({
+    key,
+    title: t(`feature_${key}_title`, featureFallbackTitles[key] ?? key),
+    text: t(`feature_${key}_text`),
+    label: t(`feature_${key}_label`, `кабинет · ${key}`),
+}));
+
+const featureSections = computed(() => [
+    {
+        id: 'features',
+        eyebrow: '',
+        title: t('bento_title'),
+        subtitle: t('bento_subtitle'),
+        tone: 'base',
+        features: mapFeatures(['leads', 'orders', 'payments', 'print', 'rbac']),
+    },
+    {
+        id: 'features-pro',
+        eyebrow: t('plan_pro', 'Про'),
+        title: t('pro_title', 'На тарифе Про'),
+        subtitle: t('pro_subtitle'),
+        tone: 'pro',
+        features: mapFeatures([
+            'documents',
+            'scripts',
+            'salesbook',
+            'howmuchfits',
+            'payroll',
+            'mobile',
+            'ai',
+        ]),
+    },
+    {
+        id: 'features-enterprise',
+        eyebrow: t('plan_enterprise', 'Корпоративный'),
+        title: t('enterprise_title', 'На тарифе Корпоративный'),
+        subtitle: t('enterprise_subtitle'),
+        tone: 'enterprise',
+        features: mapFeatures([
+            'accounting',
+            'budgeting',
+            'companyplanning',
+            'aianalytics',
+            'loadboard',
+            'fleet',
+            'disposition',
+            'integrations',
+            'customdomain',
+        ]),
+    },
 ]);
+
+const railFeatureSections = computed(() => featureSections.value);
 
 const steps = computed(() => [
     { title: t('step1_title'), text: t('step1_text') },
@@ -47,22 +122,189 @@ const displayPlans = computed(() => {
     }
 
     return [
-        { key: 'start', label: t('plan_start', 'Start'), users: t('plan_start_users') },
-        { key: 'pro', label: t('plan_pro', 'Pro'), users: t('plan_pro_users'), featured: true },
-        { key: 'enterprise', label: t('plan_enterprise', 'Enterprise'), users: t('plan_enterprise_users') },
+        {
+            key: 'start',
+            label: t('plan_start', 'Старт'),
+            users: t('plan_start_users'),
+            limits: { users: 5, orders_per_month: 200, storage_mb: 2048 },
+            featured: false,
+        },
+        {
+            key: 'pro',
+            label: t('plan_pro', 'Про'),
+            users: t('plan_pro_users'),
+            limits: { users: 25, orders_per_month: 2000, storage_mb: 20480 },
+            featured: true,
+        },
+        {
+            key: 'enterprise',
+            label: t('plan_enterprise', 'Корпоративный'),
+            users: t('plan_enterprise_users'),
+            limits: { users: null, orders_per_month: null, storage_mb: null },
+            featured: false,
+        },
     ];
+});
+
+const plansWithHighlights = computed(() => displayPlans.value.map((plan) => ({
+    ...plan,
+    label: t(`plan_${plan.key}`, plan.label),
+    users: t(`plan_${plan.key}_users`, plan.users),
+})));
+
+const comparisonPlans = computed(() => plansWithHighlights.value);
+
+const comparisonRows = computed(() => (Array.isArray(props.planMatrix) ? props.planMatrix : []));
+
+const formatLimit = (value) => (value == null ? 'без лимита' : String(value));
+
+const formatStorage = (mb) => {
+    if (mb == null) {
+        return 'без лимита';
+    }
+
+    return mb >= 1024 ? `${Math.round(mb / 1024)} ГБ` : `${mb} МБ`;
+};
+
+const chapters = computed(() => [
+    { id: 'hero', label: t('nav_chapter_hero', 'Введение') },
+    { id: 'features', label: t('nav_chapter_base', 'База') },
+    { id: 'features-pro', label: t('nav_chapter_pro', 'Про') },
+    { id: 'features-enterprise', label: t('nav_chapter_enterprise', 'Корпоративный') },
+    { id: 'pricing', label: t('nav_chapter_pricing', 'Тарифы') },
+    { id: 'connect', label: t('nav_chapter_connect', 'Подключение') },
+]);
+
+const activeChapter = ref('hero');
+let chapterFrame = 0;
+
+const syncActiveChapter = () => {
+    // Prefer the section that currently covers the focus line — keeps «Введение»
+    // active while the hero is still on screen (tall later chapters still work).
+    const markerY = window.innerHeight * 0.28;
+    let current = chapters.value[0]?.id ?? 'hero';
+    let covered = null;
+
+    for (const chapter of chapters.value) {
+        const el = document.getElementById(chapter.id);
+        if (!el) {
+            continue;
+        }
+
+        const rect = el.getBoundingClientRect();
+
+        if (rect.top <= markerY && rect.bottom > markerY) {
+            covered = chapter.id;
+            break;
+        }
+
+        if (rect.top <= markerY) {
+            current = chapter.id;
+        }
+    }
+
+    const next = covered ?? current;
+
+    if (activeChapter.value !== next) {
+        activeChapter.value = next;
+    }
+};
+
+const onChapterScroll = () => {
+    if (chapterFrame) {
+        return;
+    }
+
+    chapterFrame = window.requestAnimationFrame(() => {
+        chapterFrame = 0;
+        syncActiveChapter();
+    });
+};
+
+const goToChapter = (id) => {
+    const el = document.getElementById(id);
+    if (!el) {
+        return;
+    }
+
+    activeChapter.value = id;
+    el.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+    });
+};
+
+onMounted(() => {
+    syncActiveChapter();
+    window.addEventListener('scroll', onChapterScroll, { passive: true });
+    window.addEventListener('resize', onChapterScroll, { passive: true });
+});
+
+onUnmounted(() => {
+    window.removeEventListener('scroll', onChapterScroll);
+    window.removeEventListener('resize', onChapterScroll);
+    if (chapterFrame) {
+        window.cancelAnimationFrame(chapterFrame);
+        chapterFrame = 0;
+    }
 });
 </script>
 
 <template>
-    <div class="min-h-dvh bg-[#0B1220] text-slate-100">
-        <Head :title="t('brand', 'Traklo Pro')" />
+    <div class="traklo-landing min-h-dvh bg-[#070B14] text-slate-100">
+        <Head :title="t('brand', 'Traklo Pro')">
+            <link
+                rel="preconnect"
+                href="https://fonts.googleapis.com"
+            >
+            <link
+                rel="preconnect"
+                href="https://fonts.gstatic.com"
+                crossorigin=""
+            >
+            <link
+                href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+                rel="stylesheet"
+            >
+        </Head>
 
-        <header class="sticky top-0 z-20 border-b border-white/5 bg-[#0B1220]/80 backdrop-blur-md">
+        <nav
+            class="traklo-chapters pointer-events-none fixed left-8 top-1/2 z-40 hidden -translate-y-1/2 xl:block 2xl:left-12"
+            aria-label="Разделы страницы"
+        >
+            <ul class="pointer-events-auto flex flex-col gap-1.5 border-l border-white/10 pl-3">
+                <li v-for="chapter in chapters" :key="chapter.id">
+                    <button
+                        type="button"
+                        class="traklo-chapter group relative block max-w-[11rem] py-1 text-left text-[13px] font-medium uppercase tracking-[0.12em] transition duration-300"
+                        :class="activeChapter === chapter.id
+                            ? 'text-white/90'
+                            : 'text-white/20 hover:text-white/55'"
+                        :aria-current="activeChapter === chapter.id ? 'true' : undefined"
+                        @click="goToChapter(chapter.id)"
+                    >
+                        <span
+                            class="absolute -left-[13px] top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full transition duration-300"
+                            :class="activeChapter === chapter.id
+                                ? 'bg-blue-400 shadow-[0_0_0_3px_rgba(59,130,246,0.25)]'
+                                : 'bg-white/20 group-hover:bg-white/40'"
+                            aria-hidden="true"
+                        />
+                        {{ chapter.label }}
+                    </button>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="sticky top-0 z-20 border-b border-white/5 bg-[#070B14]/80 backdrop-blur-md">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-                <a href="#" class="inline-flex items-center gap-2 font-semibold text-white">
+                <a
+                    id="traklo-brand"
+                    href="#"
+                    class="inline-flex items-center gap-2 font-semibold text-white"
+                >
                     <img src="/downloads/traklo-icon.png" alt="" class="h-9 w-9 rounded-xl" />
-                    <span>{{ t('brand', 'Traklo Pro') }}</span>
+                    <span class="traklo-display">{{ t('brand', 'Traklo Pro') }}</span>
                 </a>
                 <nav class="hidden items-center gap-6 text-sm text-slate-300 md:flex">
                     <a href="#features" class="hover:text-white">{{ t('nav_features', 'Возможности') }}</a>
@@ -87,23 +329,34 @@ const displayPlans = computed(() => {
         </header>
 
         <main>
-            <section class="relative overflow-hidden border-b border-white/5">
-                <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(37,99,235,0.25),transparent_45%),radial-gradient(circle_at_80%_0%,rgba(59,130,246,0.15),transparent_35%)]" />
-                <div class="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-24">
-                    <div class="relative space-y-6">
-                        <p class="text-sm font-medium uppercase tracking-wider text-blue-300">
+            <!-- Hero: brand + one CTA group + product visual -->
+            <section id="hero" class="relative scroll-mt-28 overflow-hidden">
+                <div class="pointer-events-none absolute inset-0">
+                    <div class="absolute -left-24 top-0 h-[28rem] w-[28rem] rounded-full bg-blue-600/20 blur-3xl" />
+                    <div class="absolute right-0 top-20 h-[22rem] w-[22rem] rounded-full bg-cyan-500/10 blur-3xl" />
+                    <div
+                        class="absolute inset-0 opacity-[0.07]"
+                        style="background-image: linear-gradient(rgb(148 163 184) 1px, transparent 1px), linear-gradient(90deg, rgb(148 163 184) 1px, transparent 1px); background-size: 48px 48px;"
+                    />
+                </div>
+
+                <div class="relative mx-auto grid max-w-6xl gap-12 px-4 pb-28 pt-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-36 lg:pt-24">
+                    <div class="space-y-6">
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300/90">
                             {{ t('hero_eyebrow') }}
                         </p>
-                        <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                        <h1 class="traklo-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
                             {{ t('hero_title') }}
                         </h1>
-                        <p class="max-w-xl text-lg leading-8 text-slate-400">
-                            {{ t('hero_subtitle') }}
-                        </p>
+                        <div class="max-w-xl space-y-4 text-lg leading-8 text-slate-400">
+                            <p>{{ t('hero_subtitle') }}</p>
+                            <p>{{ t('hero_subtitle_more') }}</p>
+                            <p>{{ t('hero_subtitle_extra') }}</p>
+                        </div>
                         <div class="flex flex-wrap gap-3">
                             <a
                                 href="#pricing"
-                                class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-500"
+                                class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 hover:bg-blue-500"
                             >
                                 {{ t('hero_cta_primary') }}
                             </a>
@@ -120,70 +373,108 @@ const displayPlans = computed(() => {
                         </p>
                     </div>
 
-                    <div class="relative flex justify-center lg:justify-end">
-                        <div class="relative w-full max-w-md">
-                            <div class="absolute -inset-4 rounded-[2rem] bg-blue-500/10 blur-2xl" />
-                            <img
-                                src="/downloads/traklo-icon.png"
-                                alt="Traklo"
-                                class="relative w-full max-w-[18rem] rounded-[2rem] shadow-2xl shadow-blue-900/30"
-                            />
-                            <div class="absolute -bottom-4 left-4 right-4 rounded-2xl border border-white/10 bg-[#111827]/90 p-4 backdrop-blur">
-                                <div class="grid grid-cols-3 gap-2 text-center text-xs">
-                                    <div class="rounded-lg bg-white/5 p-2">
-                                        <div class="font-semibold text-white">Лиды</div>
-                                        <div class="text-slate-500">воронка</div>
-                                    </div>
-                                    <div class="rounded-lg bg-white/5 p-2">
-                                        <div class="font-semibold text-white">Заказы</div>
-                                        <div class="text-slate-500">wizard</div>
-                                    </div>
-                                    <div class="rounded-lg bg-white/5 p-2">
-                                        <div class="font-semibold text-white">Оплаты</div>
-                                        <div class="text-slate-500">график</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="relative">
+                        <ShowcaseFeatureShot
+                            variant="orders"
+                            :label="t('brand', 'Traklo Pro')"
+                            tilt="right"
+                        />
                     </div>
                 </div>
             </section>
 
-            <section id="features" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-                <div class="mb-10 max-w-2xl">
-                    <h2 class="text-3xl font-semibold text-white">{{ t('bento_title') }}</h2>
-                    <p class="mt-3 text-slate-400">{{ t('bento_subtitle') }}</p>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <article
-                        v-for="feature in features"
-                        :key="feature.key"
-                        class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm transition hover:border-blue-500/30 hover:bg-white/[0.05]"
-                    >
-                        <h3 class="text-lg font-medium text-white">{{ feature.title }}</h3>
-                        <p class="mt-2 text-sm leading-6 text-slate-400">{{ feature.text }}</p>
-                    </article>
-                </div>
+            <!-- Feature chapters: horizontal rail driven by vertical scroll -->
+            <section
+                v-for="section in railFeatureSections"
+                :id="section.id"
+                :key="section.id"
+                class="relative scroll-mt-24 border-t border-white/5"
+                :class="{
+                    'bg-[#0a1220]/40': section.tone === 'pro',
+                    'bg-[#0b1020]/70': section.tone === 'enterprise',
+                }"
+            >
+                <ShowcaseStickyChapter
+                    :eyebrow="section.eyebrow"
+                    :title="section.title"
+                    :subtitle="section.subtitle"
+                    :scenes="section.features"
+                    :hint="t('sticky_chapter_hint', '')"
+                />
             </section>
 
-            <section id="pricing" class="border-y border-white/5 bg-[#0f172a]/50">
+            <section id="pricing" class="scroll-mt-24 border-y border-white/5 bg-[#0a1220]/80">
                 <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
                     <div class="mb-10 max-w-2xl">
-                        <h2 class="text-3xl font-semibold text-white">{{ t('pricing_title') }}</h2>
+                        <h2 class="traklo-display text-3xl font-semibold text-white">{{ t('pricing_title') }}</h2>
                         <p class="mt-3 text-slate-400">{{ t('pricing_subtitle') }}</p>
                     </div>
-                    <div class="grid gap-4 lg:grid-cols-3">
+
+                    <div class="overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03]">
+                        <table class="min-w-full text-sm">
+                            <thead class="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-500">
+                                <tr>
+                                    <th class="px-4 py-3 font-medium">{{ t('pricing_col_module', 'Модуль') }}</th>
+                                    <th class="px-4 py-3 font-medium">{{ t('pricing_col_group', 'Группа') }}</th>
+                                    <th
+                                        v-for="plan in comparisonPlans"
+                                        :key="plan.key"
+                                        class="px-4 py-3 text-center font-medium"
+                                        :class="plan.featured ? 'text-blue-300' : 'text-slate-400'"
+                                    >
+                                        {{ plan.label }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in comparisonRows"
+                                    :key="row.key"
+                                    class="border-b border-white/5"
+                                >
+                                    <td class="px-4 py-2.5 text-slate-200">{{ row.label }}</td>
+                                    <td class="px-4 py-2.5 text-slate-500">{{ row.group_label }}</td>
+                                    <td
+                                        v-for="plan in comparisonPlans"
+                                        :key="plan.key"
+                                        class="px-4 py-2.5 text-center"
+                                    >
+                                        <span
+                                            v-if="row.plans?.[plan.key]"
+                                            class="font-semibold text-emerald-400"
+                                        >✓</span>
+                                        <span v-else class="text-slate-600">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 grid gap-4 lg:grid-cols-3">
                         <article
-                            v-for="plan in displayPlans"
+                            v-for="plan in comparisonPlans"
                             :key="plan.key"
-                            class="rounded-2xl border p-6"
+                            class="rounded-2xl border p-5"
                             :class="plan.featured ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 bg-white/[0.03]'"
                         >
-                            <h3 class="text-xl font-semibold text-white">{{ plan.label }}</h3>
-                            <p class="mt-2 text-sm text-slate-400">{{ plan.users }}</p>
+                            <h3 class="traklo-display text-lg font-semibold text-white">{{ plan.label }}</h3>
+                            <dl class="mt-3 space-y-1.5 text-sm text-slate-400">
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_users', 'Пользователи') }}</dt>
+                                    <dd class="text-slate-200">{{ formatLimit(plan.limits?.users) }}</dd>
+                                </div>
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_orders', 'Заказы / мес') }}</dt>
+                                    <dd class="text-slate-200">{{ formatLimit(plan.limits?.orders_per_month) }}</dd>
+                                </div>
+                                <div class="flex justify-between gap-3">
+                                    <dt>{{ t('pricing_limit_storage', 'Хранилище') }}</dt>
+                                    <dd class="text-slate-200">{{ formatStorage(plan.limits?.storage_mb) }}</dd>
+                                </div>
+                            </dl>
                             <a
                                 href="mailto:hello@traklo.pro"
-                                class="mt-6 inline-flex rounded-lg px-4 py-2 text-sm font-medium"
+                                class="mt-5 inline-flex rounded-lg px-4 py-2 text-sm font-medium"
                                 :class="plan.featured ? 'bg-blue-600 text-white hover:bg-blue-500' : 'border border-white/10 text-white hover:bg-white/5'"
                             >
                                 {{ t('plan_cta', 'Обсудить') }}
@@ -193,18 +484,18 @@ const displayPlans = computed(() => {
                 </div>
             </section>
 
-            <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-                <h2 class="text-3xl font-semibold text-white">{{ t('steps_title') }}</h2>
-                <ol class="mt-8 grid gap-4 lg:grid-cols-3">
+            <section id="connect" class="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:py-20">
+                <h2 class="traklo-display text-3xl font-semibold text-white">{{ t('steps_title') }}</h2>
+                <ol class="mt-8 grid gap-6 lg:grid-cols-3">
                     <li
                         v-for="(step, index) in steps"
                         :key="step.title"
-                        class="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                        class="relative border-l border-blue-500/30 pl-5"
                     >
-                        <div class="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/20 text-sm font-semibold text-blue-300">
-                            {{ index + 1 }}
+                        <div class="mb-3 text-sm font-semibold text-blue-300">
+                            Шаг {{ index + 1 }}
                         </div>
-                        <h3 class="font-medium text-white">{{ step.title }}</h3>
+                        <h3 class="traklo-display font-semibold text-white">{{ step.title }}</h3>
                         <p class="mt-2 text-sm leading-6 text-slate-400">{{ step.text }}</p>
                     </li>
                 </ol>
@@ -220,3 +511,23 @@ const displayPlans = computed(() => {
         </footer>
     </div>
 </template>
+
+<style scoped>
+.traklo-landing {
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.traklo-display {
+    font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+.traklo-chapter {
+    font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .traklo-chapter {
+        transition: none;
+    }
+}
+</style>
