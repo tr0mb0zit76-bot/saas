@@ -2,8 +2,7 @@
 /**
  * Horizontal story chapter driven by vertical scroll.
  * Tall outer track → sticky viewport → panels slide left/right (100vw each).
- * Soft dissolve past the Traklo brand line (~3cm); shots keep an angled view
- * that straightens on hover over the whole scene (shot + caption).
+ * Soft dissolve past the Traklo brand line (~3cm). Shots are flat for now.
  * ponytail: CSS mocks — swap ShowcaseFeatureShot for real screenshots later.
  */
 import ShowcaseFeatureShot from '@/Components/Public/ShowcaseFeatureShot.vue';
@@ -43,9 +42,6 @@ const activeIndex = computed(() => {
     return Math.min(max, Math.max(0, Math.round(progress.value * max)));
 });
 
-/** Continuous scene position for angle interpolation. */
-const scenePos = computed(() => progress.value * Math.max(sceneCount.value - 1, 0));
-
 const trackStyle = computed(() => {
     const max = sceneCount.value - 1;
     const shiftVw = max <= 0 ? 0 : progress.value * max * 100;
@@ -61,7 +57,6 @@ const stageStyle = computed(() => {
         return undefined;
     }
 
-    // Dissolve past the brand line over ~3cm (plus a short soft lead-in).
     const mask = [
         'linear-gradient(to right,',
         'transparent 0,',
@@ -88,22 +83,6 @@ const columnStyle = computed(() => {
         paddingLeft: `${Math.round(cutLeft.value)}px`,
     };
 });
-
-const shotShellStyle = (index) => {
-    const d = index - scenePos.value;
-    // Angled glance; hover straighten is CSS (:hover !important) so scroll
-    // progress updates cannot fight the pointer state.
-    const rotY = Math.max(-28, Math.min(8, -16 + d * 10));
-    const rotX = 7 + Math.min(4, Math.abs(d) * 1.4);
-    const rotZ = 1.4 - Math.min(1.6, Math.abs(d) * 0.55) * Math.sign(d || -1);
-    const scale = 1 - Math.min(0.08, Math.abs(d) * 0.04);
-    const opacity = 1 - Math.min(0.28, Math.abs(d) * 0.14);
-
-    return {
-        transform: `rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${scale.toFixed(3)})`,
-        opacity: opacity.toFixed(3),
-    };
-};
 
 const syncCut = () => {
     const brand = document.getElementById('traklo-brand');
@@ -215,7 +194,7 @@ onUnmounted(() => {
                     :style="trackStyle"
                 >
                     <article
-                        v-for="(scene, index) in scenes"
+                        v-for="scene in scenes"
                         :key="scene.key"
                         class="showcase-rail__panel relative flex h-full w-screen shrink-0 flex-col"
                     >
@@ -223,19 +202,13 @@ onUnmounted(() => {
                             class="flex min-h-0 w-full flex-1 flex-col pr-4 sm:pr-6"
                             :style="columnStyle"
                         >
-                            <div class="showcase-rail__scene flex min-h-0 w-full max-w-6xl flex-1 flex-col">
-                                <div class="showcase-rail__perspective min-h-0 flex-[1.35]">
-                                    <div
-                                        class="showcase-rail__shot relative h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220] will-change-transform"
-                                        :style="shotShellStyle(index)"
-                                    >
-                                        <ShowcaseFeatureShot
-                                            :variant="scene.key"
-                                            :label="scene.label"
-                                            fill
-                                            tilt="right"
-                                        />
-                                    </div>
+                            <div class="flex min-h-0 w-full max-w-6xl flex-1 flex-col">
+                                <div class="showcase-rail__shot relative min-h-0 flex-[1.35] overflow-hidden rounded-2xl border border-white/10 bg-[#0b1220]">
+                                    <ShowcaseFeatureShot
+                                        :variant="scene.key"
+                                        :label="scene.label"
+                                        fill
+                                    />
                                 </div>
 
                                 <div class="showcase-rail__caption shrink-0 px-1 pb-1 pt-3 sm:px-2 sm:pt-4">
@@ -278,40 +251,6 @@ onUnmounted(() => {
     font-family: 'Instrument Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
-.showcase-rail__perspective {
-    perspective: 1200px;
-    perspective-origin: 58% 42%;
-    transform-style: preserve-3d;
-}
-
-.showcase-rail__track,
-.showcase-rail__panel,
-.showcase-rail__panel > div,
-.showcase-rail__panel > div > div {
-    transform-style: preserve-3d;
-}
-
-.showcase-rail__shot {
-    transform-style: preserve-3d;
-    transform-origin: 70% 55%;
-    transition:
-        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 0.25s ease,
-        box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow:
-        0 28px 60px -28px rgba(0, 0, 0, 0.75),
-        -18px 12px 40px -20px rgba(15, 23, 42, 0.55);
-}
-
-/* Hover anywhere on shot + caption: force face-on over inline scroll tilt. */
-.showcase-rail__scene:hover .showcase-rail__shot {
-    transform: rotateY(-3.5deg) rotateX(2deg) rotateZ(0deg) scale(1.01) translateY(-4px) !important;
-    opacity: 1 !important;
-    box-shadow:
-        0 34px 70px -24px rgba(0, 0, 0, 0.8),
-        0 0 0 1px rgba(255, 255, 255, 0.06);
-}
-
 .showcase-rail__shot :deep(.showcase-shot) {
     height: 100%;
 }
@@ -321,7 +260,6 @@ onUnmounted(() => {
     border-radius: 0;
     border: 0;
     box-shadow: none;
-    transform: none !important;
 }
 
 .showcase-rail__shot :deep(.showcase-shot__screen) {
@@ -338,23 +276,6 @@ onUnmounted(() => {
     .showcase-rail__shot :deep(.showcase-shot__screen) {
         font-size: 1.12em;
         padding: 1.35rem 1.6rem 1.5rem;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .showcase-rail__track,
-    .showcase-rail__shot {
-        transition: none;
-    }
-
-    .showcase-rail__perspective {
-        perspective: none;
-    }
-
-    .showcase-rail__shot,
-    .showcase-rail__scene:hover .showcase-rail__shot {
-        transform: none !important;
-        opacity: 1 !important;
     }
 }
 </style>

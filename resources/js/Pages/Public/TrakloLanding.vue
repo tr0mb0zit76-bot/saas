@@ -228,10 +228,10 @@ const goToChapter = (id) => {
     }
 
     activeChapter.value = id;
-    el.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-        block: 'start',
-    });
+    // Instant jump — tall rail chapters must not be scrolled through.
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top, behavior: 'auto' });
+    syncActiveChapter();
 };
 
 onMounted(() => {
