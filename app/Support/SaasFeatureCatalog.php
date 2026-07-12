@@ -60,4 +60,36 @@ final class SaasFeatureCatalog
     {
         return SubscriptionPlan::summaries();
     }
+
+    /**
+     * Матрица модулей × тарифы — тот же источник, что /platform/plans.
+     *
+     * @return list<array{
+     *     key: string,
+     *     label: string,
+     *     group: string,
+     *     group_label: string,
+     *     plans: array<string, bool>
+     * }>
+     */
+    public static function planMatrix(): array
+    {
+        $plans = self::planSummaries();
+
+        return array_map(function (array $feature) use ($plans): array {
+            $row = [
+                'key' => $feature['key'],
+                'label' => $feature['label'],
+                'group' => $feature['group'],
+                'group_label' => $feature['group_label'],
+                'plans' => [],
+            ];
+
+            foreach ($plans as $plan) {
+                $row['plans'][$plan['key']] = in_array($feature['key'], $plan['features'], true);
+            }
+
+            return $row;
+        }, self::groupedFeatures());
+    }
 }
