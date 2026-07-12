@@ -8,17 +8,12 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 defineProps({
-    canResetPassword: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
+    canResetPassword: Boolean,
+    status: String,
 });
 
 const page = usePage();
 const sceneReady = ref(false);
-
 const hasValidationErrors = computed(() => Object.keys(page.props.errors ?? {}).length > 0);
 
 const form = useForm({
@@ -49,38 +44,35 @@ const subtitle = page.props.tenant?.name
             :subtitle="subtitle"
             :instant="hasValidationErrors"
         >
-            <template #bars>
-                <!-- Native inputs: avoid TextInput dark: styles fighting the white icon bars -->
-                <div>
-                    <label for="email" class="sr-only">Email</label>
-                    <input
-                        id="email"
-                        v-model="form.email"
-                        type="email"
-                        class="traklo-bar-field"
-                        placeholder="Email"
-                        required
-                        :autofocus="sceneReady || hasValidationErrors"
-                        autocomplete="username"
-                        @keydown.enter="submit"
-                    >
-                    <InputError class="mt-1 text-xs text-red-200" :message="form.errors.email" />
-                </div>
+            <template #email>
+                <label for="email" class="sr-only">Email</label>
+                <input
+                    id="email"
+                    v-model="form.email"
+                    type="email"
+                    class="traklo-bar-input"
+                    placeholder="Email"
+                    required
+                    :autofocus="sceneReady || hasValidationErrors"
+                    autocomplete="username"
+                    @keydown.enter="submit"
+                >
+                <InputError class="traklo-bar-error" :message="form.errors.email" />
+            </template>
 
-                <div class="w-[61%]">
-                    <label for="password" class="sr-only">Пароль</label>
-                    <input
-                        id="password"
-                        v-model="form.password"
-                        type="password"
-                        class="traklo-bar-field"
-                        placeholder="Пароль"
-                        required
-                        autocomplete="current-password"
-                        @keydown.enter="submit"
-                    >
-                    <InputError class="mt-1 text-xs text-red-200" :message="form.errors.password" />
-                </div>
+            <template #password>
+                <label for="password" class="sr-only">Пароль</label>
+                <input
+                    id="password"
+                    v-model="form.password"
+                    type="password"
+                    class="traklo-bar-input"
+                    placeholder="Пароль"
+                    required
+                    autocomplete="current-password"
+                    @keydown.enter="submit"
+                >
+                <InputError class="traklo-bar-error" :message="form.errors.password" />
             </template>
 
             <template #footer>
@@ -119,34 +111,38 @@ const subtitle = page.props.tenant?.name
 </template>
 
 <style scoped>
-.traklo-bar-field {
+/* Transparent field — white bar of the icon is the chrome */
+.traklo-bar-input {
     display: block;
     width: 100%;
-    height: 2.35rem;
-    border-radius: 9999px;
+    height: 100%;
+    margin: 0;
     border: 0;
-    background: #ffffff;
-    padding: 0 1rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
+    border-radius: 9999px;
+    background: transparent;
+    padding: 0 0.85rem;
+    font-size: clamp(0.65rem, 2.6vw, 0.8rem);
+    line-height: 1;
     color: #0f172a;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
     outline: none;
+    caret-color: #1d4ed8;
 }
 
-.traklo-bar-field::placeholder {
-    color: #94a3b8;
+.traklo-bar-input::placeholder {
+    color: rgb(100 116 139 / 0.85);
 }
 
-.traklo-bar-field:focus {
-    box-shadow:
-        0 0 0 2px rgb(59 130 246 / 0.55),
-        0 1px 2px rgb(15 23 42 / 0.08);
+.traklo-bar-input:focus {
+    background: rgb(255 255 255 / 0.35);
 }
 
-@media (min-width: 640px) {
-    .traklo-bar-field {
-        height: 2.5rem;
-    }
+.traklo-bar-error {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 2px);
+    margin: 0;
+    font-size: 0.65rem;
+    color: #fecaca;
+    white-space: nowrap;
 }
 </style>
