@@ -21,6 +21,7 @@ class TenantFeatureGatingTest extends SaasTestCase
             'name' => 'Gate Test',
             'status' => 'active',
             'plan' => 'start',
+            'settings' => ['onboarding' => ['completed_at' => now()->toIso8601String()]],
         ]);
 
         $role = Role::query()->firstOrCreate(
@@ -60,6 +61,7 @@ class TenantFeatureGatingTest extends SaasTestCase
             'name' => 'Pro Gate',
             'status' => 'active',
             'plan' => 'pro',
+            'settings' => ['onboarding' => ['completed_at' => now()->toIso8601String()]],
         ]);
 
         $role = Role::query()->firstOrCreate(

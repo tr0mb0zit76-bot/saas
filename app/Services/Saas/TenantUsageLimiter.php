@@ -58,6 +58,30 @@ final class TenantUsageLimiter
         }
     }
 
+    public function assertCanStoreBytes(int $additionalBytes, ?Tenant $tenant = null): void
+    {
+        $tenant ??= $this->resolveTenant();
+
+        if ($tenant === null || $additionalBytes <= 0) {
+            return;
+        }
+
+        $limitMb = $tenant->planLimits()['storage_mb'] ?? null;
+
+        if ($limitMb === null) {
+            return;
+        }
+
+        $limitBytes = (int) $limitMb * 1024 * 1024;
+        $currentBytes = app(TenantUsageMeter::class)->measureStorageBytes($tenant);
+
+        if ($currentBytes + $additionalBytes > $limitBytes) {
+            throw ValidationException::withMessages([
+                'file' => 'Достигнут лимит хранилища тарифа ('.$limitMb.' МБ). Обратитесь к администратору платформы.',
+            ]);
+        }
+    }
+
     private function resolveTenant(): ?Tenant
     {
         return \App\Support\TenantContext::get();

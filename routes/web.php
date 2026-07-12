@@ -229,6 +229,9 @@ Route::middleware('throttle:30,1')->prefix('external/invite')->name('external.in
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'store'])->name('onboarding.store');
+
     Route::post('/agent/command-bar/chat', [CommandBarAgentController::class, 'chat'])
         ->middleware('throttle:agent-command-bar')
         ->name('agent.command-bar.chat');

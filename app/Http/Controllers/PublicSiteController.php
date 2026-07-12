@@ -231,6 +231,9 @@ class PublicSiteController extends Controller
             'canLogin' => \Route::has('login'),
             'texts' => $texts,
             'crmLoginUrl' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            'demoSignupUrl' => config('saas.demo_signup_enabled', false)
+                ? sprintf('%s://%s/demo/signup', $crmScheme, $crmHost)
+                : null,
             'plans' => $plans,
             'publicSite' => [
                 'texts' => $texts,

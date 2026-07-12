@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use App\Services\Saas\TenantUsageLimiter;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
@@ -48,6 +49,10 @@ final class TenantStorage
 
     public static function put(string $relativePath, mixed $contents): bool
     {
+        if (is_string($contents)) {
+            app(TenantUsageLimiter::class)->assertCanStoreBytes(strlen($contents));
+        }
+
         return self::disk()->put(self::path($relativePath), $contents);
     }
 

@@ -59,6 +59,45 @@ class Tenant extends Model
         return $this->hasMany(TenantInvoice::class);
     }
 
+    /** @return HasMany<TenantUsageLog, $this> */
+    public function usageLogs(): HasMany
+    {
+        return $this->hasMany(TenantUsageLog::class);
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->isSuspended();
+    }
+
+    public function isDemoTenant(): bool
+    {
+        return (bool) data_get($this->settings, 'demo_tenant', false);
+    }
+
+    public function onboardingCompleted(): bool
+    {
+        if (data_get($this->settings, 'onboarding.completed_at') !== null) {
+            return true;
+        }
+
+        return $this->ownCompanyContractor() !== null;
+    }
+
+    public function ownCompanyContractor(): ?Contractor
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('contractors', 'is_own_company')) {
+            return null;
+        }
+
+        return $this->contractors()->where('is_own_company', true)->first();
+    }
+
     public function planKey(): string
     {
         $plan = strtolower(trim((string) ($this->plan ?: 'start')));

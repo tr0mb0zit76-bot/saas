@@ -98,7 +98,10 @@ class PlatformSuperAdminTest extends SaasTestCase
             'name' => 'Mail Override',
             'status' => 'active',
             'plan' => 'start',
-            'settings' => ['features' => ['mail' => true]],
+            'settings' => [
+                'features' => ['mail' => true],
+                'onboarding' => ['completed_at' => now()->toIso8601String()],
+            ],
         ]);
 
         $role = Role::query()->create([

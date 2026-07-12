@@ -13,4 +13,9 @@ return [
     ))),
 
     'trial_days' => (int) env('SAAS_TRIAL_DAYS', 14),
+
+    /**
+     * Public demo signup (trial tenant, Start plan). Not for paid self-service.
+     */
+    'demo_signup_enabled' => filter_var(env('SAAS_DEMO_SIGNUP_ENABLED', false), FILTER_VALIDATE_BOOL),
 ];

@@ -1,102 +1,84 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-12 · **Фаза:** M8 done → M9 prep · **Ветка:** `main`
+**Обновлено:** 2026-07-12 · **Фаза:** M9 · **Ветка:** `main`
 
 ---
 
 ## Platform login 419 (lab HTTP)
 
-- **Не SSL как таковой:** на `http://platform.saas.local` cookies без `Secure`, пока `SESSION_SECURE_COOKIE=false` и `APP_URL=http://…`.
-- **Реальная причина 419:** `trustProxies` + заголовок `X-Forwarded-Proto: https` → Symfony ставит `Secure` на session cookie → браузер на HTTP не отправляет cookie → CSRF 419.
-- **Fix:** `configureLabHttpSessionCookies()` в `AppServiceProvider`, `SESSION_SECURE_COOKIE=false` в lab scripts, `ForcePlatformRootUrl` для Ziggy.
-- **Cursor Simple Browser:** даже после fix может не сохранять HttpOnly cookies — для platform login используйте Chrome/Edge.
+- **Fix:** `configureLabHttpSessionCookies()`, `SESSION_SECURE_COOKIE=false`, Chrome/Edge (не Simple Browser).
 
 ---
 
 ## Продукт: Traklo Pro
 
-- **Pilot:** чистый demo-tenant
-- **Billing:** счета / УПД вручную (ADR-009) — PDF счёта через Gotenberg
+- **Pilot / demo:** self-service **только demo-доступ** (trial Start), не paid signup
+- **Billing:** безнал, счета/УПД вручную (ADR-009). **ЮKassa не планируется.**
 - **Storage:** S3 prod, `tenant_local` lab
-- **Mobile:** один APK + subdomain
 
 ---
 
-## Сделано (M8 в `main`)
+## Сделано (M9)
 
-### M8.1 Onboarding
-- Platform create tenant: **admin user** (роль admin) + `TenantWelcomeMail` с временным паролем
-- Поля формы: `admin_name`, `admin_email`, `send_invite`
-- `TenantOnboardingService`, `TenantHost::url()` для login URL в письме
+### M9.1 Demo signup (demo access only)
+- `GET/POST /demo/signup` при `SAAS_DEMO_SIGNUP_ENABLED=true`
+- `DemoSignupService`: trial Start, `settings.demo_tenant=true`, welcome mail
+- CTA на Traklo landing → `demoSignupUrl`
+- Throttle 3/hour
 
-### M8.2 Usage limits
-- `TenantUsageLimiter`: лимиты `users` и `orders_per_month` из тарифа
-- Проверка при создании пользователя и заказа (ValidationException)
+### M9.2 CRM onboarding wizard
+- `/onboarding` — own company, ИНН, timezone, опционально первый заказчик
+- `EnsureOnboardingComplete` middleware (authenticated only)
+- Platform routes исключены
 
-### M8.3 Invoice PDF
-- `GET /platform/tenants/{tenant}/invoices/{invoice}/pdf`
-- Blade-шаблон + Gotenberg (как LeadProposalPdfService)
-- Кнопка PDF в списке арендаторов после «Оплачено»
+### M9.3 Usage metering
+- Таблица `tenant_usage_logs`
+- Cron `saas:record-usage` daily 06:15
+- Лимит `storage_mb` enforced в `TenantStorage::put`
 
-### M8.4 Landing / login / pilot
-- `SHOWCASE_MODE=traklo_pro` → TrakloLanding (уже было)
-- TrakloLoginScene на `/login` (уже было)
-- Чеклист: `docs/sync/pilot-smoke-checklist.md`
+### M9.4 Suspend read-only
+- `IdentifyTenant` пропускает `suspended`
+- `EnsureTenantWritable` — блок POST/PATCH/DELETE, GET разрешён
+- Banner в `CrmLayout` при `tenant.read_only`
 
-### M8.5 Pilot
-- **Automated pilot:** `PilotSmokeTest` — PASS (2026-07-12)
-- Отчёт: `docs/sync/pilot-run-report-2026-07-12.md`
-- Manual browser smoke на home-pc — по `pilot-smoke-checklist.md`
+### M8 (ранее)
+- Platform onboarding, usage limits, invoice PDF, pilot smoke
 
-### Ранее (M7)
-- Platform super-admin, mail lazy attachments + AI retention, Vite chunking, Ponytail rules
-
-### Tests — **28+ passed** (Saas + mail)
+### Tests — **40/41 SaaS passed** (1 pre-existing PlatformPortalTest flake)
 
 ---
 
 ## На home-pc
 
 ```powershell
-cd C:\OSPanel\home\saas\saas.local
 git pull origin main
 composer install --no-interaction
 php artisan migrate --force
 npm run build
 ```
 
-`.env`:
+`.env` для demo landing:
 
 ```env
 SHOWCASE_MODE=traklo_pro
-TENANT_STORAGE_DISK=tenant_local
-TENANT_STORAGE_FOR_DOCUMENTS=true
-SAAS_DEFAULT_TENANT_SLUG=demo
-SAAS_PLATFORM_ADMIN_EMAILS=admin@saas.local
+SAAS_DEMO_SIGNUP_ENABLED=true
 SAAS_TRIAL_DAYS=14
-DOC_PREVIEW_DRIVER=gotenberg
-GOTENBERG_URL=http://127.0.0.1:3000
 ```
 
-Login: `admin@saas.local` / `password`  
-Platform: **Настройки → Platform Admin** или `/platform`
-
-**Первый pilot:** см. `docs/sync/pilot-smoke-checklist.md`
+Demo: витрина → «Демо-доступ» → `/demo/signup` → email с паролем → `/onboarding` → CRM.
 
 ---
 
-## Следующие шаги (M9)
+## Следующие шаги
 
-1. **Self-service signup** — регистрация без platform admin (Phase 2 architecture-plan)
-2. **Onboarding wizard в CRM** — own company, timezone, первый контрагент
-3. **Usage metering cron** — `tenant_usage_logs`, storage limits
-4. **Suspend read-only mode** — при неоплате блок create/update
-5. **ЮKassa webhook skeleton** — ADR-009 amendment (опционально)
-6. **P0.10 / P1.1 audit** — если ещё не закрыто в prod paths
-7. **Первый реальный внешний экспедитор** — browser smoke на home-pc
+1. **M9.5** — browser smoke с первым внешним экспедитором (home-pc)
+2. P0.10 / P1.1 audit (finance/leads scope) — по `saas-audit-remediation.md`
+3. TenantExportService (152-ФЗ)
+4. Audit log `tenant_audit_logs`
+5. Runtime plan editing в platform (опционально)
 
 ---
 
-## От вас ничего не требуется
+## От вас
 
-`git pull origin main` + `migrate` + `npm run build` на home-pc. Для PDF счетов — Gotenberg в lab.
+`git pull` + `migrate` + `npm run build`. Для demo signup: `SAAS_DEMO_SIGNUP_ENABLED=true`.

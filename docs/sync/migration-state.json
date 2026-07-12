@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "updated_at": "2026-07-12T10:30:00Z",
-  "current_phase": "M8",
+  "updated_at": "2026-07-12T11:00:00Z",
+  "current_phase": "M9",
   "phases": {
     "M0": { "name": "Prerequisites", "status": "done" },
     "M1": { "name": "Bootstrap from v5", "status": "done" },
@@ -11,7 +11,8 @@
     "M5": { "name": "Tenancy", "status": "done" },
     "M6": { "name": "Audit hardening + tenant security", "status": "done" },
     "M7": { "name": "Ready for pilots", "status": "done" },
-    "M8": { "name": "Pilot onboarding", "status": "done" }
+    "M8": { "name": "Pilot onboarding", "status": "done" },
+    "M9": { "name": "Demo access + ops", "status": "in_progress" }
   },
   "steps": {
     "M7.3": { "status": "done", "note": "TenantProvisioner + default roles on create" },
@@ -20,8 +21,13 @@
     "M8.1": { "status": "done", "note": "onboarding: admin user + TenantWelcomeMail on platform create" },
     "M8.2": { "status": "done", "note": "TenantUsageLimiter: users + orders_per_month" },
     "M8.3": { "status": "done", "note": "TenantInvoicePdfService + platform PDF route" },
-    "M8.4": { "status": "done", "note": "Traklo landing/login verified; pilot-smoke-checklist.md" },
-    "M8.5": { "status": "done", "note": "PilotSmokeTest E2E pass; report pilot-run-report-2026-07-12.md" }
+    "M8.4": { "status": "done", "note": "Traklo landing/login + pilot-smoke-checklist" },
+    "M8.5": { "status": "done", "note": "PilotSmokeTest E2E pass" },
+    "M9.1": { "status": "done", "note": "Demo signup (SAAS_DEMO_SIGNUP_ENABLED) — trial only, not paid self-service" },
+    "M9.2": { "status": "done", "note": "CRM onboarding wizard: own company, timezone, sample customer" },
+    "M9.3": { "status": "done", "note": "saas:record-usage cron + tenant_usage_logs + storage limit on TenantStorage::put" },
+    "M9.4": { "status": "done", "note": "Suspended tenant read-only (EnsureTenantWritable)" },
+    "M9.5": { "status": "pending", "note": "Browser smoke first real external expeditior on home-pc" }
   },
   "config": {
     "v5_root": "C:\\OSPanel\\home\\v5.local",

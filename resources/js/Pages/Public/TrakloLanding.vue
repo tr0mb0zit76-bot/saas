@@ -12,6 +12,10 @@ const props = defineProps({
         type: String,
         default: '/login',
     },
+    demoSignupUrl: {
+        type: String,
+        default: null,
+    },
     plans: {
         type: Array,
         default: () => [],
@@ -77,6 +81,14 @@ const displayPlans = computed(() => {
                         {{ t('nav_login', 'Вход') }}
                     </a>
                     <a
+                        v-if="demoSignupUrl"
+                        :href="demoSignupUrl"
+                        class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+                    >
+                        {{ t('nav_trial', 'Демо-доступ') }}
+                    </a>
+                    <a
+                        v-else
                         href="#pricing"
                         class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
                     >
@@ -102,6 +114,14 @@ const displayPlans = computed(() => {
                         </p>
                         <div class="flex flex-wrap gap-3">
                             <a
+                                v-if="demoSignupUrl"
+                                :href="demoSignupUrl"
+                                class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-500"
+                            >
+                                {{ t('hero_cta_primary', 'Получить демо-доступ') }}
+                            </a>
+                            <a
+                                v-else
                                 href="#pricing"
                                 class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-500"
                             >

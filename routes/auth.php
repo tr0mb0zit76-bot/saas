@@ -17,6 +17,12 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+    Route::get('demo/signup', [\App\Http\Controllers\DemoSignupController::class, 'create'])
+        ->name('demo.signup');
+    Route::post('demo/signup', [\App\Http\Controllers\DemoSignupController::class, 'store'])
+        ->middleware('throttle:3,60')
+        ->name('demo.signup.store');
+
     Route::get('mobile/login', [AuthenticatedSessionController::class, 'createMobile'])
         ->name('mobile.login');
 

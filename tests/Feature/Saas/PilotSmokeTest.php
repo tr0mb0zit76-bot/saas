@@ -92,6 +92,11 @@ class PilotSmokeTest extends SaasTestCase
         config(['saas.default_tenant_slug' => $slug]);
         TenantContext::set($pilotTenant);
 
+        $this->actingAs($owner->fresh())->post(route('onboarding.store'), [
+            'company_name' => 'Pilot Forwarding LLC',
+            'timezone' => 'Europe/Moscow',
+        ]);
+
         $this->actingAs($owner->fresh())->get('/leads')->assertOk();
         $this->actingAs($owner->fresh())->get('/contractors')->assertOk();
         $this->actingAs($owner->fresh())->get('/mail')->assertForbidden();

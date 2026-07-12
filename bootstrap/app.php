@@ -11,6 +11,8 @@ use App\Http\Middleware\EnsureVisibilityAreaAccess;
 use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\EnsureOnboardingComplete;
+use App\Http\Middleware\EnsureTenantWritable;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\ForcePlatformRootUrl;
 use App\Http\Middleware\IdentifyTenant;
@@ -69,6 +71,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             SetTenantFromAuthenticatedUser::class,
+            EnsureTenantWritable::class,
+            EnsureOnboardingComplete::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
@@ -79,6 +83,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             SetTenantFromAuthenticatedUser::class,
+            EnsureTenantWritable::class,
         ]);
 
         $middleware->priority([
@@ -89,6 +94,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
             SetTenantFromAuthenticatedUser::class,
+            EnsureTenantWritable::class,
+            EnsureOnboardingComplete::class,
             HandleInertiaRequests::class,
         ]);
 

@@ -25,7 +25,7 @@ class IdentifyTenant
 
         $tenant = Tenant::query()
             ->where('slug', $slug)
-            ->whereIn('status', ['active', 'trial'])
+            ->whereIn('status', ['active', 'trial', 'suspended'])
             ->first();
 
         if ($tenant === null) {
