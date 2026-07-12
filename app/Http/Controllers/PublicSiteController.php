@@ -65,6 +65,30 @@ class PublicSiteController extends Controller
         ));
     }
 
+    protected function resolveCrmLoginUrl(): string
+    {
+        $crmHost = strtolower(trim((string) config('app.crm_domain')));
+        if ($crmHost === '') {
+            $crmHost = strtolower(trim((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost')));
+        }
+
+        /** @var list<string> $showcaseHosts */
+        $showcaseHosts = config('app.showcase_hosts', []);
+        $showcaseHost = strtolower(trim((string) ($showcaseHosts[0] ?? '')));
+
+        if ($showcaseHost !== '' && $showcaseHost === $crmHost) {
+            return '/login';
+        }
+
+        if (strtolower(trim((string) request()->getHost())) === $crmHost) {
+            return '/login';
+        }
+
+        $scheme = request()->isSecure() ? 'https' : 'http';
+
+        return sprintf('%s://%s/login', $scheme, $crmHost);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -72,11 +96,6 @@ class PublicSiteController extends Controller
     {
         $locale = $this->resolvePublicLocale();
         $translations = [];
-        $crmHost = trim((string) config('app.crm_domain'));
-        if ($crmHost === '') {
-            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'crm.avtoaliyans.ru';
-        }
-        $crmScheme = request()->isSecure() ? 'https' : 'http';
 
         foreach ($this->translationPathsForLocale($locale) as $translationsPath) {
             if (! is_file($translationsPath)) {
@@ -96,7 +115,7 @@ class PublicSiteController extends Controller
             'canRegister' => \Route::has('register'),
             'publicSite' => [
                 'texts' => $translations,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $this->resolveCrmLoginUrl(),
                 'active_locale' => $locale,
                 'available_locales' => [
                     ['code' => 'ru', 'label' => 'RU'],
@@ -199,12 +218,7 @@ class PublicSiteController extends Controller
             }
         }
 
-        $crmHost = trim((string) config('app.crm_domain'));
-        if ($crmHost === '') {
-            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
-        }
-        $crmScheme = request()->isSecure() ? 'https' : 'http';
-        $crmLoginUrl = sprintf('%s://%s/login', $crmScheme, $crmHost);
+        $crmLoginUrl = $this->resolveCrmLoginUrl();
 
         $planSummaries = SaasFeatureCatalog::planSummaries();
         $plans = [];
@@ -229,6 +243,12 @@ class PublicSiteController extends Controller
                 'featured' => $key === 'pro',
             ];
         }
+
+        $crmHost = trim((string) config('app.crm_domain'));
+        if ($crmHost === '') {
+            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        }
+        $crmScheme = request()->isSecure() ? 'https' : 'http';
 
         return [
             'canLogin' => \Route::has('login'),
