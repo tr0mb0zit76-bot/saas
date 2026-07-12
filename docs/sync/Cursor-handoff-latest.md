@@ -1,6 +1,15 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-11 · **Фаза:** M7+ (platform admin) · **Ветка:** `main`
+**Обновлено:** 2026-07-11 · **Фаза:** M7+ (platform admin) · **Ветка:** `cursor/fix-embedded-browser-419-9d42`
+
+---
+
+## Platform login 419 (lab HTTP)
+
+- **Не SSL как таковой:** на `http://platform.saas.local` cookies без `Secure`, пока `SESSION_SECURE_COOKIE=false` и `APP_URL=http://…`.
+- **Реальная причина 419:** `trustProxies` + заголовок `X-Forwarded-Proto: https` → Symfony ставит `Secure` на session cookie → браузер на HTTP не отправляет cookie → CSRF 419.
+- **Fix:** `configureLabHttpSessionCookies()` в `AppServiceProvider`, `SESSION_SECURE_COOKIE=false` в lab scripts, `ForcePlatformRootUrl` для Ziggy.
+- **Cursor Simple Browser:** даже после fix может не сохранять HttpOnly cookies — для platform login используйте Chrome/Edge.
 
 ---
 

@@ -23,6 +23,7 @@ function Set-EnvKey {
 Write-Host 'Platform lab login repair' -ForegroundColor Cyan
 
 Set-EnvKey 'SAAS_PLATFORM_ADMIN_EMAILS' 'admin@saas.local,platform-admin@saas.local'
+Set-EnvKey 'SESSION_SECURE_COOKIE' 'false'
 
 php artisan config:clear | Out-Null
 php artisan route:clear | Out-Null
@@ -33,8 +34,8 @@ if (Test-Path (Join-Path $repoRoot 'scripts/check-platform-login.php')) {
 }
 
 Write-Host ''
-Write-Host 'Login (external Chrome/Edge/Firefox):' -ForegroundColor Green
+Write-Host 'Login (Chrome/Edge/Firefox):' -ForegroundColor Green
 Write-Host '  http://platform.saas.local/login' -ForegroundColor Green
 Write-Host '  admin@saas.local / password' -ForegroundColor Green
 Write-Host ''
-Write-Host 'Cursor Simple Browser often returns 419 (HttpOnly cookies) — use external browser.' -ForegroundColor Yellow
+Write-Host 'Cursor Simple Browser: если 419 — используйте внешний браузер (ограничение HttpOnly cookies).' -ForegroundColor Yellow

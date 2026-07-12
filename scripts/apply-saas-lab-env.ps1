@@ -24,13 +24,15 @@ if (-not (Test-Path $envFile)) {
 $appUrl = "http://$HostName"
 $lines = Get-Content $envFile
 $replacements = [ordered]@{
-    'APP_URL'                  = $appUrl
-    'CRM_DOMAIN'               = $HostName
-    'SHOWCASE_DOMAIN'          = $HostName
-    'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
-    'PLATFORM_DOMAIN'          = "platform.$HostName"
+    'APP_URL'                    = $appUrl
+    'CRM_DOMAIN'                 = $HostName
+    'SHOWCASE_DOMAIN'            = $HostName
+    'SHOWCASE_MODE'              = 'traklo_pro'
+    'SAAS_DEFAULT_TENANT_SLUG'   = 'demo'
+    'PLATFORM_DOMAIN'            = "platform.$HostName"
     'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local,platform-admin@saas.local'
-    'SAAS_TRIAL_DAYS'          = '14'
+    'SAAS_TRIAL_DAYS'            = '14'
+    'SESSION_SECURE_COOKIE'      = 'false'
 }
 
 foreach ($key in $replacements.Keys) {
@@ -48,7 +50,9 @@ Write-Host "Updated .env for SaaS lab host: $HostName" -ForegroundColor Green
 Write-Host "  APP_URL=$appUrl"
 Write-Host "  CRM_DOMAIN=$HostName"
 Write-Host "  SHOWCASE_DOMAIN=$HostName"
+Write-Host "  SHOWCASE_MODE=traklo_pro"
 Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
+Write-Host "  SESSION_SECURE_COOKIE=false (lab HTTP — avoids Secure cookies → 419)"
 
 if ($SkipArtisanClear) { return }
 
