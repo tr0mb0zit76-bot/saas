@@ -12,6 +12,7 @@ use App\Models\MailThread;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Commercial\MailAttachmentPreviewService;
+use App\Services\Commercial\MailLazyAttachmentFetcher;
 use App\Services\Commercial\MailMailboxAuthorization;
 use App\Services\Commercial\MailThreadDeletionService;
 use App\Services\Commercial\MailThreadLinkService;
@@ -40,6 +41,7 @@ class MailMailboxController extends Controller
         private readonly MailThreadLinkService $threadLinks,
         private readonly MailThreadDeletionService $threadDeletion,
         private readonly MailAttachmentPreviewService $attachmentPreview,
+        private readonly MailLazyAttachmentFetcher $lazyAttachmentFetcher,
     ) {}
 
     public function index(Request $request): Response
@@ -216,6 +218,15 @@ class MailMailboxController extends Controller
         }
 
         $path = trim((string) ($attachment['file_path'] ?? ''));
+
+        if ($path === '' && (bool) ($attachment['lazy'] ?? false)) {
+            try {
+                $attachment = $this->lazyAttachmentFetcher->materialize($mailMessage, $attachmentIndex);
+                $path = trim((string) ($attachment['file_path'] ?? ''));
+            } catch (\Throwable) {
+                abort(404);
+            }
+        }
 
         if ($path === '') {
             abort(404);
@@ -500,13 +511,14 @@ class MailMailboxController extends Controller
 
                 $path = trim((string) ($attachment['file_path'] ?? ''));
                 $mime = isset($attachment['mime_type']) ? (string) $attachment['mime_type'] : null;
-                $canPreview = $path !== '' && $this->attachmentPreview->isPreviewable($name, $mime);
+                $isLazy = (bool) ($attachment['lazy'] ?? false);
+                $canPreview = ($path !== '' || $isLazy) && $this->attachmentPreview->isPreviewable($name, $mime);
 
                 return [
                     'name' => $name,
                     'file_size' => isset($attachment['file_size']) ? (int) $attachment['file_size'] : null,
                     'mime_type' => $mime,
-                    'download_url' => $path !== ''
+                    'download_url' => ($path !== '' || $isLazy)
                         ? route('mail.messages.attachments.download', [$message->id, $index])
                         : null,
                     'preview_url' => $canPreview

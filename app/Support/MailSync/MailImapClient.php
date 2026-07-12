@@ -71,6 +71,29 @@ final class MailImapClient
     }
 
     /**
+     * @return array{filename: string, content: string, mime_type: string|null, size: int}|null
+     */
+    public function fetchAttachmentPart(
+        string $username,
+        string $password,
+        string $folder,
+        int $uid,
+        string $partNumber,
+    ): ?array {
+        if (! $this->extensionLoaded()) {
+            throw new RuntimeException('PHP extension imap не установлена.');
+        }
+
+        $this->openFolder($username, $password, $folder);
+
+        try {
+            return $this->attachmentExtractor->fetchPart($this->connection, $uid, $partNumber);
+        } finally {
+            $this->disconnect();
+        }
+    }
+
+    /**
      * @return array{0: list<int>, 1: string}
      */
     private function searchUidsSince(CarbonImmutable $since, int $limit): array
@@ -265,9 +288,17 @@ final class MailImapClient
         $bodyHtml = config('mail_sync.import_html_body', true)
             ? $this->bodyExtractor->extractHtml($this->connection, $uid)
             : null;
-        $rawAttachments = config('mail_sync.inbound_attachments.enabled', true)
+        $rawAttachments = config('mail_sync.inbound_attachments.enabled', false)
             ? $this->attachmentExtractor->extract($this->connection, $uid)
-            : [];
+            : array_map(
+                static fn (array $meta): array => [
+                    'filename' => $meta['filename'],
+                    'mime_type' => $meta['mime_type'],
+                    'size' => $meta['size'],
+                    'part_number' => $meta['part_number'],
+                ],
+                $this->attachmentExtractor->extractMetadata($this->connection, $uid),
+            );
 
         if ($bodyText === '' && $bodyHtml !== null && $bodyHtml !== '') {
             $bodyText = MailHtmlSanitizer::toPlainText($bodyHtml);
@@ -291,6 +322,7 @@ final class MailImapClient
             inReplyTo: $this->normalizeMessageId($this->headerValue($header, 'In-Reply-To') ?? ''),
             sentAt: $sentAt,
             folder: $folder,
+            imapUid: $uid,
             rawAttachments: $rawAttachments,
         );
     }

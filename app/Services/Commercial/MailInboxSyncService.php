@@ -386,6 +386,8 @@ final class MailInboxSyncService
             $mailboxUser,
             $mailMessage->id,
             $message->rawAttachments,
+            $message->imapUid,
+            $message->folder,
         );
 
         if ($storedAttachments !== [] && Schema::hasColumn('mail_messages', 'attachments')) {
