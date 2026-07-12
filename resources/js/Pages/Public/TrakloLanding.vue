@@ -343,7 +343,8 @@ onUnmounted(() => {
                         </h1>
                         <div class="max-w-xl space-y-4 text-lg leading-8 text-slate-400">
                             <p>{{ t('hero_subtitle') }}</p>
-                            <p>{{ t('hero_subtitle_more', 'Без обещаний «закрыть все процессы мира» — просто чтобы рейсы, бумаги и деньги не разъезжались по разным окнам.') }}</p>
+                            <p>{{ t('hero_subtitle_more') }}</p>
+                            <p>{{ t('hero_subtitle_extra') }}</p>
                         </div>
                         <div class="flex flex-wrap gap-3">
                             <a
