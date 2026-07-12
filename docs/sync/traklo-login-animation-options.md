@@ -42,6 +42,15 @@ After Effects + Bodymovin, или Rive Editor.
 - Ехать растровым crop без empty-кадра (двойной грузовик / синее пятно).
 
 ## Практичный план для saas.local
-1. Сейчас: увеличить bubble (читаемый текст в полях) + static icon.
-2. Короткий срок: вариант 3 через PHP GD → APNG/WebP (если нет AE).
-3. Средний срок: вариант 1 (ручной SVG) или Rive — финальное качество.
+
+**Сделано в репо:**
+1. `scripts/render-traklo-login-frames.php` — empty icon + 24 WebP-кадра (truck по Bezier) + `manifest.json`
+2. `TrakloLoginScene.vue` — проигрывает кадры через `requestAnimationFrame`, затем показывает оригинальный `traklo-icon.png`
+3. Поля Email/Пароль — прозрачные overlays на белых полосах; bubble ~28–32rem
+
+Пересобрать кадры:
+```powershell
+php scripts/render-traklo-login-frames.php --frames=24 --size=720
+```
+
+Дальше (опционально): ручной SVG trace или Rive для идеальной траектории без растрового wipe.

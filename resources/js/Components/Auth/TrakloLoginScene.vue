@@ -1,10 +1,9 @@
 <script setup>
 /**
- * Login scene uses the real traklo-icon.png.
- * White bars on the icon = measured hit-areas for email/password.
- * Truck sprite is cropped from the same icon and drives the painted route.
+ * Plays pre-rendered frames (truck composited on empty icon), then settles on original PNG.
+ * Frames: public/downloads/traklo-login-frames/ (see scripts/render-traklo-login-frames.php)
  */
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     ready: { type: Boolean, default: false },
@@ -16,9 +15,27 @@ const props = defineProps({
 const emit = defineEmits(['update:ready']);
 
 const prefersReducedMotion = ref(false);
-const driving = ref(true);
+const playing = ref(false);
+const frameIndex = ref(0);
+const frameUrls = ref([]);
+const durationMs = ref(1700);
+const settled = ref(false);
 
-const sceneReady = computed(() => props.ready || props.instant || !driving.value);
+let raf = 0;
+let startedAt = 0;
+
+const sceneReady = computed(
+    () => props.ready || props.instant || settled.value || prefersReducedMotion.value,
+);
+
+const currentSrc = computed(() => {
+    if (settled.value || prefersReducedMotion.value || props.instant || frameUrls.value.length === 0) {
+        return '/downloads/traklo-icon.png';
+    }
+
+    return frameUrls.value[Math.min(frameIndex.value, frameUrls.value.length - 1)]
+        ?? '/downloads/traklo-icon.png';
+});
 
 watch(sceneReady, (value) => {
     if (value) {
@@ -26,26 +43,92 @@ watch(sceneReady, (value) => {
     }
 }, { immediate: true });
 
-onMounted(() => {
-    if (props.instant) {
-        driving.value = false;
+const preload = (urls) => Promise.all(
+    urls.map(
+        (url) => new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(url);
+            img.onerror = () => resolve(url);
+            img.src = url;
+        }),
+    ),
+);
+
+const tick = (now) => {
+    if (! playing.value) {
+        return;
+    }
+    const elapsed = now - startedAt;
+    const total = durationMs.value;
+    const n = frameUrls.value.length;
+    if (n === 0) {
+        finish();
 
         return;
     }
+    const idx = Math.min(n - 1, Math.floor((elapsed / total) * n));
+    frameIndex.value = idx;
+    if (elapsed >= total) {
+        finish();
 
+        return;
+    }
+    raf = window.requestAnimationFrame(tick);
+};
+
+const finish = () => {
+    playing.value = false;
+    settled.value = true;
+    if (raf) {
+        window.cancelAnimationFrame(raf);
+        raf = 0;
+    }
+};
+
+const startPlayback = async () => {
+    try {
+        const res = await fetch('/downloads/traklo-login-frames/manifest.json', { cache: 'no-cache' });
+        if (! res.ok) {
+            settled.value = true;
+
+            return;
+        }
+        const manifest = await res.json();
+        const files = Array.isArray(manifest.files) ? manifest.files : [];
+        if (files.length === 0) {
+            settled.value = true;
+
+            return;
+        }
+        durationMs.value = Number(manifest.duration_ms) || 1700;
+        frameUrls.value = files;
+        await preload(files);
+        playing.value = true;
+        startedAt = performance.now();
+        raf = window.requestAnimationFrame(tick);
+    } catch {
+        settled.value = true;
+    }
+};
+
+onMounted(() => {
     prefersReducedMotion.value =
         typeof window !== 'undefined'
         && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (prefersReducedMotion.value) {
-        driving.value = false;
+    if (props.instant || prefersReducedMotion.value) {
+        settled.value = true;
 
         return;
     }
 
-    window.setTimeout(() => {
-        driving.value = false;
-    }, 2000);
+    startPlayback();
+});
+
+onBeforeUnmount(() => {
+    if (raf) {
+        window.cancelAnimationFrame(raf);
+    }
 });
 </script>
 
@@ -65,25 +148,9 @@ onMounted(() => {
 
         <div class="traklo-icon relative mx-auto aspect-square w-full max-w-[min(100%,28rem)] sm:max-w-[32rem]">
             <img
-                src="/downloads/traklo-icon.png"
+                :src="currentSrc"
                 alt=""
                 class="pointer-events-none block h-full w-full select-none object-contain"
-                draggable="false"
-            >
-
-            <!-- Cover painted truck while the sprite is driving -->
-            <div
-                v-show="driving && !prefersReducedMotion && !instant"
-                class="traklo-truck-cover pointer-events-none absolute"
-                aria-hidden="true"
-            />
-
-            <!-- Truck cropped from the same icon — only while driving -->
-            <img
-                v-show="driving && !prefersReducedMotion && !instant"
-                src="/downloads/traklo-truck-sprite.png"
-                alt=""
-                class="traklo-truck-sprite traklo-truck-sprite--drive pointer-events-none absolute"
                 draggable="false"
             >
 
@@ -94,13 +161,13 @@ onMounted(() => {
             -->
             <div
                 class="traklo-bar traklo-bar--email absolute"
-                :class="sceneReady || instant ? 'traklo-bar--live' : 'pointer-events-none opacity-0'"
+                :class="sceneReady ? 'traklo-bar--live' : 'pointer-events-none opacity-0'"
             >
                 <slot name="email" />
             </div>
             <div
                 class="traklo-bar traklo-bar--password absolute"
-                :class="sceneReady || instant ? 'traklo-bar--live' : 'pointer-events-none opacity-0'"
+                :class="sceneReady ? 'traklo-bar--live' : 'pointer-events-none opacity-0'"
             >
                 <slot name="password" />
             </div>
@@ -108,7 +175,7 @@ onMounted(() => {
 
         <div
             class="traklo-footer mx-auto mt-5 w-full max-w-[min(100%,28rem)] sm:max-w-[32rem]"
-            :class="sceneReady || instant ? 'opacity-100' : 'pointer-events-none opacity-0'"
+            :class="sceneReady ? 'opacity-100' : 'pointer-events-none opacity-0'"
         >
             <slot name="footer" />
         </div>
@@ -116,31 +183,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* Painted truck bbox ~33–62% x, 33–52% y — cover with bubble blue while driving */
-.traklo-truck-cover {
-    left: 33%;
-    top: 33%;
-    width: 30%;
-    height: 20%;
-    border-radius: 1rem;
-    background: #17b4f6;
-    filter: blur(2px);
-}
-
-.traklo-truck-sprite {
-    width: 29%;
-    height: auto;
-    left: 33.2%;
-    top: 33.2%;
-    filter: drop-shadow(0 4px 8px rgb(11 58 140 / 0.25));
-}
-
-.traklo-truck-sprite--drive {
-    opacity: 0;
-    animation: traklo-truck-drive 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
-}
-
-/* Exact bar slots from PNG measurement */
 .traklo-bar {
     z-index: 2;
     transition: opacity 0.35s ease;
@@ -167,45 +209,5 @@ onMounted(() => {
 
 .traklo-footer {
     transition: opacity 0.35s ease 0.08s;
-}
-
-/*
-  Route approx from icon: left pin → dip → right pin.
-  Truck parks at center dip (same place as painted truck).
-*/
-@keyframes traklo-truck-drive {
-    0% {
-        opacity: 1;
-        left: 14%;
-        top: 28%;
-        transform: rotate(-8deg);
-    }
-
-    55% {
-        opacity: 1;
-        left: 33%;
-        top: 40%;
-        transform: rotate(4deg);
-    }
-
-    100% {
-        opacity: 1;
-        left: 33.2%;
-        top: 33.2%;
-        transform: rotate(0deg);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .traklo-truck-cover,
-    .traklo-truck-sprite {
-        display: none !important;
-    }
-
-    .traklo-bar,
-    .traklo-footer {
-        opacity: 1 !important;
-        pointer-events: auto !important;
-    }
 }
 </style>
