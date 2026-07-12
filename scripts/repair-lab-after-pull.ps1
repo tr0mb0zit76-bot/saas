@@ -43,6 +43,13 @@ function Read-EnvValue {
 
 function Test-HttpStatus {
     param([string]$Url)
+    $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+    if ($curl) {
+        $code = & curl.exe -s -o NUL -w '%{http_code}' --max-time 10 $Url
+        if ($code -match '^\d{3}$') {
+            return [int]$code
+        }
+    }
     try {
         $r = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 10
         return [int]$r.StatusCode
@@ -54,7 +61,21 @@ function Test-HttpStatus {
     }
 }
 
+function Test-TcpPort {
+    param([string]$TargetHost, [int]$Port)
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    try {
+        $tcp.Connect($TargetHost, $Port)
+        $tcp.Close()
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 Add-OspanelPath
+
+& (Join-Path $repoRoot 'scripts\fix-nested-repo-path.ps1') -ErrorAction SilentlyContinue | Out-Null
 
 Write-Host "=== SaaS lab repair ($repoRoot) ===" -ForegroundColor Cyan
 
@@ -106,10 +127,27 @@ $checks = @(
 
 Write-Host ''
 Write-Host 'HTTP checks:' -ForegroundColor Cyan
+$all503 = $true
 foreach ($c in $checks) {
     $code = Test-HttpStatus $c.Url
+    if ($code -ne 503) { $all503 = $false }
     $color = if ($code -ge 200 -and $code -lt 400) { 'Green' } else { 'Red' }
     Write-Host ("  {0,-16} {1} -> {2}" -f $c.Name, $c.Url, $code) -ForegroundColor $color
+}
+
+if ($all503) {
+    Write-Host ''
+    Write-Host 'All URLs return 503 — this is OSPanel/Apache, not Laravel .env.' -ForegroundColor Red
+    $fpmOk = Test-TcpPort -TargetHost '127.0.1.25' -Port 9000
+    if (-not $fpmOk) {
+        Write-Host '  PHP-FPM 127.0.1.25:9000 is CLOSED → restart OSPanel (Apache + PHP).' -ForegroundColor Yellow
+    }
+    $apacheConf = 'C:\OSPanel\modules\Apache\conf\httpd.conf'
+    if ((Test-Path $apacheConf) -and -not (Select-String -Path $apacheConf -Pattern 'Use Host_PHP saas\.local' -Quiet)) {
+        Write-Host '  saas.local missing in httpd.conf → add domain in OSPanel Domains panel.' -ForegroundColor Yellow
+    }
+    Write-Host '  Run: pwsh -File scripts/diagnose-lab-http.ps1' -ForegroundColor Yellow
+    Write-Host '  Then: OSPanel tray → Restart all' -ForegroundColor Yellow
 }
 
 Write-Host ''
