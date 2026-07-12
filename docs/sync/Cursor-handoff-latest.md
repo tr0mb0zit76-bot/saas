@@ -1,6 +1,6 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-11 · **Фаза:** M7+ (platform admin) · **Ветка:** `cursor/fix-embedded-browser-419-9d42`
+**Обновлено:** 2026-07-12 · **Фаза:** M7+ · **Ветка:** `main` (все feature-ветки слиты)
 
 ---
 
