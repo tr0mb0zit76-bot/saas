@@ -176,7 +176,67 @@ class PublicSiteController extends Controller
 
     public function home(): Response
     {
+        if (config('showcase.mode') === 'traklo_pro') {
+            return Inertia::render('Public/TrakloLanding', $this->trakloProProps());
+        }
+
         return Inertia::render('Welcome', $this->sharedProps());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function trakloProProps(): array
+    {
+        $texts = [];
+        $path = resource_path('locales/public/traklo-pro.ru.json');
+
+        if (is_file($path)) {
+            $decoded = json_decode((string) file_get_contents($path), true);
+            if (is_array($decoded)) {
+                $texts = $decoded;
+            }
+        }
+
+        $crmHost = trim((string) config('app.crm_domain'));
+        if ($crmHost === '') {
+            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
+        }
+        $crmScheme = request()->isSecure() ? 'https' : 'http';
+
+        /** @var array<string, array{label: string, limits: array<string, int|null>}> $planConfig */
+        $planConfig = config('saas-plans.plans', []);
+        $plans = [];
+
+        foreach (['start', 'pro', 'enterprise'] as $key) {
+            if (! isset($planConfig[$key])) {
+                continue;
+            }
+
+            $limits = $planConfig[$key]['limits'] ?? [];
+            $users = $limits['users'] ?? null;
+            $usersLabel = $users === null
+                ? 'без лимита по договору'
+                : 'до '.$users.' пользователей';
+
+            $plans[] = [
+                'key' => $key,
+                'label' => (string) ($planConfig[$key]['label'] ?? ucfirst($key)),
+                'users' => $usersLabel,
+                'featured' => $key === 'pro',
+            ];
+        }
+
+        return [
+            'canLogin' => \Route::has('login'),
+            'texts' => $texts,
+            'crmLoginUrl' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            'plans' => $plans,
+            'publicSite' => [
+                'texts' => $texts,
+                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            ],
+        ];
     }
 
     public function about(): Response

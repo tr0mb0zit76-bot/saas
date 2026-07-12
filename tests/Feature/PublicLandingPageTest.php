@@ -19,6 +19,8 @@ class PublicLandingPageTest extends TestCase
 
     public function test_guest_can_open_public_landing_page(): void
     {
+        config(['showcase.mode' => 'legacy']);
+
         $response = $this->get($this->showcaseUrl('/'));
 
         $response->assertOk();
@@ -28,6 +30,20 @@ class PublicLandingPageTest extends TestCase
             ->where('canRegister', Route::has('register'))
             ->has('publicSite.texts')
         );
+    }
+
+    public function test_guest_can_open_traklo_pro_landing_page(): void
+    {
+        config(['showcase.mode' => 'traklo_pro']);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('canLogin', Route::has('login'))
+                ->has('texts.brand')
+                ->has('plans')
+            );
     }
 
     public function test_guest_can_open_public_secondary_pages(): void

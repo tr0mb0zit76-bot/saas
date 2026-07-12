@@ -26,7 +26,8 @@ $lines = Get-Content $envFile
 $replacements = [ordered]@{
     'APP_URL'                  = $appUrl
     'CRM_DOMAIN'               = $HostName
-    'SHOWCASE_DOMAIN'          = $HostName
+    'SHOWCASE_DOMAIN'            = $HostName
+    'SHOWCASE_MODE'              = 'traklo_pro'
     'SAAS_DEFAULT_TENANT_SLUG' = 'demo'
     'PLATFORM_DOMAIN'          = "platform.$HostName"
     'SAAS_PLATFORM_ADMIN_EMAILS' = 'admin@saas.local'
@@ -49,6 +50,7 @@ Write-Host "  APP_URL=$appUrl"
 Write-Host "  CRM_DOMAIN=$HostName"
 Write-Host "  SHOWCASE_DOMAIN=$HostName"
 Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
+Write-Host "  SHOWCASE_MODE=traklo_pro"
 
 if ($SkipArtisanClear) { return }
 
