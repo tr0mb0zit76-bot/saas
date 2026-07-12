@@ -32,9 +32,9 @@ const payRows = [
 ];
 
 const roles = [
-    { name: 'Менеджер', scope: 'own' },
-    { name: 'РОП', scope: 'dept' },
-    { name: 'Админ', scope: 'all' },
+    { name: 'Менеджер', scope: 'свои' },
+    { name: 'РОП', scope: 'отдел' },
+    { name: 'Админ', scope: 'все' },
 ];
 </script>
 
@@ -107,7 +107,7 @@ const roles = [
 
                 <template v-else-if="variant === 'print'">
                     <div class="shot-doc">
-                        <div class="shot-doc__meta">Договор-заявка · DOCX→PDF</div>
+                        <div class="shot-doc__meta">Договор-заявка · документ → PDF</div>
                         <div class="shot-doc__line" />
                         <div class="shot-doc__line shot-doc__line--short" />
                         <div class="shot-doc__block" />

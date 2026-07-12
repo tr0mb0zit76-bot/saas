@@ -32,37 +32,37 @@ const features = computed(() => [
         key: 'leads',
         title: t('feature_leads_title', 'Лиды и воронка'),
         text: t('feature_leads_text'),
-        label: 'crm · leads',
+        label: t('feature_leads_label', 'кабинет · воронка'),
     },
     {
         key: 'orders',
         title: t('feature_orders_title', 'Мастер заказа'),
         text: t('feature_orders_text'),
-        label: 'crm · order wizard',
+        label: t('feature_orders_label', 'кабинет · заказ'),
     },
     {
         key: 'payments',
         title: t('feature_payments_title', 'График оплат'),
         text: t('feature_payments_text'),
-        label: 'crm · payments',
+        label: t('feature_payments_label', 'кабинет · оплаты'),
     },
     {
         key: 'print',
-        title: t('feature_print_title', 'DOCX и PDF'),
+        title: t('feature_print_title', 'Печать документов'),
         text: t('feature_print_text'),
-        label: 'crm · print',
+        label: t('feature_print_label', 'кабинет · печать'),
     },
     {
         key: 'rbac',
-        title: t('feature_rbac_title', 'RBAC и scopes'),
+        title: t('feature_rbac_title', 'Роли и области видимости'),
         text: t('feature_rbac_text'),
-        label: 'crm · access',
+        label: t('feature_rbac_label', 'кабинет · доступ'),
     },
     {
         key: 'ai',
-        title: t('feature_ai_title', 'AI Command Bar'),
+        title: t('feature_ai_title', 'Текстовый помощник'),
         text: t('feature_ai_text'),
-        label: 'crm · ai',
+        label: t('feature_ai_label', 'кабинет · помощник'),
     },
 ]);
 
@@ -184,7 +184,7 @@ const displayPlans = computed(() => {
                 </div>
             </section>
 
-            <!-- Features: SaaS product-shot rows -->
+            <!-- Features: product-shot rows -->
             <section id="features" class="relative border-t border-white/5">
                 <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24">
                     <div class="mb-14 max-w-2xl">
@@ -212,7 +212,7 @@ const displayPlans = computed(() => {
                                 <h3 class="traklo-display text-2xl font-semibold text-white sm:text-3xl">
                                     {{ feature.title }}
                                 </h3>
-                                <p class="max-w-md text-base leading-7 text-slate-400">
+                                <p class="max-w-xl text-base leading-7 text-slate-400">
                                     {{ feature.text }}
                                 </p>
                             </div>
