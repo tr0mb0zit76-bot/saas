@@ -20,6 +20,8 @@ final class CrmAppearance
 
     public const WORKSPACE_SKIN_SKY = 'sky';
 
+    public const WORKSPACE_SKIN_TRAKLO = 'traklo';
+
     /**
      * @return array{button_radius: string, primary_accent: string, tab_style: string, workspace_skin: string, ag_grid_density: string}
      */
@@ -75,6 +77,7 @@ final class CrmAppearance
         return [
             ['value' => self::WORKSPACE_SKIN_CLASSIC, 'label' => 'Классический'],
             ['value' => self::WORKSPACE_SKIN_SKY, 'label' => 'Sky (как «Сколько влезет»)'],
+            ['value' => self::WORKSPACE_SKIN_TRAKLO, 'label' => 'Traklo (витрина)'],
         ];
     }
 
@@ -145,7 +148,7 @@ final class CrmAppearance
 
     private static function normalizeWorkspaceSkin(mixed $value): ?string
     {
-        return in_array($value, [self::WORKSPACE_SKIN_CLASSIC, self::WORKSPACE_SKIN_SKY], true)
+        return in_array($value, [self::WORKSPACE_SKIN_CLASSIC, self::WORKSPACE_SKIN_SKY, self::WORKSPACE_SKIN_TRAKLO], true)
             ? (string) $value
             : null;
     }
