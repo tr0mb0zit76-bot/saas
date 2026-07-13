@@ -87,14 +87,14 @@
                             <Palette class="h-4 w-4" />
                         </button>
                         <ThemeToggle />
-                        <Link
-                            :href="route('logout')"
-                            method="post"
-                            as="button"
+                        <button
+                            type="button"
                             class="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                            title="Выйти"
+                            @click="postLogout()"
                         >
                             <LogOut class="h-4 w-4" />
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -232,15 +232,15 @@
             <div class="flex h-14 items-center justify-between gap-2 border-b border-zinc-200 px-2 dark:border-zinc-800 sm:px-3">
                 <div class="flex min-w-0 flex-1 items-center justify-start">
                     <div
-                        v-if="!collapsed"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-900 dark:bg-white"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                        :title="collapsed ? 'Traklo Pro' : false"
                     >
                         <img
                             :src="companyLogoSrc"
-                            alt=""
-                            class="h-8 w-8 object-contain"
-                            width="32"
-                            height="32"
+                            alt="Traklo Pro"
+                            class="h-10 w-10 object-cover"
+                            width="40"
+                            height="40"
                         >
                     </div>
                 </div>
@@ -455,17 +455,16 @@
                 </div>
 
                 <div class="mt-3">
-                    <Link
-                        :href="route('logout')"
-                        method="post"
-                        as="button"
+                    <button
+                        type="button"
                         class="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         :class="collapsed ? 'px-2' : ''"
                         :title="collapsed ? 'Выйти' : false"
+                        @click="postLogout()"
                     >
                         <LogOut class="h-4 w-4 shrink-0" />
                         <span v-if="!collapsed">Выйти</span>
-                    </Link>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -644,6 +643,7 @@ import {
     resolveCrmAppearance,
 } from '@/support/crmAppearance.js';
 import { visitInertiaPath } from '@/support/inertiaHttpsVisit.js';
+import { postLogout } from '@/support/sessionLogout.js';
 import {
     clearAgentThread as clearPersistedAgentThread,
     historyForAgentRequest,
@@ -699,7 +699,7 @@ const flashBanner = computed(() => {
 });
 const menuStateStorageKey = 'crm-sidebar-expanded-groups';
 const sidebarCollapsedStorageKey = 'crm-sidebar-collapsed';
-const companyLogoSrc = '/assets/favicon/favicon-96x96.png';
+const companyLogoSrc = '/assets/favicon/sidebar-48.png';
 
 function readSidebarCollapsedFromStorage() {
     if (typeof window === 'undefined') {

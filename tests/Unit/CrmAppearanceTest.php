@@ -41,4 +41,13 @@ class CrmAppearanceTest extends TestCase
 
         $this->assertSame('sky', $resolved['workspace_skin']);
     }
+
+    #[Test]
+    public function it_accepts_traklo_workspace_skin(): void
+    {
+        $resolved = CrmAppearance::resolve(['workspace_skin' => 'traklo']);
+
+        $this->assertSame('traklo', $resolved['workspace_skin']);
+        $this->assertContains('traklo', array_column(CrmAppearance::workspaceSkinOptions(), 'value'));
+    }
 }

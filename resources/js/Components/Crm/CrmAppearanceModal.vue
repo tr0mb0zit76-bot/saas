@@ -1,11 +1,11 @@
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import {
     applyCrmAppearanceToDocument,
+    persistCrmAppearance,
     resolveCrmAppearance,
-    schedulePersistCrmAppearance,
     writeLocalCrmAppearance,
 } from '@/support/crmAppearance.js';
 import { writeLocalAgGridDensity } from '@/support/agGridUserDensity.js';
@@ -26,6 +26,9 @@ const form = reactive({
     tab_style: 'filled',
 });
 
+const saving = ref(false);
+const saveError = ref('');
+
 function syncFormFromUser() {
     const resolved = resolveCrmAppearance(authUser.value);
     form.workspace_skin = resolved.workspace_skin;
@@ -36,6 +39,7 @@ function syncFormFromUser() {
 
 watch(() => props.show, (visible) => {
     if (visible) {
+        saveError.value = '';
         syncFormFromUser();
     }
 });
@@ -46,19 +50,33 @@ function preview() {
 }
 
 function save() {
+    if (saving.value) {
+        return;
+    }
+
     writeLocalCrmAppearance(form);
     applyCrmAppearanceToDocument(form);
 
     const density = authUser.value?.ui_preferences?.ag_grid_density ?? 'normal';
-    schedulePersistCrmAppearance({
+    saving.value = true;
+    saveError.value = '';
+
+    persistCrmAppearance({
         workspace_skin: form.workspace_skin,
         button_radius: form.button_radius,
         primary_accent: form.primary_accent,
         tab_style: form.tab_style,
         ag_grid_density: density,
+    }, {
+        onSuccess: () => {
+            saving.value = false;
+            emit('close');
+        },
+        onError: () => {
+            saving.value = false;
+            saveError.value = 'Не удалось сохранить (сессия или CSRF). Обновите страницу (F5) и попробуйте снова.';
+        },
     });
-
-    emit('close');
 }
 
 const radiusOptions = [
@@ -86,6 +104,11 @@ const workspaceSkinOptions = [
         value: 'sky',
         label: 'Sky',
         hint: 'Мягкие карточки и голубой акцент, как в модуле «Сколько влезет».',
+    },
+    {
+        value: 'traklo',
+        label: 'Traklo',
+        hint: 'Палитра витрины Traklo Pro: глубокий navy и синий акцент.',
     },
 ];
 </script>
@@ -189,7 +212,11 @@ const workspaceSkinOptions = [
                 </div>
             </div>
 
-            <div class="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <div class="flex flex-col items-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between">
+                <p v-if="saveError" class="text-sm text-rose-600 dark:text-rose-400">
+                    {{ saveError }}
+                </p>
+                <div class="flex justify-end gap-2">
                 <button
                     type="button"
                     class="crm-btn-neutral"
@@ -200,10 +227,12 @@ const workspaceSkinOptions = [
                 <button
                     type="button"
                     class="crm-btn-create"
+                    :disabled="saving"
                     @click="save"
                 >
-                    Сохранить
+                    {{ saving ? 'Сохранение…' : 'Сохранить' }}
                 </button>
+                </div>
             </div>
         </section>
     </Modal>

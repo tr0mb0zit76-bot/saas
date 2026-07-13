@@ -36,7 +36,7 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <!-- OrderWizardTest дропает таблицы: только тестовая БД (см. .env.testing → DB_DATABASE) -->
-        <env name="ORDER_WIZARD_TEST_DATABASE" value="u_tromb_test"/>
+        <env name="ORDER_WIZARD_TEST_DATABASE" value="saas_crm_test"/>
         <env name="PLATFORM_DOMAIN" value="platform.test"/>
     </php>
 </phpunit>

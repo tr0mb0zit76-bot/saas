@@ -57,7 +57,7 @@ function pickAppearanceFields(source) {
         result.tab_style = source.tab_style;
     }
 
-    if (source.workspace_skin === 'classic' || source.workspace_skin === 'sky') {
+    if (source.workspace_skin === 'classic' || source.workspace_skin === 'sky' || source.workspace_skin === 'traklo') {
         result.workspace_skin = source.workspace_skin;
     }
 
@@ -120,9 +120,56 @@ export function applyCrmAppearanceToDocument(appearance) {
     html.dataset.crmWorkspaceSkin = resolved.workspace_skin;
 }
 
+function syncCsrfHeaderFromCookie() {
+    if (typeof document === 'undefined') {
+        return;
+    }
+
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+
+    if (!match?.[1]) {
+        return;
+    }
+
+    const token = decodeURIComponent(match[1]);
+    const meta = document.querySelector('meta[name="csrf-token"]');
+
+    if (meta) {
+        meta.setAttribute('content', token);
+    }
+
+    if (window.axios?.defaults?.headers?.common) {
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    }
+}
+
 /**
- * @param {{ button_radius?: string, primary_accent?: string, tab_style?: string, ag_grid_density?: string }} payload
+ * @param {Record<string, string>} payload
+ * @param {{ onSuccess?: () => void, onError?: () => void }} [callbacks]
  */
+export function persistCrmAppearance(payload, callbacks = {}) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    syncCsrfHeaderFromCookie();
+
+    router.patch('/profile/ui-preferences', payload, {
+        preserveScroll: true,
+        onSuccess: () => {
+            callbacks.onSuccess?.();
+        },
+        onError: () => {
+            syncCsrfHeaderFromCookie();
+            router.patch('/profile/ui-preferences', payload, {
+                preserveScroll: true,
+                onSuccess: () => callbacks.onSuccess?.(),
+                onError: () => callbacks.onError?.(),
+            });
+        },
+    });
+}
+
 export function schedulePersistCrmAppearance(payload) {
     if (typeof window === 'undefined') {
         return;
@@ -130,10 +177,7 @@ export function schedulePersistCrmAppearance(payload) {
 
     window.clearTimeout(persistTimer);
     persistTimer = window.setTimeout(() => {
-        router.patch(route('profile.ui-preferences'), payload, {
-            preserveState: true,
-            preserveScroll: true,
-        });
+        persistCrmAppearance(payload);
     }, 450);
 }
 
