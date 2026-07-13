@@ -31,9 +31,11 @@
         <meta name="apple-mobile-web-app-title" content="{{ $documentTitleDefault ?? config('app.crm_browser_title') }}">
 
         <title inertia>{{ $documentTitleDefault ?? config('app.crm_browser_title') }}</title>
+
+        <link rel="icon" type="image/png" href="/assets/favicon/favicon-32x32.png" sizes="32x32">
+        <link rel="icon" type="image/png" href="/assets/favicon/favicon-16x16.png" sizes="16x16">
         <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96">
-        <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg">
-        <link rel="shortcut icon" href="/assets/favicon/favicon.ico">
+        <link rel="shortcut icon" href="/favicon.ico">
         <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
         <link rel="manifest" href="/manifest.webmanifest">
 

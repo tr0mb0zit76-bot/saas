@@ -148,6 +148,20 @@ class AppServiceProvider extends ServiceProvider
 
         $appUrl = strtolower((string) config('app.url', ''));
 
+        // Lab HTTP: never upgrade scheme from X-Forwarded-Proto — browser stays on http://
+        // while Ziggy/route() would otherwise emit https:// → session cookie not sent → 419.
+        if (str_starts_with($appUrl, 'http://')) {
+            URL::forceScheme('http');
+
+            if ($request !== null) {
+                URL::forceRootUrl($request->getSchemeAndHttpHost());
+            } else {
+                URL::forceRootUrl(rtrim((string) config('app.url'), '/'));
+            }
+
+            return;
+        }
+
         if ($request !== null && ! $request->isSecure()) {
             $forwarded = $request->header('X-Forwarded-Proto');
             $hasHttpsForwarded = is_string($forwarded) && strtolower($forwarded) === 'https';
@@ -201,10 +215,6 @@ class AppServiceProvider extends ServiceProvider
     private function configureLabHttpSessionCookies(): void
     {
         if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
-            return;
-        }
-
-        if (env('SESSION_SECURE_COOKIE') !== null) {
             return;
         }
 

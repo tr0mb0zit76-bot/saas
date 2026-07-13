@@ -353,8 +353,7 @@ html.dark[data-crm-workspace-skin='traklo'] .orders-grid-theme {
         box-shadow: 0 12px 36px rgb(var(--crm-shadow) / 0.09);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-main,
-    html[data-crm-workspace-skin='traklo'] .crm-layout-main {
+    html[data-crm-workspace-skin='sky'] .crm-layout-main {
         background: linear-gradient(
             180deg,
             rgb(var(--crm-surface-muted)) 0%,

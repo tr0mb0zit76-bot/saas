@@ -115,3 +115,23 @@ router.on('success', (event) => {
         applyCrmAppearanceToDocument(resolveCrmAppearance(user));
     }
 });
+
+// XSRF-TOKEN cookie обновляется на каждом ответе; meta csrf-token — только при полной загрузке.
+router.on('navigate', () => {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+
+    if (!match?.[1]) {
+        return;
+    }
+
+    const token = decodeURIComponent(match[1]);
+    const meta = document.querySelector('meta[name="csrf-token"]');
+
+    if (meta) {
+        meta.setAttribute('content', token);
+    }
+
+    if (window.axios?.defaults?.headers?.common) {
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+    }
+});

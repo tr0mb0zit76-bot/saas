@@ -74,6 +74,7 @@ function Test-TcpPort {
 }
 
 Add-OspanelPath
+. (Join-Path $repoRoot 'scripts\ospanel-mysql.ps1')
 
 & (Join-Path $repoRoot 'scripts\fix-nested-repo-path.ps1') -ErrorAction SilentlyContinue | Out-Null
 
@@ -87,16 +88,32 @@ if (Test-Path $hotFile) {
 
 & (Join-Path $repoRoot 'scripts\apply-saas-lab-env.ps1') -HostName $HostName
 
+& (Join-Path $repoRoot 'scripts\ensure-test-database.ps1')
+
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
-if ($Full) {
-    Write-Host 'Full repair: migrate + build...' -ForegroundColor Cyan
-    php artisan migrate --force
-    npm run build
-} elseif (-not (Test-Path (Join-Path $repoRoot 'public\build\manifest.json'))) {
-    Write-Host 'public/build/manifest.json missing — running npm run build...' -ForegroundColor Yellow
+# DB: без migrations → IdentifyTenant падает → redirect loop (если handler редиректит GET)
+$migrateStatus = php artisan migrate:status 2>&1 | Out-String
+if ($migrateStatus -match 'Migration table not found') {
+    Write-Host 'Migrations missing — provision DB + migrate + seed...' -ForegroundColor Yellow
+    & (Join-Path $repoRoot 'scripts\provision-database.ps1')
+    Add-OspanelMySqlToPath | Out-Null
+    php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
+    php artisan db:seed --class=SaasDemoSeeder --force
+    php artisan db:seed --class=TenantDemoSeeder --force
+} elseif ($Full) {
+    Write-Host 'Full repair: migrate...' -ForegroundColor Cyan
+    & (Join-Path $repoRoot 'scripts\provision-database.ps1')
+    Add-OspanelMySqlToPath | Out-Null
+    php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
+}
+
+if ($Full -or -not (Test-Path (Join-Path $repoRoot 'public\build\manifest.json'))) {
+    if (-not (Test-Path (Join-Path $repoRoot 'public\build\manifest.json'))) {
+        Write-Host 'public/build/manifest.json missing — npm run build...' -ForegroundColor Yellow
+    }
     npm run build
 }
 
@@ -133,6 +150,13 @@ foreach ($c in $checks) {
     if ($code -ne 503) { $all503 = $false }
     $color = if ($code -ge 200 -and $code -lt 400) { 'Green' } else { 'Red' }
     Write-Host ("  {0,-16} {1} -> {2}" -f $c.Name, $c.Url, $code) -ForegroundColor $color
+}
+
+Write-Host ''
+Write-Host 'Redirect loop check:' -ForegroundColor Cyan
+$redirectCheck = & (Join-Path $repoRoot 'scripts\check-lab-redirects.ps1') -HostName $HostName
+if ($LASTEXITCODE -ne 0) {
+    $all503 = $false
 }
 
 if ($all503) {

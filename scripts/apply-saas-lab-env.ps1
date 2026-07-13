@@ -24,6 +24,9 @@ if (-not (Test-Path $envFile)) {
 $appUrl = "http://$HostName"
 $lines = Get-Content $envFile
 $replacements = [ordered]@{
+    'APP_NAME'                   = 'Traklo Pro'
+    'CRM_BROWSER_TITLE'          = 'Traklo Pro'
+    'SHOWCASE_BROWSER_TITLE'     = 'Traklo Pro'
     'APP_URL'                    = $appUrl
     'CRM_DOMAIN'                 = $HostName
     'SHOWCASE_DOMAIN'            = $HostName
@@ -38,6 +41,9 @@ $replacements = [ordered]@{
 
 foreach ($key in $replacements.Keys) {
     $val = $replacements[$key]
+    if ($val -match '\s') {
+        $val = '"' + ($val -replace '"', '\"') + '"'
+    }
     $idx = [array]::FindIndex($lines, [Predicate[string]] { param($l) $l -match "^$key=" })
     if ($idx -ge 0) {
         $lines[$idx] = "$key=$val"

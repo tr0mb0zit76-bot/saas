@@ -15,8 +15,8 @@ const tenantName = computed(() => page.props.tenant?.name ?? null);
                     :href="showcaseHomeUrl"
                     class="group inline-flex items-center gap-2 rounded-lg text-sm font-medium text-slate-300 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-300 ring-1 ring-blue-500/30">
-                        TP
+                    <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-blue-600/20 ring-1 ring-blue-500/30">
+                        <img src="/assets/favicon/favicon-96x96.png" alt="" class="h-7 w-7 object-contain" width="28" height="28">
                     </span>
                     <span>Traklo Pro</span>
                 </a>
