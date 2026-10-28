@@ -9,6 +9,7 @@ use App\Support\AiInteractionEventType;
 use App\Support\AiInteractionFeature;
 use App\Support\AiInteractionOutcome;
 use App\Support\AiInteractionPromptFingerprint;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -154,7 +155,9 @@ class AiInteractionRecorder
         }
 
         $row = DB::table('ai_interaction_events')
-            ->where('event_type', AiInteractionEventType::ConversationTurn->value)
+            ->where('event_type', AiInteractionEventType::ConversationTurn->value);
+        TenantContext::restrict($row, 'ai_interaction_events.tenant_id');
+        $row = $row
             ->where('metadata->turn_id', $turnId)
             ->orderByDesc('id')
             ->first(['metadata', 'prompt_fingerprint', 'user_prompt_redacted']);
@@ -220,12 +223,18 @@ class AiInteractionRecorder
         }
 
         try {
-            DB::table('ai_interaction_events')->insert([
+            $insert = [
                 ...$row,
                 'ip_address' => request()->ip(),
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            if (Schema::hasColumn('ai_interaction_events', 'tenant_id')) {
+                $insert['tenant_id'] = TenantContext::id();
+            }
+
+            DB::table('ai_interaction_events')->insert($insert);
         } catch (Throwable) {
             // Аналитика не должна ломать основной сценарий.
         }

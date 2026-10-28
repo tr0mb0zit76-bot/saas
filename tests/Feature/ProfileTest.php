@@ -7,6 +7,30 @@ use Tests\TestCase;
 
 class ProfileTest extends TestCase
 {
+    public function test_ui_preferences_can_be_updated(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('users', 'ui_preferences')) {
+            $this->markTestSkipped('Колонка users.ui_preferences недоступна.');
+        }
+
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile/ui-preferences', [
+                'workspace_skin' => 'traklo',
+                'button_radius' => 'rounded',
+                'primary_accent' => 'sky',
+                'tab_style' => 'filled',
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+
+        $user->refresh();
+
+        $this->assertSame('traklo', $user->ui_preferences['workspace_skin'] ?? null);
+    }
+
     public function test_profile_page_is_displayed(): void
     {
         $user = User::factory()->create();

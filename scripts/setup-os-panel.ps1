@@ -52,13 +52,14 @@ foreach ($phpDir in $phpDirs) {
     }
 }
 
-$dbRoot = Join-Path $ospanel 'modules\database'
+$dbRoot = Join-Path $ospanel 'modules'
+. (Join-Path $repoRoot 'scripts\ospanel-mysql.ps1')
 if (Test-Path $dbRoot) {
-    $mysqlExe = Get-ChildItem -Path $dbRoot -Recurse -Filter 'mysql.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+    $mysqlExe = Find-OspanelMySqlClient -OspanelRoot $ospanel
     if ($mysqlExe) {
-        $binDir = Split-Path -Parent $mysqlExe.FullName
+        $binDir = Split-Path -Parent $mysqlExe
         $env:Path = "$binDir;$env:Path"
-        Write-Host "MySQL CLI: $($mysqlExe.FullName)"
+        Write-Host "MySQL CLI: $mysqlExe"
     } else {
         Write-Host 'mysql.exe not in OSPanel — provision-database.ps1 will use PHP fallback' -ForegroundColor Yellow
     }

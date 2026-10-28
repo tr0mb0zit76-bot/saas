@@ -23,7 +23,7 @@
    - `docs/sync/Cursor-handoff-latest.md`
    - `docs/sync/architecture-plan.md`
    - `AGENTS.md`
-3. Для архитектуры — субагент `saas-architect`
+3. Для архитектуры — субагент `saas-architect`. Ревью дыр и допуск пилота он не закрывает один: `saas-security`, `saas-qa`, `saas-privacy`
 
 ### В конце сессии
 

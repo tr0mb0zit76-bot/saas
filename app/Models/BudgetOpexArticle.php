@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BudgetOpexArticle extends Model
 {
+    use BelongsToTenant;
+
     public const COST_FIXED_MONTHLY = 'fixed_monthly';
 
     public const COST_PERCENT_OF_MARGIN = 'percent_of_margin';

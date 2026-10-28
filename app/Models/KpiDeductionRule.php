@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class KpiDeductionRule extends Model
 {
+    use BelongsToTenant;
+
     public const CUSTOM_RULES_CUTOFF_DATE = '2026-06-01';
 
     /**

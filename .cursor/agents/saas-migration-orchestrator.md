@@ -35,6 +35,9 @@ You are the **Migration Orchestrator** for the SaaS CRM project. Your job is to 
 | Task | Delegate to |
 | --- | --- |
 | Architecture / ADR / tariff decisions | `saas-architect` |
+| Isolation, session, IDOR, files, secrets | `saas-security` |
+| Test gate for a hole | `saas-qa` |
+| Personal data, 152-ФЗ, offer, export | `saas-privacy` |
 | Execution / scripts / state / handoff | **you (orchestrator)** |
 | Code changes (tenant_id, seeders, fixes) | **you**, implement directly |
 

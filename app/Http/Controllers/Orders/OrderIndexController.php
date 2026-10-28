@@ -14,6 +14,7 @@ use App\Support\OrderViewAuthorization;
 use App\Support\PaymentFormDictionary;
 use App\Support\RoleAccess;
 use App\Support\RoutePointDatesDisplay;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -127,6 +128,11 @@ class OrderIndexController extends Controller
                     OrderViewAuthorization::applyOrdersVisibilityScopeToQuery($query, $user, 'orders');
                 },
             )
+            ->tap(function ($query): void {
+                if (Schema::hasColumn('orders', 'tenant_id')) {
+                    TenantContext::restrict($query, 'orders.tenant_id');
+                }
+            })
             ->when(
                 Schema::hasColumn('orders', 'deleted_at'),
                 fn ($query) => $query->whereNull('orders.deleted_at')

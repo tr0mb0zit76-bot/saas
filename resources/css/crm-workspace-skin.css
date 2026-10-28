@@ -1,6 +1,6 @@
 /**
- * Оболочка CRM: классический (zinc) и рабочая тема Sky (как «Сколько влезет»).
- * Активируется html[data-crm-workspace-skin="sky"] из настроек внешнего вида.
+ * Оболочка CRM: classic / sky / traklo (палитра витрины Traklo Pro).
+ * Активируется html[data-crm-workspace-skin] из настроек внешнего вида.
  */
 
 html.crm-layout-scroll-lock,
@@ -17,7 +17,8 @@ html.crm-layout-scroll-lock body > #app {
     flex-direction: column;
 }
 
-html[data-crm-workspace-skin='sky'] {
+html[data-crm-workspace-skin='sky'],
+html[data-crm-workspace-skin='traklo'] {
         --crm-accent: 2 132 199;
         --crm-accent-soft: 224 242 254;
         --crm-surface: 255 255 255;
@@ -28,7 +29,8 @@ html[data-crm-workspace-skin='sky'] {
         --crm-shadow: 15 23 42;
     }
 
-html.dark[data-crm-workspace-skin='sky'] {
+html.dark[data-crm-workspace-skin='sky'],
+html.dark[data-crm-workspace-skin='traklo'] {
     --crm-accent: 56 189 248;
     --crm-accent-soft: 12 74 110;
     --crm-surface: 24 24 27;
@@ -37,6 +39,58 @@ html.dark[data-crm-workspace-skin='sky'] {
     --crm-text: 244 244 245;
     --crm-text-muted: 161 161 170;
     --crm-shadow: 0 0 0;
+}
+
+/* Traklo Pro showcase palette (overrides shared sky tokens). */
+html[data-crm-workspace-skin='traklo'] {
+    --crm-accent: 37 99 235;
+    --crm-accent-soft: 219 234 254;
+    --crm-surface: 255 255 255;
+    --crm-surface-muted: 248 250 252;
+    --crm-border: 226 232 240;
+    --crm-text: 15 23 42;
+    --crm-text-muted: 71 85 105;
+    --crm-shadow: 15 23 42;
+    --crm-accent-contrast: 255 255 255;
+}
+
+html.dark[data-crm-workspace-skin='traklo'] {
+    --crm-accent: 96 165 250;
+    --crm-accent-soft: 30 58 138;
+    --crm-surface: 11 18 32;
+    --crm-surface-muted: 7 11 20;
+    --crm-border: 51 65 85;
+    --crm-text: 241 245 249;
+    --crm-text-muted: 148 163 184;
+    --crm-shadow: 0 0 0;
+    --crm-accent-contrast: 7 11 20;
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .crm-btn-create,
+html.dark[data-crm-workspace-skin='traklo'] .crm-btn-primary,
+html.dark[data-crm-workspace-skin='traklo'] .crm-tab-btn--active-filled,
+html.dark[data-crm-workspace-skin='traklo'] .crm-segmented-btn--active {
+    color: rgb(255 255 255);
+}
+
+html[data-crm-workspace-skin='traklo'] .crm-layout-main {
+    background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgb(37 99 235 / 0.16), transparent 55%),
+        linear-gradient(180deg, rgb(var(--crm-surface-muted)) 0%, rgb(var(--crm-accent-soft) / 0.22) 100%);
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .crm-layout-main {
+    background:
+        radial-gradient(ellipse 70% 45% at 12% -8%, rgb(37 99 235 / 0.22), transparent 55%),
+        linear-gradient(180deg, rgb(var(--crm-surface-muted)) 0%, rgb(11 18 32) 100%);
+}
+
+html[data-crm-workspace-skin='traklo'] .orders-grid-theme {
+    --ag-header-foreground-color: rgb(15 23 42);
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .orders-grid-theme {
+    --ag-header-foreground-color: rgb(var(--crm-text));
 }
 
 .crm-nav-link {
@@ -51,45 +105,55 @@ html.dark[data-crm-workspace-skin='sky'] {
 
     /* ——— Layout (CrmLayout) ——— */
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-root {
+    html[data-crm-workspace-skin='sky'] .crm-layout-root,
+    html[data-crm-workspace-skin='traklo'] .crm-layout-root {
         background: rgb(var(--crm-surface-muted));
         color: rgb(var(--crm-text));
     }
 
     html[data-crm-workspace-skin='sky'] .crm-layout-sidebar,
+    html[data-crm-workspace-skin='traklo'] .crm-layout-sidebar,
     html[data-crm-workspace-skin='sky'] .crm-layout-header,
-    html[data-crm-workspace-skin='sky'] .crm-layout-footer {
+    html[data-crm-workspace-skin='traklo'] .crm-layout-header,
+    html[data-crm-workspace-skin='sky'] .crm-layout-footer,
+    html[data-crm-workspace-skin='traklo'] .crm-layout-footer {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface) / 0.96);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button {
+    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button,
+    html[data-crm-workspace-skin='traklo'] .crm-layout-icon-button {
         border-color: rgb(var(--crm-border));
         color: rgb(var(--crm-text-muted));
         background: rgb(var(--crm-surface));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button:hover {
+    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-layout-icon-button:hover {
         border-color: rgb(var(--crm-accent) / 0.35);
         color: rgb(var(--crm-accent));
         background: rgb(var(--crm-accent-soft) / 0.45);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link {
+    html[data-crm-workspace-skin='sky'] .crm-nav-link,
+    html[data-crm-workspace-skin='traklo'] .crm-nav-link {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link:hover {
+    html[data-crm-workspace-skin='sky'] .crm-nav-link:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-nav-link:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link--active {
+    html[data-crm-workspace-skin='sky'] .crm-nav-link--active,
+    html[data-crm-workspace-skin='traklo'] .crm-nav-link--active {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-submenu-border {
+    html[data-crm-workspace-skin='sky'] .crm-nav-submenu-border,
+    html[data-crm-workspace-skin='traklo'] .crm-nav-submenu-border {
         border-color: rgb(var(--crm-border));
     }
 
@@ -109,13 +173,15 @@ html.dark[data-crm-workspace-skin='sky'] {
         @apply border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-list-item--active {
+    html[data-crm-workspace-skin='sky'] .crm-list-item--active,
+    html[data-crm-workspace-skin='traklo'] .crm-list-item--active {
         border-color: rgb(var(--crm-accent) / 0.4);
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-list-item--active-soft {
+    html[data-crm-workspace-skin='sky'] .crm-list-item--active-soft,
+    html[data-crm-workspace-skin='traklo'] .crm-list-item--active-soft {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
@@ -125,51 +191,60 @@ html.dark[data-crm-workspace-skin='sky'] {
         justify-content: center;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-create {
+    html[data-crm-workspace-skin='sky'] .crm-btn-create,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-create {
         border-color: rgb(var(--crm-accent) / 0.4);
         background: rgb(var(--crm-accent-soft));
         color: rgb(12 74 110);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-create:hover {
+    html[data-crm-workspace-skin='sky'] .crm-btn-create:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-create:hover {
         background: rgb(var(--crm-accent-soft) / 0.85);
         filter: brightness(0.98);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create {
+    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-btn-create {
         border-color: rgb(var(--crm-accent) / 0.45);
         background: rgb(var(--crm-accent-soft) / 0.55);
         color: rgb(var(--crm-accent));
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create:hover {
+    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create:hover,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-btn-create:hover {
         background: rgb(var(--crm-accent-soft) / 0.75);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled {
+    html[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled,
+    html[data-crm-workspace-skin='traklo'] .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.35);
         background: rgb(var(--crm-accent));
         color: white;
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled {
+    html.dark[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.5);
         background: rgb(var(--crm-accent));
         color: rgb(12 74 110);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive {
+    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive,
+    html[data-crm-workspace-skin='traklo'] .crm-tab-btn--inactive {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive:hover {
+    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-tab-btn--inactive:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
+    html[data-crm-workspace-skin='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled,
+    html[data-crm-workspace-skin='traklo'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
         border-color: transparent;
         border-bottom-color: rgb(var(--crm-accent));
         background: transparent;
@@ -255,17 +330,23 @@ html.dark[data-crm-workspace-skin='sky'] {
     }
 
     html[data-crm-workspace-skin='sky'] .crm-page-title,
-    html[data-crm-workspace-skin='sky'] .crm-section-title {
+    html[data-crm-workspace-skin='traklo'] .crm-page-title,
+    html[data-crm-workspace-skin='sky'] .crm-section-title,
+    html[data-crm-workspace-skin='traklo'] .crm-section-title {
         color: rgb(var(--crm-text));
     }
 
     html[data-crm-workspace-skin='sky'] .crm-page-lead,
-    html[data-crm-workspace-skin='sky'] .crm-page-eyebrow {
+    html[data-crm-workspace-skin='traklo'] .crm-page-lead,
+    html[data-crm-workspace-skin='sky'] .crm-page-eyebrow,
+    html[data-crm-workspace-skin='traklo'] .crm-page-eyebrow {
         color: rgb(var(--crm-text-muted));
     }
 
     html[data-crm-workspace-skin='sky'] .crm-panel,
-    html[data-crm-workspace-skin='sky'] .crm-stat-card {
+    html[data-crm-workspace-skin='traklo'] .crm-panel,
+    html[data-crm-workspace-skin='sky'] .crm-stat-card,
+    html[data-crm-workspace-skin='traklo'] .crm-stat-card {
         border-color: rgb(var(--crm-border));
         border-radius: var(--crm-radius-xl);
         background: rgb(var(--crm-surface));
@@ -280,79 +361,96 @@ html.dark[data-crm-workspace-skin='sky'] {
         );
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-stat-card--rose {
+    html[data-crm-workspace-skin='sky'] .crm-stat-card--rose,
+    html[data-crm-workspace-skin='traklo'] .crm-stat-card--rose {
         border-color: rgb(254 205 211 / 0.85);
         background: rgb(255 241 242 / 0.9);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-stat-card--rose {
+    html.dark[data-crm-workspace-skin='sky'] .crm-stat-card--rose,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-stat-card--rose {
         border-color: rgb(136 19 55 / 0.55);
         background: rgb(76 5 25 / 0.35);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card {
+    html[data-crm-workspace-skin='sky'] .crm-module-card,
+    html[data-crm-workspace-skin='traklo'] .crm-module-card {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         box-shadow: 0 10px 30px rgb(var(--crm-shadow) / 0.06);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card:hover {
+    html[data-crm-workspace-skin='sky'] .crm-module-card:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-module-card:hover {
         border-color: rgb(var(--crm-accent) / 0.45);
         box-shadow: 0 16px 40px rgb(var(--crm-shadow) / 0.1);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card__icon {
+    html[data-crm-workspace-skin='sky'] .crm-module-card__icon,
+    html[data-crm-workspace-skin='traklo'] .crm-module-card__icon {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card__cta {
+    html[data-crm-workspace-skin='sky'] .crm-module-card__cta,
+    html[data-crm-workspace-skin='traklo'] .crm-module-card__cta {
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-mobile-tile {
+    html[data-crm-workspace-skin='sky'] .crm-mobile-tile,
+    html[data-crm-workspace-skin='traklo'] .crm-mobile-tile {
         border-color: rgb(var(--crm-border));
         border-radius: var(--crm-radius-xl);
         background: rgb(var(--crm-surface));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-mobile-tile:hover {
+    html[data-crm-workspace-skin='sky'] .crm-mobile-tile:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-mobile-tile:hover {
         border-color: rgb(var(--crm-accent) / 0.35);
         background: rgb(var(--crm-accent-soft) / 0.25);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented {
+    html[data-crm-workspace-skin='sky'] .crm-segmented,
+    html[data-crm-workspace-skin='traklo'] .crm-segmented {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn {
+    html[data-crm-workspace-skin='sky'] .crm-segmented-btn,
+    html[data-crm-workspace-skin='traklo'] .crm-segmented-btn {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn:hover {
+    html[data-crm-workspace-skin='sky'] .crm-segmented-btn:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-segmented-btn:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn--active {
+    html[data-crm-workspace-skin='sky'] .crm-segmented-btn--active,
+    html[data-crm-workspace-skin='traklo'] .crm-segmented-btn--active {
         background: rgb(var(--crm-accent));
         color: white;
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-segmented-btn--active {
+    html.dark[data-crm-workspace-skin='sky'] .crm-segmented-btn--active,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-segmented-btn--active {
         color: rgb(12 74 110);
     }
 
     html[data-crm-workspace-skin='sky'] .crm-btn-neutral,
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline {
+    html[data-crm-workspace-skin='traklo'] .crm-btn-neutral,
+    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-secondary-outline {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text));
     }
 
     html[data-crm-workspace-skin='sky'] .crm-btn-neutral:hover,
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline:hover {
+    html[data-crm-workspace-skin='traklo'] .crm-btn-neutral:hover,
+    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-secondary-outline:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-accent));
     }
@@ -523,24 +621,28 @@ html.dark[data-crm-workspace-skin='sky'] {
 
     /* ——— Общие компоненты Sky ——— */
 
-    html[data-crm-workspace-skin='sky'] .crm-field {
+    html[data-crm-workspace-skin='sky'] .crm-field,
+    html[data-crm-workspace-skin='traklo'] .crm-field {
         border-color: rgb(var(--crm-border));
         border-radius: calc(var(--crm-radius-md) * 0.9);
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-field--fluid {
+    html[data-crm-workspace-skin='sky'] .crm-field--fluid,
+    html[data-crm-workspace-skin='traklo'] .crm-field--fluid {
         border-radius: var(--crm-radius-md);
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-field:focus {
+    html[data-crm-workspace-skin='sky'] .crm-field:focus,
+    html[data-crm-workspace-skin='traklo'] .crm-field:focus {
         border-color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-label {
+    html[data-crm-workspace-skin='sky'] .crm-label,
+    html[data-crm-workspace-skin='traklo'] .crm-label {
         margin-bottom: 0.375rem;
         display: block;
         font-size: 0.75rem;
@@ -548,20 +650,24 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-primary {
+    html[data-crm-workspace-skin='sky'] .crm-btn-primary,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-primary {
         background-color: rgb(var(--crm-accent));
         color: white;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-primary:hover {
+    html[data-crm-workspace-skin='sky'] .crm-btn-primary:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-primary:hover {
         filter: brightness(0.95);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-primary {
+    html.dark[data-crm-workspace-skin='sky'] .crm-btn-primary,
+    html.dark[data-crm-workspace-skin='traklo'] .crm-btn-primary {
         color: rgb(12 74 110);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary {
+    html[data-crm-workspace-skin='sky'] .crm-btn-secondary,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-secondary {
         border-radius: var(--crm-radius-md);
         border: 1px solid rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
@@ -572,11 +678,13 @@ html.dark[data-crm-workspace-skin='sky'] {
         transition: background-color 0.15s ease;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary:hover {
+    html[data-crm-workspace-skin='sky'] .crm-btn-secondary:hover,
+    html[data-crm-workspace-skin='traklo'] .crm-btn-secondary:hover {
         background: rgb(var(--crm-surface-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-chip {
+    html[data-crm-workspace-skin='sky'] .crm-chip,
+    html[data-crm-workspace-skin='traklo'] .crm-chip {
         display: flex;
         flex-direction: column;
         gap: 0.125rem;
@@ -588,12 +696,14 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-chip strong {
+    html[data-crm-workspace-skin='sky'] .crm-chip strong,
+    html[data-crm-workspace-skin='traklo'] .crm-chip strong {
         font-size: 0.75rem;
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-pill {
+    html[data-crm-workspace-skin='sky'] .crm-pill,
+    html[data-crm-workspace-skin='traklo'] .crm-pill {
         border-radius: 999px;
         border: 1px solid rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
@@ -603,7 +713,8 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-html[data-crm-workspace-skin='sky'] .crm-pill--active {
+html[data-crm-workspace-skin='sky'] .crm-pill--active,
+html[data-crm-workspace-skin='traklo'] .crm-pill--active {
     border-color: rgb(var(--crm-accent) / 0.35);
     background: rgb(var(--crm-accent-soft));
     color: rgb(var(--crm-accent));
@@ -628,21 +739,25 @@ html[data-crm-workspace-skin='sky'] .crm-pill--active {
     @apply min-h-0 flex-1 overflow-y-auto px-5 py-5;
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell {
+html[data-crm-workspace-skin='sky'] .crm-wizard-shell,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell {
     border-color: rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-header {
+html[data-crm-workspace-skin='sky'] .crm-wizard-header,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-header {
     border-color: rgb(var(--crm-border));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-body {
+html[data-crm-workspace-skin='sky'] .crm-wizard-body,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-body {
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-grid-panel {
+html[data-crm-workspace-skin='sky'] .crm-grid-panel,
+html[data-crm-workspace-skin='traklo'] .crm-grid-panel {
     border-color: rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
@@ -732,13 +847,17 @@ html[data-crm-workspace-skin='sky'] .crm-grid-panel {
     accent-color: rgb(24 24 27);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-modal-backdrop {
+html[data-crm-workspace-skin='sky'] .crm-modal-backdrop,
+html[data-crm-workspace-skin='traklo'] .crm-modal-backdrop {
     background: rgb(15 23 42 / 0.45);
 }
 
 html[data-crm-workspace-skin='sky'] .crm-modal-panel,
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel,
 html[data-crm-workspace-skin='sky'] .crm-modal-form-shell,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell {
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell,
+html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell {
     border: 1px solid rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
@@ -747,15 +866,25 @@ html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell {
 }
 
 html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='date'],
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel input[type='date'],
 html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='datetime-local'],
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel input[type='datetime-local'],
 html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='time'],
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel input[type='time'],
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='date'],
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input[type='date'],
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='datetime-local'],
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input[type='datetime-local'],
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='time'],
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input[type='time'],
 html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field,
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel .crm-field,
 html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field--fluid,
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel .crm-field--fluid,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field--fluid {
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell .crm-field,
+html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field--fluid,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell .crm-field--fluid {
     border-color: rgb(var(--crm-border));
     border-radius: calc(var(--crm-radius-md) * 0.9);
     background: rgb(var(--crm-surface));
@@ -763,29 +892,45 @@ html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field--fluid {
 }
 
 html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='date']:focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel input[type='date']:focus,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='date']:focus,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input[type='date']:focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field:focus,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field:focus {
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel .crm-field:focus,
+html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field:focus,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell .crm-field:focus {
     border-color: rgb(var(--crm-accent));
 }
 
 html[data-crm-workspace-skin='sky'] .crm-checkbox,
+html[data-crm-workspace-skin='traklo'] .crm-checkbox,
 html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='checkbox'],
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='checkbox'] {
+html[data-crm-workspace-skin='traklo'] .crm-modal-panel input[type='checkbox'],
+html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='checkbox'],
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input[type='checkbox'] {
     accent-color: rgb(var(--crm-accent));
     border-color: rgb(var(--crm-border));
 }
 
 /* Поля мастера / модалки без явного crm-field (legacy-классы Tailwind) */
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell select,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell select,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell textarea,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell textarea,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell select,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell select,
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell textarea,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell textarea,
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
 html[data-crm-workspace-skin='sky'] .crm-modal-form-shell select,
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell select,
 html[data-crm-workspace-skin='sky'] .crm-modal-form-shell textarea,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox) {
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell textarea,
+html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox) {
     border-color: rgb(var(--crm-border)) !important;
     border-radius: var(--crm-radius-control, calc(var(--crm-radius-md) * 0.9)) !important;
     background: rgb(var(--crm-surface)) !important;
@@ -793,14 +938,23 @@ html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='check
 }
 
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell select:focus,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell select:focus,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell textarea:focus,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell textarea:focus,
 html[data-crm-workspace-skin='sky'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell select:focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell select:focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell textarea:focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell textarea:focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-form-shell select:focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell select:focus,
 html[data-crm-workspace-skin='sky'] .crm-modal-form-shell textarea:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus {
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell textarea:focus,
+html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
+html[data-crm-workspace-skin='traklo'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus {
     border-color: rgb(var(--crm-accent)) !important;
     outline: none;
 }
@@ -812,21 +966,26 @@ html[data-crm-radius='sharp'] .crm-field-display {
 }
 
 html[data-crm-workspace-skin='sky'] .crm-grid-panel .crm-btn-neutral,
-html[data-crm-workspace-skin='sky'] .crm-grid-panel .crm-field {
+html[data-crm-workspace-skin='traklo'] .crm-grid-panel .crm-btn-neutral,
+html[data-crm-workspace-skin='sky'] .crm-grid-panel .crm-field,
+html[data-crm-workspace-skin='traklo'] .crm-grid-panel .crm-field {
     border-radius: calc(var(--crm-radius-md) * 0.9);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-sidebar {
+html[data-crm-workspace-skin='sky'] .crm-sidebar,
+html[data-crm-workspace-skin='traklo'] .crm-sidebar {
     border-color: rgb(var(--crm-border));
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-sidebar .crm-sidebar-logo {
+html[data-crm-workspace-skin='sky'] .crm-sidebar .crm-sidebar-logo,
+html[data-crm-workspace-skin='traklo'] .crm-sidebar .crm-sidebar-logo {
     background: rgb(var(--crm-accent));
     color: rgb(var(--crm-accent-contrast, 255 255 255));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell {
+html[data-crm-workspace-skin='sky'] .crm-wizard-shell,
+html[data-crm-workspace-skin='traklo'] .crm-wizard-shell {
     border-radius: var(--crm-radius-xl);
 }
 

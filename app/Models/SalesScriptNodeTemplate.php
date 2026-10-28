@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\SalesScriptNodeKind;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesScriptNodeTemplate extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'sales_script_node_templates';
 
     protected $fillable = [

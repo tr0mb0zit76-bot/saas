@@ -180,9 +180,30 @@ function patchRouterVisit() {
     router.visit.__httpsPatched = true;
 }
 
+function patchRouterHttpMethods() {
+    for (const method of ['get', 'post', 'put', 'patch', 'delete', 'reload']) {
+        if (router[method].__httpsPatched) {
+            continue;
+        }
+
+        const original = router[method].bind(router);
+
+        router[method] = (href, ...rest) => {
+            if (typeof href === 'string' || href instanceof URL) {
+                return original(coerceHttpsUrl(href), ...rest);
+            }
+
+            return original(href, ...rest);
+        };
+
+        router[method].__httpsPatched = true;
+    }
+}
+
 ensureZiggyUsesPageProtocol();
 patchGlobalRoute();
 patchRouterVisit();
+patchRouterHttpMethods();
 
 router.on('before', (event) => {
     const visit = event.detail?.visit;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SaasFeatureCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -64,6 +65,30 @@ class PublicSiteController extends Controller
         ));
     }
 
+    protected function resolveCrmLoginUrl(): string
+    {
+        $crmHost = strtolower(trim((string) config('app.crm_domain')));
+        if ($crmHost === '') {
+            $crmHost = strtolower(trim((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost')));
+        }
+
+        /** @var list<string> $showcaseHosts */
+        $showcaseHosts = config('app.showcase_hosts', []);
+        $showcaseHost = strtolower(trim((string) ($showcaseHosts[0] ?? '')));
+
+        if ($showcaseHost !== '' && $showcaseHost === $crmHost) {
+            return '/login';
+        }
+
+        if (strtolower(trim((string) request()->getHost())) === $crmHost) {
+            return '/login';
+        }
+
+        $scheme = request()->isSecure() ? 'https' : 'http';
+
+        return sprintf('%s://%s/login', $scheme, $crmHost);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -71,11 +96,6 @@ class PublicSiteController extends Controller
     {
         $locale = $this->resolvePublicLocale();
         $translations = [];
-        $crmHost = trim((string) config('app.crm_domain'));
-        if ($crmHost === '') {
-            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'crm.avtoaliyans.ru';
-        }
-        $crmScheme = request()->isSecure() ? 'https' : 'http';
 
         foreach ($this->translationPathsForLocale($locale) as $translationsPath) {
             if (! is_file($translationsPath)) {
@@ -95,7 +115,7 @@ class PublicSiteController extends Controller
             'canRegister' => \Route::has('register'),
             'publicSite' => [
                 'texts' => $translations,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $this->resolveCrmLoginUrl(),
                 'active_locale' => $locale,
                 'available_locales' => [
                     ['code' => 'ru', 'label' => 'RU'],
@@ -198,46 +218,50 @@ class PublicSiteController extends Controller
             }
         }
 
+        $crmLoginUrl = $this->resolveCrmLoginUrl();
+
+        $planSummaries = SaasFeatureCatalog::planSummaries();
+        $plans = [];
+
+        foreach ($planSummaries as $summary) {
+            $key = (string) ($summary['key'] ?? '');
+            if ($key === '') {
+                continue;
+            }
+
+            $limits = is_array($summary['limits'] ?? null) ? $summary['limits'] : [];
+            $users = $limits['users'] ?? null;
+            $usersLabel = $users === null
+                ? (string) ($texts['plan_'.$key.'_users'] ?? 'без лимита по договору')
+                : (string) ($texts['plan_'.$key.'_users'] ?? ('до '.$users.' пользователей'));
+
+            $plans[] = [
+                'key' => $key,
+                'label' => (string) ($texts['plan_'.$key] ?? $summary['label'] ?? ucfirst($key)),
+                'users' => $usersLabel,
+                'limits' => $limits,
+                'featured' => $key === 'pro',
+            ];
+        }
+
         $crmHost = trim((string) config('app.crm_domain'));
         if ($crmHost === '') {
             $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost';
         }
         $crmScheme = request()->isSecure() ? 'https' : 'http';
 
-        /** @var array<string, array{label: string, limits: array<string, int|null>}> $planConfig */
-        $planConfig = config('saas-plans.plans', []);
-        $plans = [];
-
-        foreach (['start', 'pro', 'enterprise'] as $key) {
-            if (! isset($planConfig[$key])) {
-                continue;
-            }
-
-            $limits = $planConfig[$key]['limits'] ?? [];
-            $users = $limits['users'] ?? null;
-            $usersLabel = $users === null
-                ? 'без лимита по договору'
-                : 'до '.$users.' пользователей';
-
-            $plans[] = [
-                'key' => $key,
-                'label' => (string) ($planConfig[$key]['label'] ?? ucfirst($key)),
-                'users' => $usersLabel,
-                'featured' => $key === 'pro',
-            ];
-        }
-
         return [
             'canLogin' => \Route::has('login'),
             'texts' => $texts,
-            'crmLoginUrl' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            'crmLoginUrl' => $crmLoginUrl,
             'demoSignupUrl' => config('saas.demo_signup_enabled', false)
                 ? sprintf('%s://%s/demo/signup', $crmScheme, $crmHost)
                 : null,
             'plans' => $plans,
+            'planMatrix' => SaasFeatureCatalog::planMatrix(),
             'publicSite' => [
                 'texts' => $texts,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $crmLoginUrl,
             ],
         ];
     }

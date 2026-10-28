@@ -15,6 +15,7 @@ use App\Services\LeadPrintFormDraftService;
 use App\Services\OrderPrintFormDraftService;
 use App\Services\PrintForm\PrintFormBasicTermsService;
 use App\Services\PrintForm\PrintFormPlaceholderGuide;
+use App\Services\PrintForm\TenantPrintPlaceholderAliasService;
 use App\Services\PrintFormDraftResponseBuilder;
 use App\Services\PrintFormTemplateOrderEligibility;
 use App\Services\PrintFormVariableCatalog;
@@ -25,6 +26,7 @@ use App\Support\PrintFormImageOverlayPlaceholders;
 use App\Support\PrintFormPlaceholderPathResolver;
 use App\Support\PrintFormTemplateTransportScope;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -45,6 +47,7 @@ class SettingsTemplateController extends Controller
         private readonly PrintFormPlaceholderPathResolver $placeholderPathResolver,
         private readonly PrintFormBasicTermsService $basicTermsService,
         private readonly PrintFormPlaceholderGuide $placeholderGuide,
+        private readonly TenantPrintPlaceholderAliasService $placeholderAliasService,
     ) {}
 
     public function index(Request $request): Response
@@ -181,7 +184,11 @@ class SettingsTemplateController extends Controller
                 ->values();
         }
 
-        $pageTab = $request->string('tab')->toString() === 'basic-terms' ? 'basic-terms' : 'templates';
+        $pageTab = match ($request->string('tab')->toString()) {
+            'basic-terms' => 'basic-terms',
+            'aliases' => 'aliases',
+            default => 'templates',
+        };
         $basicTermsParty = $request->string('party')->toString();
         $basicTermsParty = in_array($basicTermsParty, [PrintFormBasicTerm::PARTY_CUSTOMER, PrintFormBasicTerm::PARTY_CARRIER], true)
             ? $basicTermsParty
@@ -208,6 +215,15 @@ class SettingsTemplateController extends Controller
             'orderVariableOptions' => $this->variableCatalog->orderOptions(),
             'leadVariableOptions' => $this->variableCatalog->leadOptions(),
             'placeholderGuide' => $this->placeholderGuide->toArray(),
+            'tenantPlaceholderAliases' => $this->placeholderAliasService->listForTenant(TenantContext::get()),
+            'catalogPathOptions' => collect($this->variableCatalog->pathLabelIndex())
+                ->map(static fn (string $label, string $path): array => [
+                    'value' => $path,
+                    'label' => $label,
+                ])
+                ->sortBy('label', SORT_FLAG_CASE | SORT_NATURAL)
+                ->values()
+                ->all(),
             'documentPreview' => DocumentPreview::inertiaMeta(),
             'basicTermsEditor' => [
                 'enabled' => $this->basicTermsService->tablesReady(),
@@ -255,6 +271,25 @@ class SettingsTemplateController extends Controller
                 'contractor_id' => $contractorId > 0 ? $contractorId : null,
             ]))
             ->with('success', "Базовые условия {$partyLabel} ({$scopeLabel}) сохранены.");
+    }
+
+    public function updatePlaceholderAliases(Request $request): RedirectResponse
+    {
+        abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+
+        $tenant = TenantContext::get();
+        abort_unless($tenant !== null, 403);
+
+        $aliases = $request->input('aliases', []);
+        if (! is_array($aliases)) {
+            $aliases = [];
+        }
+
+        $this->placeholderAliasService->saveForTenant($tenant, $aliases);
+
+        return redirect()
+            ->route('settings.templates.index', ['tab' => 'aliases'])
+            ->with('success', 'Свои плейсхолдеры сохранены.');
     }
 
     public function store(StorePrintFormTemplateRequest $request): RedirectResponse

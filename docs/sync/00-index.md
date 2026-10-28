@@ -15,6 +15,9 @@
 
 - **saas-migration-orchestrator** — автономный переезд (bootstrap, БД, migrate, smoke)
 - **saas-architect** — архитектура, ADR, тарифы
+- **saas-security** — изоляция, сессия, доступ
+- **saas-qa** — приёмка и тесты изоляции
+- **saas-privacy** — персональные данные, 152-ФЗ, оферта
 
 ## Архитектура
 

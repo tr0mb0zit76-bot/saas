@@ -5,6 +5,7 @@ namespace App\Services\Reports;
 use App\Models\User;
 use App\Services\CompletedOrderFinancialAnalytics;
 use App\Support\OrderViewAuthorization;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -69,7 +70,9 @@ class FinancialReportsService
         }
 
         $query = DB::table('orders')
-            ->whereBetween('order_date', [$from->toDateString(), $to->toDateString()])
+            ->whereBetween('order_date', [$from->toDateString(), $to->toDateString()]);
+        TenantContext::restrict($query, 'orders.tenant_id');
+        $query
             ->when(
                 Schema::hasColumn('orders', 'deleted_at'),
                 fn ($q) => $q->whereNull('orders.deleted_at'),
@@ -197,7 +200,9 @@ class FinancialReportsService
         $nameSql = $this->contractorDisplayNameSql('c');
 
         $cellsQuery = DB::table('orders')
-            ->leftJoin('contractors as c', 'c.id', '=', 'orders.'.$contractorColumn)
+            ->leftJoin('contractors as c', 'c.id', '=', 'orders.'.$contractorColumn);
+        TenantContext::restrict($cellsQuery, 'orders.tenant_id');
+        $cellsQuery
             ->whereNotNull('orders.'.$contractorColumn)
             ->whereBetween('orders.order_date', [$start->toDateString(), $end->toDateString()])
             ->when(

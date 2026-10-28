@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Support\AiInteractionEventType;
 use App\Support\AiInteractionFeature;
 use App\Support\AiInteractionOutcome;
+use App\Support\TenantContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -30,7 +32,7 @@ class AiUsageAnalyticsService
 
         $since = Carbon::now()->subDays($days);
 
-        $turnsQuery = DB::table('ai_interaction_events')
+        $turnsQuery = $this->events()
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
             ->where('created_at', '>=', $since);
 
@@ -46,7 +48,7 @@ class AiUsageAnalyticsService
         ];
         $weakInList = "'".implode("','", $weakOutcomes)."'";
 
-        $topQuestions = DB::table('ai_interaction_events')
+        $topQuestions = $this->events()
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
             ->where('created_at', '>=', $since)
             ->whereNotNull('prompt_fingerprint')
@@ -68,7 +70,7 @@ class AiUsageAnalyticsService
             ->values()
             ->all();
 
-        $recentWeak = DB::table('ai_interaction_events')
+        $recentWeak = $this->events()
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
             ->where('created_at', '>=', $since)
             ->whereIn('outcome', [
@@ -99,7 +101,7 @@ class AiUsageAnalyticsService
             ->values()
             ->all();
 
-        $toolStats = DB::table('ai_interaction_events')
+        $toolStats = $this->events()
             ->where('event_type', AiInteractionEventType::ToolInvoked->value)
             ->where('created_at', '>=', $since)
             ->whereNotNull('tool_name')
@@ -120,7 +122,7 @@ class AiUsageAnalyticsService
             ->values()
             ->all();
 
-        $intakeStats = DB::table('ai_interaction_events')
+        $intakeStats = $this->events()
             ->where('event_type', AiInteractionEventType::IntakeExtracted->value)
             ->where('created_at', '>=', $since)
             ->selectRaw('COUNT(*) as total, SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) as failed')
@@ -132,7 +134,7 @@ class AiUsageAnalyticsService
             ->pluck('total', 'feature')
             ->all();
 
-        $dailyTurns = DB::table('ai_interaction_events')
+        $dailyTurns = $this->events()
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
             ->where('created_at', '>=', $since)
             ->selectRaw('DATE(created_at) as day, COUNT(*) as total')
@@ -219,7 +221,7 @@ class AiUsageAnalyticsService
             return false;
         }
 
-        $row = DB::table('ai_interaction_events')
+        $row = $this->events()
             ->where('id', $eventId)
             ->where('feature', AiInteractionFeature::CommandBar->value)
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
@@ -247,7 +249,7 @@ class AiUsageAnalyticsService
         $salesBook['gap_dismissed_by'] = $user->id;
         $metadata['sales_book'] = $salesBook;
 
-        DB::table('ai_interaction_events')
+        $this->events()
             ->where('id', $eventId)
             ->update([
                 'metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE),
@@ -262,7 +264,7 @@ class AiUsageAnalyticsService
      */
     private function salesBookKnowledgeGaps(Carbon $since, int $limit): array
     {
-        return DB::table('ai_interaction_events')
+        return $this->events()
             ->where('feature', AiInteractionFeature::CommandBar->value)
             ->where('event_type', AiInteractionEventType::ConversationTurn->value)
             ->where('created_at', '>=', $since)
@@ -306,7 +308,7 @@ class AiUsageAnalyticsService
      */
     private function commandBarFeedbackSummary(Carbon $since, int $limit): array
     {
-        $base = DB::table('ai_interaction_events')
+        $base = $this->events()
             ->where('feature', AiInteractionFeature::CommandBar->value)
             ->where('event_type', AiInteractionEventType::UserFeedback->value)
             ->where('created_at', '>=', $since);
@@ -336,5 +338,16 @@ class AiUsageAnalyticsService
             'not_helpful' => $notHelpful,
             'recent' => $recent,
         ];
+    }
+
+    private function events(): Builder
+    {
+        $query = DB::table('ai_interaction_events');
+
+        if (Schema::hasColumn('ai_interaction_events', 'tenant_id')) {
+            TenantContext::restrict($query, 'ai_interaction_events.tenant_id');
+        }
+
+        return $query;
     }
 }

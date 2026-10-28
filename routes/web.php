@@ -39,6 +39,7 @@ use App\Http\Controllers\MessengerController;
 use App\Http\Controllers\Mobile\MobileAppUpdateController;
 use App\Http\Controllers\Mobile\MobileCounterpartyShellController;
 use App\Http\Controllers\Mobile\MobileShellController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Orders\OrderBasicTermsController;
 use App\Http\Controllers\Orders\OrderDocumentsModalController;
 use App\Http\Controllers\Orders\OrderDocumentWorkflowController;
@@ -229,8 +230,8 @@ Route::middleware('throttle:30,1')->prefix('external/invite')->name('external.in
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'show'])->name('onboarding.show');
-    Route::post('/onboarding', [\App\Http\Controllers\OnboardingController::class, 'store'])->name('onboarding.store');
+    Route::get('/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('onboarding.store');
 
     Route::post('/agent/command-bar/chat', [CommandBarAgentController::class, 'chat'])
         ->middleware('throttle:agent-command-bar')
@@ -268,7 +269,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/leads/{lead}/attachments', 'storeAttachment')->name('leads.attachments.store');
         Route::delete('/leads/{lead}/attachments/{leadAttachment}', 'destroyAttachment')->name('leads.attachments.destroy');
         Route::get('/leads/{lead}/attachments/{leadAttachment}/download', 'downloadAttachment')->name('leads.attachments.download');
-        Route::get('/leads/{lead}/templates/{printFormTemplate}/draft', 'generateCommercialDraft')->name('leads.templates.generate-draft');
+        Route::get('/leads/{lead}/templates/{printFormTemplate}/draft', 'generateCommercialDraft')
+            ->middleware('feature:print')
+            ->name('leads.templates.generate-draft');
         Route::post('/leads/{lead}/convert', 'convert')->name('leads.convert');
         Route::get('/leads/{lead}/activity-timeline', [ActivityTimelineController::class, 'showForLead'])->name('leads.activity-timeline');
         Route::post('/leads/{lead}/offers/{offer}/send-email', [LeadOfferMailController::class, 'send'])->name('leads.offers.send-email');
@@ -409,10 +412,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/{post}/status', [LoadBoardController::class, 'updateStatus'])->name('status.update');
         Route::post('/{post}/ati/prepare', [LoadBoardController::class, 'prepareAti'])->name('ati.prepare');
     });
-    Route::get('/disposition', [DispositionController::class, 'index'])->middleware('visibility.area:orders')->name('disposition.index');
-    Route::post('/disposition/entries', [DispositionController::class, 'upsert'])->middleware('visibility.area:orders')->name('disposition.entries.upsert');
+    Route::get('/disposition', [DispositionController::class, 'index'])->middleware(['visibility.area:orders', 'feature:disposition'])->name('disposition.index');
+    Route::post('/disposition/entries', [DispositionController::class, 'upsert'])->middleware(['visibility.area:orders', 'feature:disposition'])->name('disposition.entries.upsert');
 
-    Route::prefix('company-planning')->name('company-planning.')->middleware('company.planning')->group(function () {
+    Route::prefix('company-planning')->name('company-planning.')->middleware(['company.planning', 'feature:company_planning'])->group(function () {
         Route::get('/', [CompanyPlanningController::class, 'index'])->name('index');
         Route::post('/', [CompanyPlanningController::class, 'store'])->name('store');
         Route::get('/{initiative}', [CompanyPlanningController::class, 'show'])->name('show');
@@ -466,7 +469,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('orders.portal-invites.carrier.store');
             Route::post('/orders/{order}/portal-invites/customer', [OrderPortalInviteController::class, 'storeCustomer'])
                 ->name('orders.portal-invites.customer.store');
-            Route::get('/orders/{order}/templates/{printFormTemplate}/draft', 'generateDocumentDraft')->name('orders.templates.generate-draft');
+            Route::get('/orders/{order}/templates/{printFormTemplate}/draft', 'generateDocumentDraft')
+                ->middleware('feature:print')
+                ->name('orders.templates.generate-draft');
             Route::match(['patch', 'post'], '/orders/{order}/inline', 'inlineUpdate')->name('orders.inline-update');
             Route::post('/orders/{order}/basic-terms/promote-to-contractor', [OrderBasicTermsController::class, 'promoteToContractor'])
                 ->name('orders.basic-terms.promote');
@@ -480,7 +485,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:orders')
         ->name('orders.activity-timeline');
 
-    Route::controller(OrderDocumentWorkflowController::class)->middleware('visibility.area:orders')->group(function () {
+    Route::controller(OrderDocumentWorkflowController::class)->middleware(['visibility.area:orders', 'feature:print'])->group(function () {
         Route::post('/orders/{order}/documents/from-template', 'storeFromTemplate')->name('orders.documents.from-template');
         Route::post('/orders/{order}/documents/{orderDocument}/request-approval', 'requestApproval')->name('orders.documents.request-approval');
         Route::post('/orders/{order}/documents/{orderDocument}/approve', 'approve')->name('orders.documents.approve');
@@ -511,7 +516,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/roles/{role}', 'destroy')->name('roles.destroy');
     });
 
-    Route::middleware('visibility.area:settings_system')->controller(SettingsAiAnalyticsController::class)->group(function () {
+    Route::middleware(['visibility.area:settings_system', 'feature:ai_analytics'])->controller(SettingsAiAnalyticsController::class)->group(function () {
         Route::get('/settings/ai-analytics', 'index')->name('settings.ai-analytics');
         Route::delete('/settings/ai-analytics/sales-book-gaps/{event}', 'dismissSalesBookGap')
             ->whereNumber('event')
@@ -541,9 +546,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/settings/mcp-integrations', 'update')->name('settings.mcp-integrations.update');
     });
 
-    Route::controller(SettingsTemplateController::class)->middleware('visibility.area:settings')->group(function () {
+    Route::controller(SettingsTemplateController::class)->middleware(['visibility.area:settings', 'feature:print'])->group(function () {
         Route::get('/settings/templates', 'index')->name('settings.templates.index');
         Route::put('/settings/templates/basic-terms', 'updateBasicTerms')->name('settings.templates.basic-terms.update');
+        Route::put('/settings/templates/placeholder-aliases', 'updatePlaceholderAliases')->name('settings.templates.placeholder-aliases.update');
         Route::post('/settings/templates', 'store')->name('settings.templates.store');
         Route::patch('/settings/templates/{printFormTemplate}', 'update')->name('settings.templates.update');
         Route::delete('/settings/templates/{printFormTemplate}', 'destroy')->name('settings.templates.destroy');
@@ -551,6 +557,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/settings/templates/{printFormTemplate}/generate-order-draft', 'generateOrderDraft')->name('settings.templates.generate-order-draft');
         Route::get('/settings/templates/{printFormTemplate}/generate-lead-draft', 'generateLeadDraft')->name('settings.templates.generate-lead-draft');
     });
+
+    Route::patch('/documents/orders/{order}/entered-in-1c', [DocumentRegistryController::class, 'updateEnteredIn1C'])
+        ->middleware(['visibility.area.any:documents|orders', 'feature:integrations'])
+        ->name('documents.orders.entered-in-1c');
 
     Route::controller(SettingsBusinessProcessController::class)->middleware('visibility.area:settings')->group(function () {
         Route::get('/settings/business-processes', 'index')->name('settings.business-processes.index');
@@ -713,19 +723,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/finance/management-accounting/categories/{category}', [ManagementAccountingImportController::class, 'destroyCategory'])
         ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.categories.destroy');
-    Route::get('/budgeting', [BudgetingController::class, 'index'])->name('budgeting.index');
-    Route::patch('/budgeting/scenario', [BudgetingController::class, 'updateScenario'])->name('budgeting.scenario.update');
-    Route::patch('/budgeting/sales-targets', [BudgetingController::class, 'updateSalesTargets'])->name('budgeting.sales-targets.update');
-    Route::post('/budgeting/opex-articles', [BudgetingController::class, 'storeOpexArticle'])->name('budgeting.opex-articles.store');
-    Route::patch('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'updateOpexArticle'])->name('budgeting.opex-articles.update');
-    Route::delete('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'destroyOpexArticle'])->name('budgeting.opex-articles.destroy');
-    Route::post('/budgeting/plan-snapshots', [BudgetingController::class, 'freezePlan'])->name('budgeting.plan-snapshots.store');
+    Route::middleware('feature:budgeting')->group(function () {
+        Route::get('/budgeting', [BudgetingController::class, 'index'])->name('budgeting.index');
+        Route::patch('/budgeting/scenario', [BudgetingController::class, 'updateScenario'])->name('budgeting.scenario.update');
+        Route::patch('/budgeting/sales-targets', [BudgetingController::class, 'updateSalesTargets'])->name('budgeting.sales-targets.update');
+        Route::post('/budgeting/opex-articles', [BudgetingController::class, 'storeOpexArticle'])->name('budgeting.opex-articles.store');
+        Route::patch('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'updateOpexArticle'])->name('budgeting.opex-articles.update');
+        Route::delete('/budgeting/opex-articles/{opexArticle}', [BudgetingController::class, 'destroyOpexArticle'])->name('budgeting.opex-articles.destroy');
+        Route::post('/budgeting/plan-snapshots', [BudgetingController::class, 'freezePlan'])->name('budgeting.plan-snapshots.store');
+    });
     Route::get('/documents', [DocumentRegistryController::class, 'index'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.index');
     Route::post('/documents', [DocumentRegistryController::class, 'store'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.store');
     Route::post('/documents/optimize-pdf', DocumentOptimizeController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.optimize-pdf');
     Route::post('/documents/estimate-upload-budget', DocumentUploadBudgetEstimateController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.estimate-upload-budget');
     Route::patch('/documents/{document}', [DocumentRegistryController::class, 'update'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.update');
-    Route::patch('/documents/orders/{order}/entered-in-1c', [DocumentRegistryController::class, 'updateEnteredIn1C'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.entered-in-1c');
     Route::patch('/documents/orders/{order}/track-received', [DocumentRegistryController::class, 'updateTrackReceived'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.track-received');
     Route::patch('/documents/orders/{order}/edo-acknowledgement', [DocumentRegistryController::class, 'updateEdoAcknowledgement'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.edo-acknowledgement');
     Route::delete('/documents/{document}', [DocumentRegistryController::class, 'destroy'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.destroy');
@@ -788,7 +799,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::redirect('/modules/counter', '/sales-assistant/counter')
         ->middleware('visibility.area:sales_assistant_counter');
 
-    Route::middleware('visibility.area:modules_how_much_fits')->group(function () {
+    Route::middleware(['visibility.area:modules_how_much_fits', 'feature:how_much_fits'])->group(function () {
         Route::controller(LoadingPlannerController::class)->prefix('modules/how-much-fits')->name('modules.how-much-fits.')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/projects', 'storeProject')->name('projects.store');
@@ -870,7 +881,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/mobile/messenger', fn () => Inertia::render('Mobile/Messenger'))->name('mobile.messenger.app');
 
-    Route::prefix('mobile/shell')->name('mobile.shell.')->group(function (): void {
+    Route::prefix('mobile/shell')->name('mobile.shell.')->middleware('feature:traklo_mobile')->group(function (): void {
         Route::get('/tasks', [MobileShellController::class, 'tasks'])->name('tasks');
         Route::get('/orders', [MobileShellController::class, 'orders'])->name('orders');
         Route::get('/documents', [MobileShellController::class, 'documents'])->name('documents');
@@ -888,7 +899,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/link-preview', [MobileShellController::class, 'linkPreview'])->name('link-preview');
     });
 
-    Route::prefix('mobile/shell/counterparty')->name('mobile.shell.counterparty.')->group(function (): void {
+    Route::prefix('mobile/shell/counterparty')->name('mobile.shell.counterparty.')->middleware('feature:traklo_mobile')->group(function (): void {
         Route::get('/orders', [MobileCounterpartyShellController::class, 'orders'])->name('orders');
         Route::get('/orders/{order}/summary', [MobileCounterpartyShellController::class, 'orderSummary'])->name('orders.summary');
         Route::get('/orders/{order}/document-slots', [MobileCounterpartyShellController::class, 'orderDocumentSlots'])->name('orders.document-slots');
@@ -905,7 +916,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::prefix('integrations')->group(function () {
+// AA Astral/1C-Fresh stubs — quarantined (SAAS_LEGACY_AA_INTEGRATIONS=false by default).
+Route::prefix('integrations')->middleware('legacy.aa.integrations')->group(function () {
     Route::post('/astral/epd/webhook', AstralEpdWebhookController::class)
         ->middleware('verify.astral.epd.signature')
         ->name('integrations.astral.epd.webhook');

@@ -4,44 +4,51 @@ require_once __DIR__.'/temp-dir.php';
 
 configure_phpword_temp_dir(dirname(__DIR__));
 
+use App\Http\Middleware\AbortCrmOnPlatformHost;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureCanManageSalesScripts;
 use App\Http\Middleware\EnsureCompanyPlanningAccess;
-use App\Http\Middleware\EnsureSettingsVisibilityAccess;
-use App\Http\Middleware\EnsureVisibilityAreaAccess;
-use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
-use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureFeatureEnabled;
+use App\Http\Middleware\EnsureLegacyAaIntegrationsEnabled;
 use App\Http\Middleware\EnsureOnboardingComplete;
-use App\Http\Middleware\EnsureTenantWritable;
 use App\Http\Middleware\EnsurePlatformAdmin;
+use App\Http\Middleware\EnsureSettingsVisibilityAccess;
+use App\Http\Middleware\EnsureTenantWritable;
+use App\Http\Middleware\EnsureVisibilityAnyAreaAccess;
+use App\Http\Middleware\EnsureVisibilityAreaAccess;
+use App\Http\Middleware\ForceLabHttpSessionCookies;
 use App\Http\Middleware\ForcePlatformRootUrl;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\IdentifyTenant;
 use App\Http\Middleware\ReconnectOnPreparedStatementError;
-use App\Http\Middleware\SetTenantFromAuthenticatedUser;
 use App\Http\Middleware\RejectExternalFromInternalRoutes;
+use App\Http\Middleware\SetTenantFromAuthenticatedUser;
 use App\Http\Middleware\VerifyAstralEpdWebhookSignature;
 use App\Http\Middleware\VerifyOneCFreshToken;
 use App\Support\PlatformHost;
 use App\Support\UserFacingDatabaseMessageResolver;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
+        web: [
+            __DIR__.'/../routes/platform.php',
+            __DIR__.'/../routes/web.php',
+        ],
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function (): void {
-            Route::middleware('web')->group(base_path('routes/platform.php'));
-        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
@@ -61,16 +68,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'can.manage.sales.scripts' => EnsureCanManageSalesScripts::class,
             'verify.astral.epd.signature' => VerifyAstralEpdWebhookSignature::class,
             'verify.onec.token' => VerifyOneCFreshToken::class,
+            'legacy.aa.integrations' => EnsureLegacyAaIntegrationsEnabled::class,
             'feature' => EnsureFeatureEnabled::class,
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
 
         $middleware->web(prepend: [
+            ForceLabHttpSessionCookies::class,
             IdentifyTenant::class,
             ForcePlatformRootUrl::class,
         ]);
 
         $middleware->web(append: [
+            AbortCrmOnPlatformHost::class,
             SetTenantFromAuthenticatedUser::class,
             EnsureTenantWritable::class,
             EnsureOnboardingComplete::class,
@@ -90,12 +100,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->priority([
+            ForceLabHttpSessionCookies::class,
             IdentifyTenant::class,
-            \Illuminate\Cookie\Middleware\EncryptCookies::class,
-            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class,
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            EncryptCookies::class,
+            AddQueuedCookiesToResponse::class,
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            AuthenticatesRequests::class,
             SetTenantFromAuthenticatedUser::class,
             EnsureTenantWritable::class,
             EnsureOnboardingComplete::class,
@@ -122,7 +133,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->header('X-Inertia')) {
-                return redirect()->back()->with('flash', [
+                $fallback = $request->fullUrl() !== '' ? $request->fullUrl() : url('/');
+
+                return redirect()->back(fallback: $fallback)->with('flash', [
                     'type' => 'error',
                     'message' => $message,
                 ]);
@@ -146,15 +159,21 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => $message], 422);
             }
 
+            // GET + DB error: never redirect — back()/fallback to same URL causes ERR_TOO_MANY_REDIRECTS.
+            if ($request->isMethodSafe()) {
+                $hint = ' Lab: pwsh -File scripts/repair-lab-after-pull.ps1 -Full';
+
+                return response($message.$hint, 503)
+                    ->header('Content-Type', 'text/plain; charset=UTF-8');
+            }
+
             $flash = [
                 'type' => 'error',
                 'message' => $message,
             ];
 
-            if ($request->header('X-Inertia')) {
-                return redirect()->back()->with('flash', $flash);
-            }
+            $fallback = $request->fullUrl() !== '' ? $request->fullUrl() : url('/');
 
-            return redirect()->back()->with('flash', $flash);
+            return redirect()->back(fallback: $fallback)->with('flash', $flash);
         });
     })->create();

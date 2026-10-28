@@ -8,7 +8,7 @@
 
 param(
     [string]$DatabaseName = 'saas_crm',
-    [string[]]$HostCandidates = @('127.0.1.21', '127.0.0.1', 'localhost'),
+    [string[]]$HostCandidates = @(),
     [string]$User = 'root',
     [string]$Password = '',
     [string]$OspanelRoot = 'C:\OSPanel',
@@ -16,9 +16,18 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'ospanel-mysql.ps1')
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $envFile = Join-Path $repoRoot '.env'
 $phpFallback = Join-Path $repoRoot 'scripts\provision-database.php'
+
+if (-not $OspanelRoot -or -not (Test-Path $OspanelRoot)) {
+    $OspanelRoot = Get-OspanelRoot
+}
+if ($HostCandidates.Count -eq 0) {
+    $HostCandidates = @(Get-OspanelMySqlHostCandidates)
+}
 
 function Get-EnvValue {
     param([string]$Key)
@@ -26,31 +35,6 @@ function Get-EnvValue {
     $line = Get-Content $envFile | Where-Object { $_ -match "^$Key=" } | Select-Object -First 1
     if (-not $line) { return $null }
     return ($line -split '=', 2)[1].Trim().Trim('"').Trim("'")
-}
-
-function Find-MySqlClient {
-    param([string]$OspanelRoot)
-
-    $cmd = Get-Command mysql -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
-
-    $searchRoots = @(
-        (Join-Path $OspanelRoot 'modules\database'),
-        (Join-Path $OspanelRoot 'modules\Database'),
-        'C:\OSPanel\modules\database',
-        'C:\OSPanel\modules\Database'
-    ) | Select-Object -Unique
-
-    foreach ($root in $searchRoots) {
-        if (-not (Test-Path $root)) { continue }
-
-        $exe = Get-ChildItem -Path $root -Recurse -Filter 'mysql.exe' -ErrorAction SilentlyContinue |
-            Select-Object -First 1 -ExpandProperty FullName
-
-        if ($exe) { return $exe }
-    }
-
-    return $null
 }
 
 function Invoke-PhpDatabaseProvision {
@@ -100,12 +84,12 @@ Write-Host "Target database: $DatabaseName"
 if ($WhatIf) {
     Write-Host "[WhatIf] Would try hosts: $($HostCandidates -join ', ')" -ForegroundColor Yellow
     Write-Host "[WhatIf] SQL: $sql"
-    $mysql = Find-MySqlClient -OspanelRoot $OspanelRoot
+    $mysql = Find-OspanelMySqlClient -OspanelRoot $OspanelRoot
     Write-Host "[WhatIf] mysql client: $(if ($mysql) { $mysql } else { 'not found — would use PHP fallback' })"
     exit 0
 }
 
-$mysql = Find-MySqlClient -OspanelRoot $OspanelRoot
+$mysql = Find-OspanelMySqlClient -OspanelRoot $OspanelRoot
 $connected = $false
 $workingHost = $null
 

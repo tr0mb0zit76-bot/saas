@@ -192,6 +192,7 @@ class PilotSmokeTest extends SaasTestCase
         $settings['features'] = ['mail' => true];
         $pilotTenant->update(['settings' => $settings]);
         TenantContext::bypass(false);
+        config(['saas.default_tenant_slug' => $slug]);
         TenantContext::set($pilotTenant->fresh());
 
         $this->actingAs($owner->fresh())->get('/mail')->assertOk();

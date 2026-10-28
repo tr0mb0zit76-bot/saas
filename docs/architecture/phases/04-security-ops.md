@@ -7,7 +7,7 @@
 - [x] Audit log (orders, money, roles, tenant changes, documents, invites)
 - [x] Backup command `saas:backup-database` + runbook restore drill
 - [x] CI/CD: `.github/workflows/ci.yml` — pint, SaaS tests, npm build
-- [ ] Staging environment (отдельный host — manual)
+- [ ] Staging environment (отдельный host — manual; **prep done:** ADR-014 + `.env.staging.example` + `scripts/deploy-staging.sh` + `docs/sync/staging-checklist.md`)
 - [ ] Миграции через queue (не ручной SSH)
 - [x] Rate limits: signup (3/60), login (5), API (`throttle:api` 180/min)
 - [ ] 2FA для tenant-admin
