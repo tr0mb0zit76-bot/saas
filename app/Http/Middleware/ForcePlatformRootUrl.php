@@ -15,10 +15,16 @@ class ForcePlatformRootUrl
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (PlatformHost::matchesRequest($request)) {
-            URL::forceRootUrl($request->getScheme().'://'.$request->getHost());
+        if (! PlatformHost::matchesRequest($request)) {
+            return $next($request);
         }
 
-        return $next($request);
+        URL::forceRootUrl($request->getScheme().'://'.$request->getHost());
+
+        try {
+            return $next($request);
+        } finally {
+            URL::forceRootUrl(rtrim((string) config('app.url'), '/'));
+        }
     }
 }

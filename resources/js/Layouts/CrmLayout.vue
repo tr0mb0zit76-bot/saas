@@ -854,7 +854,13 @@ const MENU_SAAS_FEATURES = {
     'modules-import-cost': 'import_cost',
     'modules-proposal-templates': 'proposals_html',
     'mcp-integrations': 'mcp_read',
+    'templates': 'print',
     'finance-management-accounting': 'management_accounting',
+    'finance-budgeting': 'budgeting',
+    disposition: 'disposition',
+    'company-planning': 'company_planning',
+    'modules-how-much-fits': 'how_much_fits',
+    'ai-analytics': 'ai_analytics',
     'finance-cashflow': 'payment_schedules',
     'finance-reconciliation': 'payment_schedules',
 };

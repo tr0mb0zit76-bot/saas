@@ -40,7 +40,7 @@ class AiToolAuditLogger
         }
 
         try {
-            DB::table('ai_tool_audit_logs')->insert([
+            $auditRow = [
                 'user_id' => $user->id,
                 'tool' => $tool,
                 'arguments' => json_encode($this->redact($arguments), JSON_UNESCAPED_UNICODE),
@@ -49,7 +49,13 @@ class AiToolAuditLogger
                 'ip_address' => request()->ip(),
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            if (Schema::hasColumn('ai_tool_audit_logs', 'tenant_id')) {
+                $auditRow['tenant_id'] = $user->tenant_id;
+            }
+
+            DB::table('ai_tool_audit_logs')->insert($auditRow);
         } catch (Throwable) {
             // Аудит не должен ломать вызов tool.
         }

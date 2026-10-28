@@ -3,6 +3,7 @@
 namespace App\Support\MailSync;
 
 use App\Models\MailBlockedSender;
+use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,7 @@ final class MailSyncSpamBlocklist
 
     public static function forgetCache(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::cacheKey());
     }
 
     public static function isBlocked(?string $email): bool
@@ -43,7 +44,7 @@ final class MailSyncSpamBlocklist
         $ttl = max(60, (int) config('mail_sync.spam_blocklist_cache_seconds', 300));
 
         /** @var array<string, true> $cached */
-        $cached = Cache::remember(self::CACHE_KEY, $ttl, function (): array {
+        $cached = Cache::remember(self::cacheKey(), $ttl, function (): array {
             $emails = [];
 
             foreach (MailBlockedSender::query()->pluck('email') as $email) {
@@ -58,6 +59,11 @@ final class MailSyncSpamBlocklist
         });
 
         return $cached;
+    }
+
+    private static function cacheKey(): string
+    {
+        return self::CACHE_KEY.':'.(TenantContext::id() ?? 'none');
     }
 
     private static function normalizeEmail(?string $email): string

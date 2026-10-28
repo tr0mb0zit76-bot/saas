@@ -13,9 +13,9 @@ class IdentifyTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (PlatformHost::matchesRequest($request)) {
-            TenantContext::bypass(true);
+        TenantContext::clear();
 
+        if (PlatformHost::matchesRequest($request)) {
             return $next($request);
         }
 

@@ -34,6 +34,7 @@ use App\Support\MailSync\MailContractorAllowlist;
 use App\Support\OwnFleetCatalog;
 use App\Support\PartyNormsPenalties;
 use App\Support\PaymentFormDictionary;
+use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -1474,6 +1475,7 @@ class ContractorController extends Controller
                 $query->where('customer_id', $contractor->id)
                     ->orWhere('carrier_id', $contractor->id);
             });
+        TenantContext::restrict($ordersQuery, 'orders.tenant_id');
 
         if (Schema::hasColumn('orders', 'deleted_at')) {
             $ordersQuery->whereNull('deleted_at');

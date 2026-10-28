@@ -1,103 +1,91 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-07-13 (вечер) · **Фаза:** Phase 4 · **Ветка:** `cursor/traklo-session-integrate-9d42` → PR в `main`
+**Обновлено:** 2026-10-26 · **Фаза:** Phase 4 (staging prep) · **Ветка:** `cursor/traklo-session-integrate-9d42` → PR в `main`  
+**HEAD (at handoff):** `5774975` + uncommitted staging-prep artifacts
+
+## Команда архитектора (2026-10-26)
+
+Роли в `.cursor/agents/`: `saas-architect`, `saas-security`, `saas-qa`, `saas-privacy`. Staging-хост — `saas-migration-orchestrator`.
+
+Изоляция, которую закрыли в коде: сырой SQL выручки фильтрует `tenant_id`; CRM на platform-хосте отдаёт 404 и больше не включает bypass; корень URL платформы сбрасывается после запроса; модели с колонкой `tenant_id` получили `BelongsToTenant`; журнал AI и блок-лист почты режутся по арендатору; тариф Start не открывает бюджет, диспозицию, план компании, «сколько влезет», mobile shell и AI-аналитику; сканы водителя пишутся в хранилище арендатора; экспорт содержит людей, `saas` стирает данные одного арендатора через `TenantErasureService`. `php artisan test tests/Feature/Saas` — **58 passed** (2026-10-26, БД `127.0.1.12` / `saas_crm_test`).
+
+Не из кода: VM/DNS/TLS staging, оферта и решение «где хостинг».
 
 ---
 
-## ОТДАТЬ (эта сессия)
+## План доработок (product) — 2026-10-15
 
-### Traklo workspace_skin — расследование + фиксы
+Канон: [`docs/architecture/saas-refinement-backlog.md`](../architecture/saas-refinement-backlog.md)
 
-**Симптом:** Sky «работает» сам по себе; Traklo после выбора визуально почти как Sky или сбрасывается после F5 / повторного открытия модалки.
+**Сделано в коде (автономно):**
+- ADR-015/016; `SAAS_LEGACY_AA_INTEGRATIONS` → 404 на Astral/1C-Fresh  
+- `feature:print` на шаблоны + меню; вкладка **Свои плейсхолдеры** (allowlist)  
+- Колонки «Внесено в 1С» / ЭТрН скрыты без `feature:integrations`  
+- Гайды: `docs/sync/server-deploy-guide.md`, `docs/sync/tenant-admin-crm-launch.md`
 
-**Вывод worker:** бэкенд Traklo **корректен** (валидация, `CrmAppearance::mergeValidated`, Inertia `auth.user.ui_preferences`, Blade SSR). Проблема — UX/клиент/CSS.
+**Ещё не сделано:** WS-5 брендинг/онбординг polish, WS-7 doc checklist, WS-8 v5 ports, полный strip классов EPD (маршруты уже карантин).
 
-| Причина | Суть |
+---
+
+## ОТДАТЬ — staging readiness (2026-10-15)
+
+### Verified locally
+
+| Check | Result |
 | --- | --- |
-| Дефолт `sky` | У залогиненного `resolveCrmAppearance` берёт **только сервер**, localStorage игнорируется. Preview Traklo ≠ persist. Sky «всегда ок» без сохранения. |
-| CSS cascade | `crm-workspace-skin.css:356-363` — общий linear-gradient для sky+traklo **перебивал** радиальный градиент Traklo (`:76-86`). Визуально почти не отличить. |
-| PATCH 419 | OSPanel шлёт `X-Forwarded-Proto: https` на HTTP lab → Secure cookies → CSRF/сессия не совпадают. |
-| agGrid density | PATCH плотности грида не отправлял `workspace_skin` — после preview Traklo + смена density в БД оставался sky. |
+| `git pull` | Already up to date on `cursor/traklo-session-integrate-9d42` |
+| `repair-lab-after-pull.ps1` | Env/cache OK; **MySQL provision failed** (port 3306 closed) |
+| `migration-status.ps1` | Probes OK: artisan, vendor, .env, node_modules, public/build |
+| `php artisan about` | Traklo Pro / Laravel 13.4 / PHP 8.3 / APP_ENV=local |
+| `php artisan test tests/Feature/Saas` | **58 passed** (2026-10-26, `127.0.1.12` / `saas_crm_test`) |
+| ForceLabHttpSessionCookies | **OK** — early return unless `local`/`testing` |
+| Re-bootstrap from v5 | **Not done** (AA 1C/EPD out of staging scope) |
 
-**Исправлено в коде:**
-- `resources/css/crm-workspace-skin.css` — `.crm-layout-main` gradient только для `sky`; Traklo сохраняет свой radial.
-- `resources/js/support/agGridUserDensity.js` — PATCH включает `workspace_skin`.
-- `app/Http/Middleware/ForceLabHttpSessionCookies.php` + `bootstrap/app.php` — lab HTTP cookies без Secure.
-- `resources/js/support/crmAppearance.js` — `persistCrmAppearance` с CSRF sync + retry.
-- `resources/js/support/sessionLogout.js` + `CrmLayout.vue` — logout с retry после CSRF sync.
-- `resources/js/Components/Crm/CrmAppearanceModal.vue` — закрытие только onSuccess; ошибка 419 в UI.
-- `app/Http/Controllers/ProfileController.php` — `CrmAppearance::mergeValidated` (не затирает частичные поля).
-- `resources/js/app.js` — sync meta csrf на Inertia navigate.
+### Staging artifacts (local prep done — P4.2a–c)
 
-**Проверка в браузере:**
-```js
-document.documentElement.dataset.crmWorkspaceSkin  // "traklo" после save+F5
-$page.props.auth.user.ui_preferences.workspace_skin
-```
-Network → `PATCH /profile/ui-preferences` → body `workspace_skin=traklo` → **303** (не 419).
+- `docs/architecture/decisions/ADR-014-staging-topology.md` (Proposed)
+- `.env.staging.example` — `APP_ENV=production`, HTTPS, Redis queue/cache, `tenant_s3`, CSP on, demo signup off
+- `docs/sync/staging-checklist.md`
+- `scripts/deploy-staging.sh` (+ `storage:link`)
+- `ForceLabHttpSessionCookies` gated to lab only (ADR-014)
 
-**Опционально ещё:** `app.js:35` при bootstrap перезаписывает Blade SSR из localStorage до mount Vue — если после 303 всё равно sky, смотреть этот путь.
+### Human blockers (true escalations)
 
----
+1. **Start OSPanel MySQL** on lab machine — needed for local SaaS feature tests / repair seed.
+2. **Staging host:** Linux VM + SSH, wildcard DNS `*.{CRM_DOMAIN}`, TLS, secrets (`APP_KEY`, DB, Redis, S3, SMTP), accept ADR-014, demo-signup policy.
 
-### Favicon / sidebar Traklo
+### Combat-test bar (do not expand scope)
 
-- Мастер: `public/downloads/traklo-icon.png`
-- Генерация: `php scripts/generate-traklo-favicons.php` (или `--from-96` после ручной правки `favicon-96x96.png`)
-- Sidebar: `public/assets/favicon/sidebar-48.png`
-- `resources/views/app.blade.php`, `CrmLayout.vue` — ссылки на новые ассеты; убран белый круг в dark mode.
+Single Linux VM · HTTPS · Redis+queue+scheduler · Gotenberg · `TENANT_STORAGE_DISK=tenant_s3` · nightly `saas:backup-database`.  
+**Later:** 2FA, full monitoring, queue-migrate.  
+**Skip for staging:** v5 1C/EPD/Load Board/intercompany/MCP portfolio.
 
 ---
 
-### ERR_TOO_MANY_REDIRECTS + lab stability
+## Staging / боевой тестовый
 
-**Причины:**
-1. БД без migrations → `IdentifyTenant` QueryException.
-2. Handler делал `redirect()->back()` на GET → цикл.
-3. `.env` `APP_NAME=Traklo Pro` без кавычек → artisan 500.
+**Deploy on server (after secrets + DNS):**
 
-**Исправлено:**
-- `bootstrap/app.php`: GET + ошибка БД → **503 текст**, не redirect.
-- `scripts/repair-lab-after-pull.ps1` — migrate+seed если нет migration table; redirect check в конце.
-- `scripts/check-lab-redirects.ps1`, `scripts/apply-saas-lab-env.ps1` (кавычки для значений с пробелами).
-
-**Lab после каждого pull:**
-```powershell
-pwsh -File scripts/repair-lab-after-pull.ps1
+```bash
+cp .env.staging.example .env   # fill secrets
+php artisan key:generate
+bash scripts/deploy-staging.sh main
+# optional demo:
+php artisan db:seed --class=SaasDemoSeeder --force
 ```
 
----
-
-### Отдельная test-БД
-
-- `.env.testing.example` → скопировать в `.env.testing`
-- `scripts/ensure-test-database.ps1` — `saas_crm_test`
-- `phpunit.xml` → `ORDER_WIZARD_TEST_DATABASE=saas_crm_test`
-- Встроено в `repair-lab-after-pull.ps1`
-
-**Тесты:** `php artisan test` требует mysql CLI **или** schema skip; на Windows без mysql в PATH — `tests/Feature/*` с RefreshDatabase падают. Unit (`CrmAppearanceTest`) — ок.
+Then: Supervisor `queue:work redis`, cron `schedule:run`, nightly backup, HTTPS smoke → clear **M9.5**.
 
 ---
 
-### Влито ранее в integrate-ветке
-
-| Ветка | Содержание |
-| --- | --- |
-| `restore-traklo-login-bubble` | Bubble-логин |
-| `traklo-workspace-skin` | Опция **Traklo** в внешнем виде |
-| `traklo-showcase-feature-shots` | Лендинг: главы, rail, dissolve TOC |
-| `fix-lab-503` | Lab scripts + relative `/login` |
-
-Не влито (устарело / конфликты): `platform-portal`, `subscription-plans`, `traklo-landing-login-animation`, `fix-platform-login-419`, `fix-embedded-browser`.
-
----
-
-## Env (lab / home-pc)
+## Lab (home-pc)
 
 ```powershell
 git pull origin cursor/traklo-session-integrate-9d42
+# start OSPanel MySQL first
 pwsh -File scripts/repair-lab-after-pull.ps1
 npm run build
+php artisan test tests/Feature/Saas --compact
 ```
 
 ```env
@@ -114,49 +102,41 @@ PLATFORM_DOMAIN=platform.saas.local
 TENANT_STORAGE_DISK=tenant_local
 ```
 
-Migrate (если repair не отработал):
-```powershell
-php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
-php artisan db:seed --class=SaasDemoSeeder --force
-```
+**Demo:** `admin@saas.local` / `password` (after seed)  
+**Do not commit:** `cookies.txt`
 
 ---
 
-## UX (готово в integrate)
+## Prior session notes (Traklo skin / lab 419)
 
-1. **Витрина** `/` — главы База/Про/Корпоративный, sticky rail, dissolve у TOC.
-2. **Логин** — bubble Traklo.
-3. **CRM → Внешний вид → Traklo** — navy + синий radial на main; лучше с тёмной темой.
-4. **Favicon / sidebar** — иконка Traklo.
+Still relevant for lab UX smoke:
 
----
-
-## M9–P4 (без изменений статуса)
-
-- M9–M12, P4.1 core — **done**
-- **Pending:** M9.5 browser smoke (`docs/sync/browser-smoke-howto.md`)
-- Phase 4 backlog: 2FA, staging, monitoring
+- CSS cascade + agGrid `workspace_skin` + ForceLabHttp (lab HTTP) + CSRF retry — see git history `5774975`
+- Browser check: `dataset.crmWorkspaceSkin === "traklo"` after save+F5; PATCH 303 not 419
 
 ---
 
-## На home-pc после pull
+## M9–P4 status
 
-```powershell
-git pull origin cursor/traklo-session-integrate-9d42
-pwsh -File scripts/repair-lab-after-pull.ps1
-npm run build
-```
-
-При 503: `scripts/diagnose-lab-http.ps1` · При цикле редиректов: `scripts/check-lab-redirects.ps1`
-
-**Demo:** `admin@saas.local` / `password` (после seed)  
-**Checklist:** `docs/sync/pilot-smoke-checklist.md`
+| Step | Status |
+| --- | --- |
+| M9–M12, P4.1 | done |
+| P4.2a–c staging prep files + cookie gate | **done** |
+| P4.2d–e host provision + first deploy | **pending (human)** |
+| M9.5 browser smoke | **pending** until HTTPS staging |
+| P4 remainder | 2FA, monitoring, queue-migrate |
 
 ---
 
 ## Следующие шаги
 
-1. **Browser smoke:** Traklo save → F5 → modal показывает Traklo; фон main с radial (не как Sky).
-2. Merge PR integrate → `main`
-3. Опционально: `app.js` bootstrap — не перезаписывать SSR attrs до auth props.
-4. 2FA / staging / monitoring (P4 remainder)
+### Human
+1. Confirm OSPanel MySQL is running (lab tests).
+2. Provision staging VM + wildcard DNS + TLS + fill `.env` from `.env.staging.example`.
+3. Run `bash scripts/deploy-staging.sh main` and HTTPS smoke checklist.
+
+### Next agent turn
+1. After MySQL up: re-run `repair-lab-after-pull.ps1` + `php artisan test tests/Feature/Saas`.
+2. After human host ready: assist first deploy / document results; mark P4.2d–e + M9.5 when HTTPS smoke passes.
+3. Do **not** full bootstrap from v5; do **not** commit `cookies.txt`.
+4. Merge integrate PR → `main` when CI green (CI has its own MySQL service).

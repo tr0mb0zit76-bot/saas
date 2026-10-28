@@ -38,6 +38,9 @@ $rootMap = @{
     'migration-runbook.md'     = (Join-Path $saasRoot 'migration-runbook.md')
     'migration-state.json'     = (Join-Path $saasRoot 'migration-state.json')
     'traklo-pro-storage.md'    = (Join-Path $saasRoot 'traklo-pro-storage.md')
+    'staging-checklist.md'     = (Join-Path $saasRoot 'staging-checklist.md')
+    'server-deploy-guide.md'   = (Join-Path $saasRoot 'server-deploy-guide.md')
+    'tenant-admin-crm-launch.md' = (Join-Path $saasRoot 'tenant-admin-crm-launch.md')
 }
 
 foreach ($srcName in $rootMap.Keys) {

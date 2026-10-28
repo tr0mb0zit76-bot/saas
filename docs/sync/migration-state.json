@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-07-13T12:15:00Z",
+  "updated_at": "2026-10-15T09:15:00Z",
   "current_phase": "P4",
   "phases": {
     "M0": {
@@ -79,7 +79,7 @@
     },
     "M9.5": {
       "status": "pending",
-      "note": "Manual browser smoke — docs/sync/browser-smoke-howto.md"
+      "note": "Manual browser smoke over HTTPS on staging — docs/sync/browser-smoke-howto.md (keep pending until combat-test host)"
     },
     "M10.1": {
       "status": "done",
@@ -105,6 +105,46 @@
       "status": "done",
       "note": "Audit completion, CI, CSP headers, API throttle, backup cmd, runbooks"
     },
+    "P4.2": {
+      "status": "partial",
+      "note": "Staging prep artifacts done (ADR-014, .env.staging.example, deploy-staging.sh, staging-checklist, ForceLabHttp local-only). Host deploy pending human VM/DNS/TLS/secrets."
+    },
+    "P4.2a": {
+      "status": "done",
+      "note": "ADR-014 staging topology drafted"
+    },
+    "P4.2b": {
+      "status": "done",
+      "note": ".env.staging.example + staging-checklist.md + deploy-staging.sh"
+    },
+    "P4.2c": {
+      "status": "done",
+      "note": "ForceLabHttpSessionCookies gated to local/testing only"
+    },
+    "P4.2d": {
+      "status": "pending",
+      "note": "Provision staging VM + wildcard DNS + TLS + secrets (human)"
+    },
+    "P4.2e": {
+      "status": "pending",
+      "note": "First deploy via deploy-staging.sh + migrate/seed + queue/cron/backup"
+    },
+    "R1.1": {
+      "status": "done",
+      "note": "ADR-015 + quarantine AA Astral/1C-Fresh (SAAS_LEGACY_AA_INTEGRATIONS)"
+    },
+    "R1.2": {
+      "status": "done",
+      "note": "ADR-016 + tenant print placeholder aliases allowlist UI"
+    },
+    "R1.3": {
+      "status": "done",
+      "note": "feature:print on templates; hide 1C/Etrn UI without integrations"
+    },
+    "R1.4": {
+      "status": "done",
+      "note": "server-deploy-guide.md + tenant-admin-crm-launch.md"
+    },
     "UX.1": {
       "status": "done",
       "note": "Traklo landing chapters + sticky horizontal rails (integrate PR)"
@@ -129,9 +169,23 @@
       "demo",
       "demo-a",
       "demo-b"
-    ]
+    ],
+    "staging_env_template": ".env.staging.example",
+    "staging_checklist": "docs/sync/staging-checklist.md",
+    "staging_deploy": "scripts/deploy-staging.sh"
   },
-  "blockers": [],
+  "blockers": [
+    {
+      "id": "lab-mysql-down",
+      "severity": "local",
+      "note": "OSPanel MySQL unreachable on 127.0.0.1:3306 — repair-lab ensure-test-database + php artisan test tests/Feature/Saas fail until MySQL started"
+    },
+    {
+      "id": "staging-host",
+      "severity": "human",
+      "note": "Need Linux VM+SSH, wildcard DNS, TLS, APP_KEY/DB/Redis/S3/SMTP secrets; accept ADR-014"
+    }
+  ],
   "integrate_branch": "cursor/traklo-session-integrate-9d42",
   "merged_session_branches": [
     "cursor/restore-traklo-login-bubble-9d42",
