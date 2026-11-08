@@ -161,7 +161,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // GET + DB error: never redirect — back()/fallback to same URL causes ERR_TOO_MANY_REDIRECTS.
             if ($request->isMethodSafe()) {
-                $hint = ' Lab: pwsh -File scripts/repair-lab-after-pull.ps1 -Full';
+                $hint = app()->environment('local')
+                    ? ' Lab: pwsh -File scripts/repair-lab-after-pull.ps1 -Full'
+                    : '';
 
                 return response($message.$hint, 503)
                     ->header('Content-Type', 'text/plain; charset=UTF-8');

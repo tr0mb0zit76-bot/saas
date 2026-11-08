@@ -33,6 +33,37 @@ if [[ -z "$REF" ]]; then
 fi
 
 PHP_BIN="${PHP_BIN:-/usr/bin/php}"
+CONFIG_CACHE="bootstrap/cache/config.php"
+CONFIG_BACKUP="$(mktemp)"
+MAINTENANCE=0
+
+cleanup() {
+  local code=$?
+  if [[ "$MAINTENANCE" -eq 1 ]]; then
+    "$PHP_BIN" artisan up >/dev/null 2>&1 || true
+  fi
+  rm -f "$CONFIG_BACKUP"
+  exit "$code"
+}
+trap cleanup EXIT
+
+reload_php_fpm() {
+  if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl reload php8.3-fpm 2>/dev/null || sudo systemctl reload php-fpm 2>/dev/null || true
+  fi
+}
+
+verify_cached_config() {
+  "$PHP_BIN" artisan tinker --execute="
+    \$db = (string) config('database.default');
+    \$key = (string) config('app.key');
+    if (\$db !== 'mysql' || \$key === '') {
+      fwrite(STDERR, \"Bad config cache: database.default={\$db}, app.key_len=\".strlen(\$key).PHP_EOL);
+      exit(1);
+    }
+    echo \"config_ok db={\$db}\".PHP_EOL;
+  "
+}
 
 if [[ "${SKIP_GIT:-0}" == "1" ]]; then
   echo "==> skip git update (SKIP_GIT=1), HEAD=$(git rev-parse --short HEAD)"
@@ -42,6 +73,10 @@ else
   git checkout "$REF"
   git reset --hard "origin/${REF}"
 fi
+
+echo "==> maintenance on"
+"$PHP_BIN" artisan down --retry=30 --secret=traklo-deploy >/dev/null
+MAINTENANCE=1
 
 echo "==> composer"
 composer install --no-dev --optimize-autoloader --no-interaction
@@ -61,21 +96,40 @@ echo "==> storage link"
 "$PHP_BIN" artisan storage:link --force 2>/dev/null || "$PHP_BIN" artisan storage:link || true
 
 echo "==> caches"
+if [[ -f "$CONFIG_CACHE" ]]; then
+  cp -a "$CONFIG_CACHE" "$CONFIG_BACKUP"
+fi
+# config:cache calls config:clear first — that window must stay behind maintenance.
 "$PHP_BIN" artisan config:cache
+if ! verify_cached_config; then
+  echo "config:cache produced unusable config — restoring previous cache" >&2
+  if [[ -s "$CONFIG_BACKUP" ]]; then
+    cp -a "$CONFIG_BACKUP" "$CONFIG_CACHE"
+  else
+    echo "No previous config.php backup to restore." >&2
+    exit 1
+  fi
+  verify_cached_config
+fi
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 "$PHP_BIN" artisan event:cache 2>/dev/null || true
+
+echo "==> reload php-fpm (drop stale opcache of config.php)"
+reload_php_fpm
 
 echo "==> restart workers (best-effort)"
 if command -v supervisorctl >/dev/null 2>&1; then
   sudo supervisorctl restart all || supervisorctl restart all || true
 fi
-if command -v systemctl >/dev/null 2>&1; then
-  sudo systemctl reload php8.3-fpm 2>/dev/null || sudo systemctl reload php-fpm 2>/dev/null || true
-fi
+
+echo "==> maintenance off"
+"$PHP_BIN" artisan up
+MAINTENANCE=0
 
 echo "==> health"
 "$PHP_BIN" artisan --version
 curl -fsS -o /dev/null -w "HTTP %{http_code}\n" "${APP_URL:-https://traklo.pro}/up" || true
 
 echo "Deploy done."
+echo "DEPLOY_OK"
