@@ -48,7 +48,7 @@ class CarrierMatchingService
                 'status' => LeadStatus::values()[0],
                 'source' => $source,
                 'counterparty_id' => $contractorId,
-                'title' => (string) ($payload['title'] ?? sprintf('Заявка: %s → %s', $loading, $unloading)),
+                'title' => (string) ($payload['title'] ?? sprintf('Просчёт: %s → %s', $loading, $unloading)),
                 'description' => $payload['comment'] ?? null,
                 'loading_location' => $loading,
                 'unloading_location' => $unloading,
@@ -461,7 +461,7 @@ class CarrierMatchingService
             'planned_shipping_date' => $lead->planned_shipping_date?->toDateString(),
             'transport_type' => $lead->transport_type,
             'cargo' => $cargo ? LeadCargoItemPayloadNormalizer::toFrontend($cargo) : null,
-            'notice' => 'Заявка обрабатывается экспедитором. Данные маршрута и груза могут быть переданы выбранным перевозчикам для подбора ставки.',
+            'notice' => 'Просчёт обрабатывается экспедитором. Данные маршрута и груза могут быть переданы выбранным перевозчикам для подбора ставки.',
             'created_at' => $lead->created_at?->toIso8601String(),
         ];
     }

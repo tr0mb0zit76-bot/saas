@@ -621,13 +621,13 @@
                         @click="openCargoRequestForm"
                     >
                         <span>
-                            <span class="block text-sm font-semibold text-zinc-50">Новая заявка</span>
-                            <span class="mt-0.5 block text-xs text-zinc-400">Опишите маршрут и груз — экспедитор возьмёт в работу</span>
+                            <span class="block text-sm font-semibold text-zinc-50">Новый просчёт</span>
+                            <span class="mt-0.5 block text-xs text-zinc-400">Опишите маршрут и груз — экспедитор подготовит расчёт</span>
                         </span>
                         <Plus class="h-5 w-5 shrink-0 text-sky-200" />
                     </button>
 
-                    <div v-if="cargoRequestsLoading" class="py-8 text-center text-sm text-zinc-500">Загрузка заявок…</div>
+                    <div v-if="cargoRequestsLoading" class="py-8 text-center text-sm text-zinc-500">Загрузка просчётов…</div>
                     <template v-else>
                         <div
                             v-for="lead in filteredCargoRequests"
@@ -637,10 +637,10 @@
                             <div class="flex items-start gap-3">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">Заявка</span>
+                                        <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">Просчёт</span>
                                         <span class="truncate text-[10px] text-zinc-400">{{ lead.status_label || lead.status || '—' }}</span>
                                     </div>
-                                    <div class="mt-1 text-sm font-semibold text-zinc-50">{{ lead.number }} · {{ lead.title || 'Заявка на перевозку' }}</div>
+                                    <div class="mt-1 text-sm font-semibold text-zinc-50">{{ lead.number }} · {{ lead.title || 'Просчёт перевозки' }}</div>
                                     <div v-if="lead.loading_location || lead.unloading_location" class="mt-2 text-xs text-sky-100">
                                         {{ lead.loading_location || '—' }} → {{ lead.unloading_location || '—' }}
                                     </div>
@@ -654,7 +654,7 @@
                             <p v-if="lead.notice" class="mt-3 text-[11px] leading-4 text-zinc-500">{{ lead.notice }}</p>
                         </div>
                         <div v-if="filteredCargoRequests.length === 0" class="rounded-3xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-zinc-500">
-                            {{ search.trim() ? 'Ничего не найдено.' : 'Заявок пока нет. Создайте первую.' }}
+                            {{ search.trim() ? 'Ничего не найдено.' : 'Просчётов пока нет. Создайте первый.' }}
                         </div>
                     </template>
                 </section>
@@ -892,9 +892,9 @@
             >
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-base font-semibold text-zinc-50">Новая заявка</div>
+                        <div class="text-base font-semibold text-zinc-50">Новый просчёт</div>
                         <div class="mt-1 text-xs leading-5 text-zinc-400">
-                            Укажите маршрут и груз. Экспедитор обработает заявку и при необходимости подберёт перевозчика.
+                            Укажите маршрут и груз. Экспедитор подготовит расчёт и при необходимости подберёт перевозчика.
                         </div>
                     </div>
                     <button type="button" class="rounded-full p-2 text-zinc-400 active:bg-white/10" @click="closeCargoRequestForm">
@@ -989,7 +989,7 @@
                     class="mt-3 w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                     :disabled="cargoRequestCreating || !cargoRequestForm.loading_location.trim() || !cargoRequestForm.unloading_location.trim()"
                 >
-                    {{ cargoRequestCreating ? 'Отправляем…' : 'Отправить заявку' }}
+                    {{ cargoRequestCreating ? 'Отправляем…' : 'Отправить на просчёт' }}
                 </button>
             </form>
         </div>
@@ -1125,7 +1125,7 @@ const { pullReady, refreshing: pullRefreshing, onTouchStart, onTouchMove, onTouc
 
 const allTabs = [
     { key: 'chats', label: 'Чаты', icon: MessageCircle },
-    { key: 'cargo_requests', label: 'Заявки', icon: ClipboardList, externalCustomerOnly: true },
+    { key: 'cargo_requests', label: 'Просчёты', icon: ClipboardList, externalCustomerOnly: true },
     { key: 'leads', label: 'Лиды', icon: Inbox, requiresLeads: true },
     { key: 'documents', label: 'Документы', icon: FileText },
     { key: 'orders', label: 'Заказы', icon: Package },
@@ -1575,7 +1575,7 @@ async function submitCargoRequest() {
         const firstError = errors ? Object.values(errors).flat()[0] : null;
         cargoRequestError.value = firstError
             || exception.response?.data?.message
-            || 'Не удалось отправить заявку.';
+            || 'Не удалось отправить просчёт.';
     } finally {
         cargoRequestCreating.value = false;
     }

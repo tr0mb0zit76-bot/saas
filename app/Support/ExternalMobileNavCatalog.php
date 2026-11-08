@@ -58,7 +58,7 @@ final class ExternalMobileNavCatalog
     public static function labels(): array
     {
         return [
-            'cargo_requests' => 'Заявки',
+            'cargo_requests' => 'Просчёты',
             'counterparty_orders' => 'Заказы',
             'counterparty_documents' => 'Документы',
             'chats' => 'Чаты',

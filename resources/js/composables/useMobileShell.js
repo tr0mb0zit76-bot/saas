@@ -181,7 +181,7 @@ export function useMobileShell() {
             });
             cargoRequests.value = data.leads ?? [];
         } catch (exception) {
-            shellError.value = exception.response?.data?.message ?? 'Не удалось загрузить заявки.';
+            shellError.value = exception.response?.data?.message ?? 'Не удалось загрузить просчёты.';
             cargoRequests.value = [];
         } finally {
             cargoRequestsLoading.value = false;
