@@ -1,5 +1,5 @@
 <template>
-    <div class="relative flex h-[100dvh] min-h-screen flex-col bg-zinc-950 text-zinc-50">
+    <div class="traklo-mobile-shell relative flex h-[100dvh] min-h-screen flex-col bg-zinc-950 text-zinc-50">
         <template v-if="screen === 'thread'">
             <div class="relative flex min-h-0 flex-1 flex-col">
             <header class="flex shrink-0 items-center gap-3 border-b border-white/10 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
@@ -181,6 +181,7 @@
                             <X class="h-4 w-4" />
                         </button>
                     </div>
+                    <ThemeToggle class="!h-11 !w-11 shrink-0 !rounded-2xl" />
                     <button
                         v-if="activeTab === 'chats'"
                         type="button"
@@ -936,179 +937,185 @@
                     </p>
                 </div>
 
-                <div class="mt-4 space-y-3">
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Откуда</span>
-                        <input
-                            v-model="cargoRequestForm.loading_location"
-                            type="text"
-                            required
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Город / адрес погрузки"
-                        />
-                    </label>
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Куда</span>
-                        <input
-                            v-model="cargoRequestForm.unloading_location"
-                            type="text"
-                            required
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Город / адрес выгрузки"
-                        />
-                    </label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Дата погрузки</span>
+                <div class="mt-4 space-y-2.5">
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Откуда</span>
                             <input
-                                v-model="cargoRequestForm.loading_date"
-                                type="date"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                v-model="cargoRequestForm.loading_location"
+                                type="text"
+                                required
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Погрузка"
                             />
                         </label>
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Дата выгрузки</span>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Куда</span>
                             <input
-                                v-model="cargoRequestForm.unloading_date"
-                                type="date"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                v-model="cargoRequestForm.unloading_location"
+                                type="text"
+                                required
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Выгрузка"
                             />
                         </label>
                     </div>
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Тип ТС</span>
-                        <input
-                            v-model="cargoRequestForm.transport_type"
-                            type="text"
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Тент, реф…"
-                        />
-                    </label>
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Груз</span>
-                        <input
-                            v-model="cargoRequestForm.cargo_name"
-                            type="text"
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Наименование груза"
-                        />
-                    </label>
-                    <div class="grid grid-cols-[1fr_auto] gap-3">
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Вес</span>
+
+                    <div class="grid grid-cols-[1.2fr_0.9fr_0.9fr] gap-2">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Груз</span>
+                            <input
+                                v-model="cargoRequestForm.cargo_name"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Наименование"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Погрузка</span>
+                            <input
+                                v-model="cargoRequestForm.loading_date"
+                                type="date"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Выгрузка</span>
+                            <input
+                                v-model="cargoRequestForm.unloading_date"
+                                type="date"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                    </div>
+
+                    <div class="overflow-x-auto pb-0.5">
+                    <div class="grid min-w-[22rem] grid-cols-[0.9fr_0.7fr_auto_0.55fr_0.55fr_0.55fr_0.65fr] gap-1.5">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">ТС</span>
+                            <input
+                                v-model="cargoRequestForm.transport_type"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Тент"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Вес</span>
                             <input
                                 v-model="cargoRequestForm.weight_value"
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                                placeholder="0"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
                             />
                         </label>
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Ед.</span>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Ед.</span>
                             <select
                                 v-model="cargoRequestForm.weight_unit"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-3 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
                             >
                                 <option value="t">т</option>
                                 <option value="kg">кг</option>
                             </select>
                         </label>
-                    </div>
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Объём, м³</span>
-                        <input
-                            v-model="cargoRequestForm.volume_m3"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="0"
-                        />
-                    </label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Д, м</span>
-                            <input
-                                v-model="cargoRequestForm.length_m"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-3 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
-                            />
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Д</span>
+                            <input v-model="cargoRequestForm.length_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
                         </label>
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Ш, м</span>
-                            <input
-                                v-model="cargoRequestForm.width_m"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-3 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
-                            />
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Ш</span>
+                            <input v-model="cargoRequestForm.width_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
                         </label>
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">В, м</span>
-                            <input
-                                v-model="cargoRequestForm.height_m"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-3 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
-                            />
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">В</span>
+                            <input v-model="cargoRequestForm.height_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">м³</span>
+                            <input v-model="cargoRequestForm.volume_m3" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
                         </label>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Мест</span>
+                    </div>
+
+                    <div class="grid grid-cols-[0.7fr_1fr] gap-2 sm:grid-cols-[0.7fr_1fr_auto]">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Мест</span>
                             <input
                                 v-model="cargoRequestForm.package_count"
                                 type="number"
                                 min="0"
                                 step="1"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
                             />
                         </label>
-                        <label class="block">
-                            <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Упаковка</span>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Упаковка</span>
                             <input
                                 v-model="cargoRequestForm.package_type"
                                 type="text"
-                                class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                                placeholder="паллеты…"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="паллеты"
+                            />
+                        </label>
+                        <div class="col-span-2 flex flex-wrap items-end gap-1.5 pb-0.5 sm:col-span-1">
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.dangerous_goods" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Опасный
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.needs_temperature" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Темп.
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.is_fragile" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Хрупкий
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.is_oversized" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Негабарит
+                            </label>
+                        </div>
+                    </div>
+
+                    <div v-if="cargoRequestForm.dangerous_goods || cargoRequestForm.needs_temperature" class="grid grid-cols-3 gap-2">
+                        <label v-if="cargoRequestForm.dangerous_goods" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Класс ADR</span>
+                            <input
+                                v-model="cargoRequestForm.dangerous_class"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                placeholder="3"
+                            />
+                        </label>
+                        <label v-if="cargoRequestForm.needs_temperature" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">t° мин</span>
+                            <input
+                                v-model="cargoRequestForm.temp_min"
+                                type="number"
+                                step="0.1"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label v-if="cargoRequestForm.needs_temperature" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">t° макс</span>
+                            <input
+                                v-model="cargoRequestForm.temp_max"
+                                type="number"
+                                step="0.1"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
                             />
                         </label>
                     </div>
-                    <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-100">
-                        <input v-model="cargoRequestForm.dangerous_goods" type="checkbox" class="h-4 w-4 rounded border-white/20 bg-zinc-900 text-sky-500" />
-                        Опасный груз
-                    </label>
-                    <label v-if="cargoRequestForm.dangerous_goods" class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Класс опасности</span>
-                        <input
-                            v-model="cargoRequestForm.dangerous_class"
-                            type="text"
-                            class="w-full rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="ADR / класс"
-                        />
-                    </label>
+
                     <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Описание груза</span>
-                        <textarea
-                            v-model="cargoRequestForm.cargo_description"
-                            rows="2"
-                            class="w-full resize-none rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Характер груза, требования к перевозке…"
-                        />
-                    </label>
-                    <label class="block">
-                        <span class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Комментарий</span>
+                        <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Описание / комментарий</span>
                         <textarea
                             v-model="cargoRequestForm.comment"
                             rows="2"
-                            class="w-full resize-none rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
-                            placeholder="Особые условия, сроки, контакты на месте…"
+                            class="w-full resize-none rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                            placeholder="Описание груза, условия, контакты на месте…"
                         />
                     </label>
                 </div>
@@ -1135,6 +1142,7 @@ import { useMessenger } from '@/composables/useMessenger.js';
 import { useMessengerPolling } from '@/composables/useMessengerPolling.js';
 import { useMobileShell } from '@/composables/useMobileShell.js';
 import { usePullToRefresh } from '@/composables/usePullToRefresh.js';
+import ThemeToggle from '@/Components/Layout/ThemeToggle.vue';
 import MobileAppUpdateBanner from '@/Components/Mobile/MobileAppUpdateBanner.vue';
 import MobileCrmLinkPreview from '@/Components/Mobile/MobileCrmLinkPreview.vue';
 import MobileDocumentUploadWizard from '@/Components/Mobile/MobileDocumentUploadWizard.vue';
@@ -1226,9 +1234,14 @@ const emptyCargoRequestForm = () => ({
     package_type: '',
     dangerous_goods: false,
     dangerous_class: '',
-    cargo_description: '',
+    needs_temperature: false,
+    temp_min: '',
+    temp_max: '',
+    is_fragile: false,
+    is_oversized: false,
     comment: '',
 });
+const cargoRequestBoolKeys = ['dangerous_goods', 'needs_temperature', 'is_fragile', 'is_oversized'];
 const cargoRequestForm = ref(emptyCargoRequestForm());
 const pendingShare = ref(null);
 const highlightTarget = ref(null);
@@ -1691,8 +1704,8 @@ function applyCargoRequestDraft(draft) {
             continue;
         }
 
-        if (key === 'dangerous_goods') {
-            next.dangerous_goods = Boolean(draft[key]);
+        if (cargoRequestBoolKeys.includes(key)) {
+            next[key] = Boolean(draft[key]);
             continue;
         }
 
@@ -1807,7 +1820,7 @@ async function submitCargoRequest() {
             cargo: {
                 name: cargoRequestForm.value.cargo_name.trim() || 'Груз',
                 weight_unit: cargoRequestForm.value.weight_unit === 'kg' ? 'kg' : 't',
-                description: cargoRequestForm.value.cargo_description.trim() || null,
+                description: cargoRequestForm.value.comment.trim() || null,
                 package_type: cargoRequestForm.value.package_type.trim() || null,
                 package_count: packageCount !== null ? Math.trunc(packageCount) : null,
                 volume_m3: optionalNumber(cargoRequestForm.value.volume_m3),
@@ -1818,6 +1831,15 @@ async function submitCargoRequest() {
                 dangerous_class: cargoRequestForm.value.dangerous_goods
                     ? (cargoRequestForm.value.dangerous_class.trim() || null)
                     : null,
+                needs_temperature: Boolean(cargoRequestForm.value.needs_temperature),
+                temp_min: cargoRequestForm.value.needs_temperature
+                    ? optionalNumber(cargoRequestForm.value.temp_min)
+                    : null,
+                temp_max: cargoRequestForm.value.needs_temperature
+                    ? optionalNumber(cargoRequestForm.value.temp_max)
+                    : null,
+                is_fragile: Boolean(cargoRequestForm.value.is_fragile),
+                is_oversized: Boolean(cargoRequestForm.value.is_oversized),
             },
         };
 

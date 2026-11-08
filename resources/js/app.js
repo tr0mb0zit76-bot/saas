@@ -4,6 +4,7 @@ import '../css/app.css';
 import '../css/crm-sky-theme.css';
 import '../css/crm-workspace-skin.css';
 import '../css/crm-appearance.css';
+import '../css/mobile-shell-theme.css';
 import {
     applyCrmAppearanceToDocument,
     CRM_APPEARANCE_CHANGED,

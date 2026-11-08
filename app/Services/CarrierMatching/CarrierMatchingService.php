@@ -185,6 +185,11 @@ class CarrierMatchingService
                 'is_hazardous' => (bool) ($cargo?->dangerous_goods ?? false),
                 'hazard_class' => $cargo?->dangerous_class,
                 'hs_code' => $cargo?->hs_code,
+                'is_fragile' => (bool) ($metadataCargo['is_fragile'] ?? false),
+                'is_oversized' => (bool) ($metadataCargo['is_oversized'] ?? false),
+                'needs_temperature' => (bool) ($metadataCargo['needs_temperature'] ?? false),
+                'temp_min' => $metadataCargo['temp_min'] ?? null,
+                'temp_max' => $metadataCargo['temp_max'] ?? null,
                 'transport_type' => $lead->transport_type ?? $cargo?->cargo_type,
                 'requirements' => $cargo?->description,
                 // Intentionally omit customer_rate / seller_comment for carrier-facing shares.

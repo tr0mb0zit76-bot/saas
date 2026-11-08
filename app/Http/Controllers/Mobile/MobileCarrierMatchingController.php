@@ -59,6 +59,11 @@ class MobileCarrierMatchingController extends Controller
             'cargo.description' => ['nullable', 'string', 'max:2000'],
             'cargo.dangerous_goods' => ['nullable', 'boolean'],
             'cargo.dangerous_class' => ['nullable', 'string', 'max:50'],
+            'cargo.needs_temperature' => ['nullable', 'boolean'],
+            'cargo.temp_min' => ['nullable', 'numeric'],
+            'cargo.temp_max' => ['nullable', 'numeric'],
+            'cargo.is_fragile' => ['nullable', 'boolean'],
+            'cargo.is_oversized' => ['nullable', 'boolean'],
             'cargo.hs_code' => ['nullable', 'string', 'max:32'],
             'cargo.cargo_type' => ['nullable', 'string', 'max:50'],
         ]);
