@@ -1,7 +1,14 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-10-26 · **Фаза:** Phase 4 (staging prep) · **Ветка:** `cursor/traklo-session-integrate-9d42` → PR в `main`  
-**HEAD (at handoff):** `5774975` + uncommitted staging-prep artifacts
+**Обновлено:** 2026-11-08 · **Фаза:** Phase 4 + prod CD · **Ветка:** `cursor/traklo-session-integrate-9d42`  
+**HEAD (at handoff):** `5567ad2` (prod на том же SHA)
+
+## Prod CD (2026-11-08)
+
+- Workflow: `.github/workflows/deploy-prod.yml` → self-hosted runner `traklo-prod` на VPS (systemd).
+- GitHub-hosted SSH в prod не проходит (ISPmanager firewall).
+- Канон: `docs/sync/prod-git-deploy.md`. Push в integrate/`main` деплоит через `scripts/deploy-prod.sh`.
+- Smoke: run `42484520839` success, `/up` HTTP 200.
 
 ## Команда архитектора (2026-10-26)
 
