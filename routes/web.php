@@ -928,6 +928,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('feature:carrier_matching')->group(function (): void {
             Route::get('/cargo-requests', [MobileCarrierMatchingController::class, 'cargoRequests'])->name('cargo-requests.index');
             Route::post('/cargo-requests', [MobileCarrierMatchingController::class, 'storeCargoRequest'])->name('cargo-requests.store');
+            Route::post('/cargo-requests/parse', [MobileCarrierMatchingController::class, 'parseCargoRequest'])->name('cargo-requests.parse');
             Route::get('/cargo-requests/{lead}', [MobileCarrierMatchingController::class, 'showCargoRequest'])->name('cargo-requests.show');
 
             Route::get('/matching-loads', [MobileCarrierMatchingController::class, 'matchingLoads'])->name('matching-loads.index');

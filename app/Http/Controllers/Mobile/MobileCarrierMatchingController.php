@@ -6,20 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Models\LoadBoardPost;
 use App\Models\User;
+use App\Rules\DocumentWithinPageBudget;
 use App\Services\CarrierMatching\CarrierMatchingService;
+use App\Services\Documents\DocumentTextExtractor;
+use App\Services\TransportTextIntakeService;
+use App\Support\CustomerCargoRequestDraftMapper;
+use App\Support\DocumentUploadBudget;
 use App\Support\ExternalParty;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 
 class MobileCarrierMatchingController extends Controller
 {
     public function __construct(
         private readonly CarrierMatchingService $matching,
+        private readonly TransportTextIntakeService $transportTextIntake,
+        private readonly DocumentTextExtractor $documentTextExtractor,
     ) {}
 
     public function storeCargoRequest(Request $request): JsonResponse
     {
-        $user = $this->externalUser($request);
+        $user = $this->externalUser($request, ExternalParty::Customer);
 
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
@@ -36,9 +46,14 @@ class MobileCarrierMatchingController extends Controller
             'cargo.weight_kg' => ['nullable', 'numeric', 'min:0'],
             'cargo.weight_unit' => ['nullable', 'string', 'in:kg,t'],
             'cargo.volume_m3' => ['nullable', 'numeric', 'min:0'],
+            'cargo.dimension_unit' => ['nullable', 'string', 'in:m,cm,mm'],
             'cargo.length_m' => ['nullable', 'numeric', 'min:0'],
             'cargo.width_m' => ['nullable', 'numeric', 'min:0'],
             'cargo.height_m' => ['nullable', 'numeric', 'min:0'],
+            'cargo.length_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.width_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.height_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.diameter_m' => ['nullable', 'numeric', 'min:0'],
             'cargo.package_count' => ['nullable', 'integer', 'min:0'],
             'cargo.package_type' => ['nullable', 'string', 'max:100'],
             'cargo.description' => ['nullable', 'string', 'max:2000'],
@@ -67,7 +82,7 @@ class MobileCarrierMatchingController extends Controller
 
     public function cargoRequests(Request $request): JsonResponse
     {
-        $user = $this->externalUser($request);
+        $user = $this->externalUser($request, ExternalParty::Customer);
 
         $leads = $this->matching->listCustomerRequests($user)
             ->map(fn (Lead $lead): array => $this->matching->presentLeadForCustomer($lead))
@@ -76,9 +91,56 @@ class MobileCarrierMatchingController extends Controller
         return response()->json(['leads' => $leads]);
     }
 
+    public function parseCargoRequest(Request $request): JsonResponse
+    {
+        $user = $this->externalUser($request, ExternalParty::Customer);
+
+        $validated = $request->validate([
+            'message' => ['nullable', 'string', 'min:10', 'max:12000'],
+            'file' => [
+                'nullable',
+                File::types(['pdf', 'docx', 'jpg', 'jpeg', 'png', 'webp'])
+                    ->max(DocumentUploadBudget::absoluteMaxKilobytes()),
+                new DocumentWithinPageBudget,
+            ],
+        ]);
+
+        $message = trim((string) ($validated['message'] ?? ''));
+        $file = $validated['file'] ?? null;
+        $warnings = [];
+
+        if ($file instanceof UploadedFile) {
+            $extraction = $this->documentTextExtractor->extractFromUpload($file);
+            $text = trim($extraction['text']);
+            $warnings = $extraction['warnings'];
+
+            if ($text === '') {
+                throw ValidationException::withMessages([
+                    'file' => $warnings[0] ?? 'Не удалось извлечь текст из файла.',
+                ]);
+            }
+        } elseif ($message !== '') {
+            $text = $message;
+        } else {
+            throw ValidationException::withMessages([
+                'message' => 'Вставьте текст заявки или загрузите файл.',
+            ]);
+        }
+
+        $intake = $this->transportTextIntake->extract($user, $text);
+        $warnings = array_values(array_unique(array_merge($warnings, $intake['warnings'])));
+
+        return response()->json([
+            'draft' => CustomerCargoRequestDraftMapper::fromExtracted($intake['extracted']),
+            'parser' => $intake['parser'],
+            'warnings' => $warnings,
+            'confidence' => $intake['confidence'],
+        ]);
+    }
+
     public function showCargoRequest(Request $request, Lead $lead): JsonResponse
     {
-        $user = $this->externalUser($request);
+        $user = $this->externalUser($request, ExternalParty::Customer);
         abort_unless($this->matching->customerCanViewLead($user, $lead), 404);
 
         $lead->loadMissing(['cargoItems', 'routePoints']);

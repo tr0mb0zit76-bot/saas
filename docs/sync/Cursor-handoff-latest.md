@@ -14,7 +14,7 @@ Tenant `orientum` (id=2) на `orientum.traklo.pro`: корень → `/login` (
 
 **Traklo invite / контакты (2026-11-08):** роли `counterparty_customer|carrier` сидятся per-tenant в `TenantProvisioner` (на Orientum уже есть). Блок приглашения перенесён с «Портрет» на вкладку «Контакты» (аккордеон + бейдж Traklo). Sync контактов больше не delete-all — upsert по `id`. Лиды из кабинета: `source = traklo_customer_request · {ФИО контакта}`.
 
-**Кабинет заказчика — просчёты (2026-11-08):** вкладка «Просчёты» в `Messenger.vue` для `external_party=customer` при фиче `carrier_matching`: список + форма (маршрут/груз) → `mobile.shell.counterparty.cargo-requests.*`. Nav key `cargo_requests` в `ExternalMobileNavCatalog` / default nav роли customer.
+**Кабинет заказчика — просчёты (2026-11-08):** вкладка «Просчёты» в `Messenger.vue` для `external_party=customer` при фиче `carrier_matching`: полная форма (маршрут, вес, объём, Д×Ш×В, места, упаковка, опасный груз) + parse из текста/скана (`POST …/cargo-requests/parse` → draft, без создания лида). Share на matching-биржу тащит package_count / hazardous / габариты.
 
 ## Carrier matching P0 (2026-11-08)
 

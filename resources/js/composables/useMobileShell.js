@@ -202,6 +202,24 @@ export function useMobileShell() {
         return lead;
     }
 
+    async function parseCargoRequest({ message = null, file = null } = {}) {
+        const formData = new FormData();
+
+        if (message && String(message).trim() !== '') {
+            formData.append('message', String(message).trim());
+        }
+
+        if (file) {
+            formData.append('file', file);
+        }
+
+        const { data } = await axios.post(route('mobile.shell.counterparty.cargo-requests.parse'), formData, {
+            headers: { Accept: 'application/json' },
+        });
+
+        return data;
+    }
+
     async function loadOrderSummary(orderId) {
         const { data } = await axios.get(orderSummaryRoute(orderId), {
             headers: { Accept: 'application/json' },
@@ -306,6 +324,7 @@ export function useMobileShell() {
         loadTrakloLeads,
         loadCargoRequests,
         createCargoRequest,
+        parseCargoRequest,
         loadTab,
         loadOrderSummary,
         loadLeadSummary,

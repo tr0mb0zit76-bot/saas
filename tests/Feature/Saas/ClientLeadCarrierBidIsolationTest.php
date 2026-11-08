@@ -51,6 +51,91 @@ class ClientLeadCarrierBidIsolationTest extends SaasTestCase
         $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
     }
 
+    public function test_client_cargo_full_fields_reach_matching_share_post(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        $response = $this->postJson(route('mobile.shell.counterparty.cargo-requests.store'), [
+            'loading_location' => 'Москва',
+            'unloading_location' => 'Казань',
+            'cargo_name' => 'Оборудование',
+            'cargo' => [
+                'name' => 'Оборудование',
+                'weight_value' => 12,
+                'weight_unit' => 't',
+                'volume_m3' => 40,
+                'length_m' => 6,
+                'width_m' => 2.4,
+                'height_m' => 2.5,
+                'package_count' => 8,
+                'package_type' => 'паллеты',
+                'dangerous_goods' => true,
+                'dangerous_class' => '3',
+                'description' => 'Хрупкое',
+            ],
+        ])->assertCreated();
+
+        $leadId = (int) $response->json('lead.id');
+        $lead = Lead::query()->with('cargoItems')->findOrFail($leadId);
+        $cargo = $lead->cargoItems->first();
+        $this->assertNotNull($cargo);
+        $this->assertSame(8, (int) $cargo->package_count);
+        $this->assertSame('паллеты', $cargo->package_type);
+        $this->assertTrue((bool) $cargo->dangerous_goods);
+        $this->assertSame('3', $cargo->dangerous_class);
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+        $share = $this->postJson(route('leads.carrier-matching.share', $lead), [
+            'carrier_ids' => [$fixture['carrierContractor']->id],
+        ])->assertCreated();
+
+        $post = LoadBoardPost::query()->findOrFail((int) $share->json('post.id'));
+        $this->assertSame(8, (int) $post->package_count);
+        $this->assertSame('паллеты', $post->package_type);
+        $this->assertTrue((bool) $post->is_hazardous);
+        $this->assertSame('3', $post->hazard_class);
+        $this->assertEqualsWithDelta(6.0, (float) $post->length, 0.01);
+        $this->assertEqualsWithDelta(2.4, (float) $post->width, 0.01);
+        $this->assertEqualsWithDelta(2.5, (float) $post->height, 0.01);
+        // volume_m3 is derived from L×W×H when dimensions are present (6×2.4×2.5 = 36).
+        $this->assertEqualsWithDelta(36.0, (float) $post->cargo_volume, 0.01);
+    }
+
+    public function test_client_parse_cargo_request_fills_draft_without_creating_lead(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        $before = Lead::query()->count();
+
+        $response = $this->postJson(route('mobile.shell.counterparty.cargo-requests.parse'), [
+            'message' => 'Нужен просчёт из Москвы в Казань, груз паллеты 10 тонн, 20 мест',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure(['draft' => ['loading_location', 'unloading_location', 'cargo_name'], 'parser', 'warnings']);
+
+        $this->assertSame($before, Lead::query()->count());
+        $this->assertNotSame('', (string) $response->json('draft.loading_location'));
+        $this->assertNotSame('', (string) $response->json('draft.unloading_location'));
+    }
+
+    public function test_carrier_and_staff_cannot_parse_customer_cargo_request(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['carrier']);
+        $this->postJson(route('mobile.shell.counterparty.cargo-requests.parse'), [
+            'message' => 'из Москвы в Казань груз паллеты',
+        ])->assertForbidden();
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+        $this->postJson(route('mobile.shell.counterparty.cargo-requests.parse'), [
+            'message' => 'из Москвы в Казань груз паллеты',
+        ])->assertForbidden();
+    }
+
     public function test_staff_share_targets_only_selected_same_tenant_carriers(): void
     {
         $fixture = $this->seedTenantFixture('start');

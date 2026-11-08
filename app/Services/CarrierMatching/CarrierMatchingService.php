@@ -176,9 +176,15 @@ class CarrierMatchingService
                     ? round(((float) $cargo->weight_kg) / 1000, 2)
                     : null,
                 'cargo_volume' => $cargo?->volume_m3,
+                'package_count' => $cargo?->package_count,
+                'package_type' => $cargo?->package_type,
                 'length' => $metadataCargo['length_m'] ?? null,
                 'width' => $metadataCargo['width_m'] ?? null,
                 'height' => $metadataCargo['height_m'] ?? null,
+                'diameter' => $metadataCargo['diameter_m'] ?? null,
+                'is_hazardous' => (bool) ($cargo?->dangerous_goods ?? false),
+                'hazard_class' => $cargo?->dangerous_class,
+                'hs_code' => $cargo?->hs_code,
                 'transport_type' => $lead->transport_type ?? $cargo?->cargo_type,
                 'requirements' => $cargo?->description,
                 // Intentionally omit customer_rate / seller_comment for carrier-facing shares.
