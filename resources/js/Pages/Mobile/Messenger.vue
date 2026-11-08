@@ -181,7 +181,6 @@
                             <X class="h-4 w-4" />
                         </button>
                     </div>
-                    <ThemeToggle class="!h-11 !w-11 shrink-0 !rounded-2xl" />
                     <button
                         v-if="activeTab === 'chats'"
                         type="button"
@@ -191,6 +190,7 @@
                     >
                         <Users class="h-5 w-5" />
                     </button>
+                    <ThemeToggle class="!h-11 !w-11 shrink-0 !rounded-2xl" />
                 </div>
             </header>
 
