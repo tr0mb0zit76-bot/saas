@@ -67,7 +67,12 @@ class CarrierMatchingService
             $this->syncRoutePoints($lead, $payload);
             $this->syncCargoItem($lead, $payload);
 
-            return $lead->fresh(['cargoItems', 'routePoints']) ?? $lead;
+            $lead = $lead->fresh(['cargoItems', 'routePoints', 'counterparty:id,name']) ?? $lead;
+
+            // Staff expect the cargo on «Биржа» immediately; carriers stay hidden until share.
+            $this->ensureBoardPostForLead($lead, $customer, invitedCarrierIds: []);
+
+            return $lead;
         });
     }
 
@@ -145,84 +150,101 @@ class CarrierMatchingService
         $lead->loadMissing(['cargoItems', 'routePoints', 'counterparty:id,name']);
 
         return DB::transaction(function () use ($lead, $staff, $validIds): LoadBoardPost {
-            $existing = LoadBoardPost::query()
-                ->where('lead_id', $lead->id)
-                ->where('metadata->'.self::META_KEY.'->enabled', true)
-                ->whereNull('closed_at')
-                ->latest('id')
-                ->first();
-
-            $cargo = $lead->cargoItems->first();
-            $loadingPoint = $lead->routePoints->firstWhere('type', 'loading') ?? $lead->routePoints->first();
-            $unloadingPoint = $lead->routePoints->where('type', 'unloading')->last()
-                ?? $lead->routePoints->last();
-            $metadataCargo = is_array($cargo?->metadata) ? $cargo->metadata : [];
-
-            $attrs = [
-                'lead_id' => $lead->id,
-                'order_id' => null,
-                'customer_id' => $lead->counterparty_id,
-                'seller_id' => $staff->id,
-                'status' => 'new',
-                'priority' => 'normal',
-                'title' => $lead->title ?: ('Груз по лиду #'.($lead->number ?? $lead->id)),
-                'loading_location' => $loadingPoint?->address ?? $lead->loading_location,
-                'unloading_location' => $unloadingPoint?->address ?? $lead->unloading_location,
-                'loading_date' => $loadingPoint?->planned_date?->toDateString()
-                    ?? $lead->planned_shipping_date?->toDateString(),
-                'unloading_date' => $unloadingPoint?->planned_date?->toDateString(),
-                'cargo_name' => $cargo?->name,
-                'cargo_weight' => $cargo?->weight_kg !== null
-                    ? round(((float) $cargo->weight_kg) / 1000, 2)
-                    : null,
-                'cargo_volume' => $cargo?->volume_m3,
-                'package_count' => $cargo?->package_count,
-                'package_type' => $cargo?->package_type,
-                'length' => $metadataCargo['length_m'] ?? null,
-                'width' => $metadataCargo['width_m'] ?? null,
-                'height' => $metadataCargo['height_m'] ?? null,
-                'diameter' => $metadataCargo['diameter_m'] ?? null,
-                'is_hazardous' => (bool) ($cargo?->dangerous_goods ?? false),
-                'hazard_class' => $cargo?->dangerous_class,
-                'hs_code' => $cargo?->hs_code,
-                'is_fragile' => (bool) ($metadataCargo['is_fragile'] ?? false),
-                'is_oversized' => (bool) ($metadataCargo['is_oversized'] ?? false),
-                'needs_temperature' => (bool) ($metadataCargo['needs_temperature'] ?? false),
-                'temp_min' => $metadataCargo['temp_min'] ?? null,
-                'temp_max' => $metadataCargo['temp_max'] ?? null,
-                'transport_type' => $lead->transport_type ?? $cargo?->cargo_type,
-                'requirements' => $cargo?->description,
-                // Intentionally omit customer_rate / seller_comment for carrier-facing shares.
-                'customer_rate' => null,
-                'seller_comment' => null,
-                'published_at' => now(),
-                'metadata' => [
-                    self::META_KEY => [
-                        'enabled' => true,
-                        'invited_carrier_ids' => $validIds,
-                        'shared_by' => $staff->id,
-                        'shared_at' => now()->toIso8601String(),
-                    ],
-                ],
-            ];
-
-            if ($existing instanceof LoadBoardPost) {
-                $meta = is_array($existing->metadata) ? $existing->metadata : [];
-                $matching = is_array($meta[self::META_KEY] ?? null) ? $meta[self::META_KEY] : [];
-                $mergedIds = array_values(array_unique(array_merge(
-                    array_map('intval', $matching['invited_carrier_ids'] ?? []),
-                    $validIds,
-                )));
-                $attrs['metadata'][self::META_KEY]['invited_carrier_ids'] = $mergedIds;
-                $attrs['metadata'][self::META_KEY]['shared_by'] = $staff->id;
-                $attrs['metadata'][self::META_KEY]['shared_at'] = now()->toIso8601String();
-                $existing->fill($attrs)->save();
-
-                return $existing->fresh() ?? $existing;
-            }
-
-            return LoadBoardPost::query()->create($attrs);
+            return $this->ensureBoardPostForLead($lead, $staff, invitedCarrierIds: $validIds);
         });
+    }
+
+    /**
+     * @param  list<int>  $invitedCarrierIds
+     */
+    private function ensureBoardPostForLead(Lead $lead, User $actor, array $invitedCarrierIds): LoadBoardPost
+    {
+        $existing = LoadBoardPost::query()
+            ->where('lead_id', $lead->id)
+            ->where('metadata->'.self::META_KEY.'->enabled', true)
+            ->whereNull('closed_at')
+            ->latest('id')
+            ->first();
+
+        $cargo = $lead->cargoItems->first();
+        $loadingPoint = $lead->routePoints->firstWhere('type', 'loading') ?? $lead->routePoints->first();
+        $unloadingPoint = $lead->routePoints->where('type', 'unloading')->last()
+            ?? $lead->routePoints->last();
+        $metadataCargo = is_array($cargo?->metadata) ? $cargo->metadata : [];
+
+        $matchingMeta = [
+            'enabled' => true,
+            'invited_carrier_ids' => array_values($invitedCarrierIds),
+            'origin' => self::SOURCE_CUSTOMER_REQUEST,
+        ];
+
+        if ($invitedCarrierIds !== []) {
+            $matchingMeta['shared_by'] = $actor->id;
+            $matchingMeta['shared_at'] = now()->toIso8601String();
+        }
+
+        $attrs = [
+            'lead_id' => $lead->id,
+            'order_id' => null,
+            'customer_id' => $lead->counterparty_id,
+            'seller_id' => $actor->id,
+            'status' => 'new',
+            'priority' => 'normal',
+            'title' => $lead->title ?: ('Груз по лиду #'.($lead->number ?? $lead->id)),
+            'loading_location' => $loadingPoint?->address ?? $lead->loading_location,
+            'unloading_location' => $unloadingPoint?->address ?? $lead->unloading_location,
+            'loading_date' => $loadingPoint?->planned_date?->toDateString()
+                ?? $lead->planned_shipping_date?->toDateString(),
+            'unloading_date' => $unloadingPoint?->planned_date?->toDateString(),
+            'cargo_name' => $cargo?->name,
+            'cargo_weight' => $cargo?->weight_kg !== null
+                ? round(((float) $cargo->weight_kg) / 1000, 2)
+                : null,
+            'cargo_volume' => $cargo?->volume_m3,
+            'package_count' => $cargo?->package_count,
+            'package_type' => $cargo?->package_type,
+            'length' => $metadataCargo['length_m'] ?? null,
+            'width' => $metadataCargo['width_m'] ?? null,
+            'height' => $metadataCargo['height_m'] ?? null,
+            'diameter' => $metadataCargo['diameter_m'] ?? null,
+            'is_hazardous' => (bool) ($cargo?->dangerous_goods ?? false),
+            'hazard_class' => $cargo?->dangerous_class,
+            'hs_code' => $cargo?->hs_code,
+            'is_fragile' => (bool) ($metadataCargo['is_fragile'] ?? false),
+            'is_oversized' => (bool) ($metadataCargo['is_oversized'] ?? false),
+            'needs_temperature' => (bool) ($metadataCargo['needs_temperature'] ?? false),
+            'temp_min' => $metadataCargo['temp_min'] ?? null,
+            'temp_max' => $metadataCargo['temp_max'] ?? null,
+            'transport_type' => $lead->transport_type ?? $cargo?->cargo_type,
+            'requirements' => $cargo?->description,
+            // Intentionally omit customer_rate / seller_comment for carrier-facing shares.
+            'customer_rate' => null,
+            'seller_comment' => null,
+            'published_at' => now(),
+            'metadata' => [
+                self::META_KEY => $matchingMeta,
+            ],
+        ];
+
+        if ($existing instanceof LoadBoardPost) {
+            $meta = is_array($existing->metadata) ? $existing->metadata : [];
+            $matching = is_array($meta[self::META_KEY] ?? null) ? $meta[self::META_KEY] : [];
+            $mergedIds = array_values(array_unique(array_merge(
+                array_map('intval', $matching['invited_carrier_ids'] ?? []),
+                $invitedCarrierIds,
+            )));
+            $attrs['metadata'][self::META_KEY]['invited_carrier_ids'] = $mergedIds;
+            $attrs['metadata'][self::META_KEY]['origin'] = $matching['origin'] ?? self::SOURCE_CUSTOMER_REQUEST;
+            if ($invitedCarrierIds !== []) {
+                $attrs['metadata'][self::META_KEY]['shared_by'] = $actor->id;
+                $attrs['metadata'][self::META_KEY]['shared_at'] = now()->toIso8601String();
+            }
+            $existing->fill($attrs)->save();
+
+            return $existing->fresh() ?? $existing;
+        }
+
+        return LoadBoardPost::query()->create($attrs);
     }
 
     /**

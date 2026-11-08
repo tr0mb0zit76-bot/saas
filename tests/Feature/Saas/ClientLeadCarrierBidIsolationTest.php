@@ -48,7 +48,11 @@ class ClientLeadCarrierBidIsolationTest extends SaasTestCase
         $this->assertSame($fixture['customerContractor']->id, (int) $lead->counterparty_id);
         $this->assertTrue(CarrierMatchingService::isCustomerRequestSource((string) $lead->source));
 
-        $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
+        $post = LoadBoardPost::query()->where('lead_id', $leadId)->first();
+        $this->assertNotNull($post);
+        $this->assertSame('new', $post->status);
+        $this->assertTrue((bool) data_get($post->metadata, 'carrier_matching.enabled'));
+        $this->assertSame([], data_get($post->metadata, 'carrier_matching.invited_carrier_ids', ['x']));
     }
 
     public function test_client_cargo_full_fields_reach_matching_share_post(): void
