@@ -25,6 +25,7 @@ return [
         'mcp_write' => ['label' => 'Текстовый помощник (запись)', 'group' => 'integrations'],
         'fleet' => ['label' => 'Автопарк', 'group' => 'logistics'],
         'disposition' => ['label' => 'Диспозиция', 'group' => 'logistics'],
+        'carrier_matching' => ['label' => 'Подбор перевозчиков', 'group' => 'logistics'],
         'load_board' => ['label' => 'Биржа грузов', 'group' => 'logistics'],
         'import_cost' => ['label' => 'Импорт себестоимости', 'group' => 'finance'],
         'management_accounting' => ['label' => 'Управленческий учёт', 'group' => 'finance'],

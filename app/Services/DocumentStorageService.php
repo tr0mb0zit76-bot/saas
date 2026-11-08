@@ -10,34 +10,90 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
+/**
+ * Document blobs for Traklo Pro: TenantStorage (tenants/{id}/…) under TenantContext,
+ * otherwise local disk. Nextcloud is not supported in this SaaS codebase (ADR-005).
+ */
 class DocumentStorageService
 {
     public const DRIVER_LOCAL = 'local';
 
+    /** @deprecated Kept only to recognize legacy metadata rows; maps via resolveStoredDriver(). */
     public const DRIVER_NEXTCLOUD = 'nextcloud';
 
     public const DRIVER_TENANT = 'tenant';
 
     private readonly string $configuredDriver;
 
-    public function __construct(
-        private readonly NextcloudWebDavStorage $nextcloudStorage,
-    ) {
+    public function __construct()
+    {
         $driver = (string) config('document_storage.driver', self::DRIVER_LOCAL);
-        $this->configuredDriver = in_array($driver, [self::DRIVER_LOCAL, self::DRIVER_NEXTCLOUD], true)
-            ? $driver
-            : self::DRIVER_LOCAL;
+        $allowed = [
+            self::DRIVER_LOCAL,
+            self::DRIVER_TENANT,
+            'tenant_local',
+            'tenant_s3',
+        ];
+
+        if (! in_array($driver, $allowed, true)) {
+            if ($driver === self::DRIVER_NEXTCLOUD) {
+                Log::warning('document_storage.nextcloud_config_ignored', [
+                    'hint' => 'Use TENANT_STORAGE_DISK; Nextcloud removed from SaaS.',
+                ]);
+            }
+            $driver = self::DRIVER_LOCAL;
+        }
+
+        if (in_array($driver, ['tenant_local', 'tenant_s3'], true)) {
+            $driver = self::DRIVER_TENANT;
+        }
+
+        $this->configuredDriver = $driver;
     }
 
     public function configuredDriver(): string
     {
-        return $this->configuredDriver;
+        if ($this->shouldForceTenantWrites()) {
+            return $this->tenantStorageDriverLabel();
+        }
+
+        return $this->configuredDriver === self::DRIVER_TENANT
+            ? $this->tenantStorageDriverLabel()
+            : $this->configuredDriver;
     }
 
     /**
-     * Сохраняет загруженный файл в текущий сконфигурированный драйвер (local или Nextcloud).
-     * Путь `order_documents/{orderId}/…` совпадает с печатными формами заказа (удобно в Nextcloud).
-     *
+     * Normalize storage_driver from DB / metadata for get/delete.
+     * Legacy "nextcloud" → tenant disk when context is set, else local.
+     */
+    public function resolveStoredDriver(?string $driver): string
+    {
+        $driver = $driver !== null ? trim($driver) : '';
+
+        if (in_array($driver, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
+            return $driver === self::DRIVER_TENANT
+                ? $this->tenantStorageDriverLabel()
+                : $driver;
+        }
+
+        if ($driver === self::DRIVER_NEXTCLOUD) {
+            Log::warning('document_storage.legacy_nextcloud_driver', [
+                'tenant_id' => TenantContext::id(),
+            ]);
+
+            return $this->shouldForceTenantWrites()
+                ? $this->tenantStorageDriverLabel()
+                : self::DRIVER_LOCAL;
+        }
+
+        if ($this->shouldForceTenantWrites() && ($driver === '' || $driver === self::DRIVER_LOCAL)) {
+            return $this->tenantStorageDriverLabel();
+        }
+
+        return self::DRIVER_LOCAL;
+    }
+
+    /**
      * @return array{original_name: string, file_path: string, file_size: int, mime_type: string|null, storage_driver: string}
      */
     public function storeOrderUpload(UploadedFile $file, ?int $orderId = null): array
@@ -46,12 +102,9 @@ class DocumentStorageService
         $directory = $orderId !== null
             ? 'order_documents/'.$orderId
             : 'order_documents/misc';
-        $path = $this->resolveUniquePathInDirectory($directory, $originalName);
+        $driver = $this->resolveWriteDriver();
+        $path = $this->resolveUniquePathInDirectory($directory, $originalName, $driver);
         $contents = $file->get();
-        $driver = $this->configuredDriver();
-        if ($this->usesTenantStorage($driver)) {
-            $driver = $this->tenantStorageDriverLabel();
-        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -70,20 +123,11 @@ class DocumentStorageService
     /**
      * @return array{original_name: string, file_path: string, file_size: int, mime_type: string|null, storage_driver: string}
      */
-    /**
-     * @return array{original_name: string, file_path: string, file_size: int, mime_type: string|null, storage_driver: string}
-     */
-    /**
-     * @return array{original_name: string, file_path: string, file_size: int, mime_type: string|null, storage_driver: string}
-     */
     public function storeMailInboundAttachment(string $contents, string $originalName, int $mailboxUserId, int $messageId): array
     {
         $directory = 'mail_inbound/'.$mailboxUserId.'/'.$messageId;
-        $path = $this->resolveUniquePathInDirectory($directory, $originalName);
-        $driver = $this->configuredDriver();
-        if ($this->usesTenantStorage($driver)) {
-            $driver = $this->tenantStorageDriverLabel();
-        }
+        $driver = $this->resolveWriteDriver();
+        $path = $this->resolveUniquePathInDirectory($directory, $originalName, $driver);
         $this->put($path, $contents, $driver);
 
         return [
@@ -101,12 +145,9 @@ class DocumentStorageService
         $directory = $orderId !== null
             ? 'mail_outbound/'.$senderUserId.'/order_'.$orderId
             : 'mail_outbound/'.$senderUserId;
-        $path = $this->resolveUniquePathInDirectory($directory, $originalName);
+        $driver = $this->resolveWriteDriver();
+        $path = $this->resolveUniquePathInDirectory($directory, $originalName, $driver);
         $contents = $file->get();
-        $driver = $this->configuredDriver();
-        if ($this->usesTenantStorage($driver)) {
-            $driver = $this->tenantStorageDriverLabel();
-        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -128,12 +169,9 @@ class DocumentStorageService
         $directory = $contractorId !== null
             ? 'contractor_documents/'.$contractorId
             : 'contractor_documents/misc';
-        $path = $this->resolveUniquePathInDirectory($directory, $originalName);
+        $driver = $this->resolveWriteDriver();
+        $path = $this->resolveUniquePathInDirectory($directory, $originalName, $driver);
         $contents = $file->get();
-        $driver = $this->configuredDriver();
-        if ($this->usesTenantStorage($driver)) {
-            $driver = $this->tenantStorageDriverLabel();
-        }
         $this->put($path, $contents, $driver);
         $size = $file->getSize();
         if ($size === false) {
@@ -151,16 +189,14 @@ class DocumentStorageService
 
     public function put(string $path, string $contents, ?string $driver = null): void
     {
-        if ($this->usesTenantStorage($driver)) {
+        if ($driver === null && $this->shouldForceTenantWrites()) {
             TenantStorage::put($path, $contents);
 
             return;
         }
 
-        $driver = $this->resolveDriver($driver);
-
-        if ($driver === self::DRIVER_NEXTCLOUD) {
-            $this->nextcloudStorage->put($path, $contents);
+        if ($this->usesTenantStorage($driver)) {
+            TenantStorage::put($path, $contents);
 
             return;
         }
@@ -170,14 +206,10 @@ class DocumentStorageService
 
     public function get(string $path, ?string $driver = null): string
     {
+        $driver = $this->resolveStoredDriver($driver);
+
         if ($this->usesTenantStorage($driver)) {
             return (string) TenantStorage::get($path);
-        }
-
-        $driver = $this->resolveDriver($driver);
-
-        if ($driver === self::DRIVER_NEXTCLOUD) {
-            return $this->nextcloudStorage->get($path);
         }
 
         return (string) Storage::disk(self::DRIVER_LOCAL)->get($path);
@@ -190,16 +222,10 @@ class DocumentStorageService
         }
 
         try {
+            $driver = $this->resolveStoredDriver($driver);
+
             if ($this->usesTenantStorage($driver)) {
                 TenantStorage::delete($path);
-
-                return;
-            }
-
-            $driver = $this->resolveDriver($driver);
-
-            if ($driver === self::DRIVER_NEXTCLOUD) {
-                $this->nextcloudStorage->delete((string) $path);
 
                 return;
             }
@@ -216,22 +242,14 @@ class DocumentStorageService
 
     public function size(string $path, ?string $driver = null, ?string $knownContents = null): int
     {
-        if ($this->usesTenantStorage($driver)) {
-            if ($knownContents !== null) {
-                return strlen($knownContents);
-            }
-
-            return strlen((string) TenantStorage::get($path));
+        if ($knownContents !== null) {
+            return strlen($knownContents);
         }
 
-        $driver = $this->resolveDriver($driver);
+        $driver = $this->resolveStoredDriver($driver);
 
-        if ($driver === self::DRIVER_NEXTCLOUD) {
-            if ($knownContents !== null) {
-                return strlen($knownContents);
-            }
-
-            return strlen($this->nextcloudStorage->get($path));
+        if ($this->usesTenantStorage($driver)) {
+            return strlen((string) TenantStorage::get($path));
         }
 
         return (int) Storage::disk(self::DRIVER_LOCAL)->size($path);
@@ -239,22 +257,15 @@ class DocumentStorageService
 
     public function exists(string $path, ?string $driver = null): bool
     {
+        $driver = $this->resolveStoredDriver($driver);
+
         if ($this->usesTenantStorage($driver)) {
             return TenantStorage::exists($path);
-        }
-
-        $driver = $this->resolveDriver($driver);
-
-        if ($driver === self::DRIVER_NEXTCLOUD) {
-            return $this->nextcloudStorage->exists($path);
         }
 
         return Storage::disk(self::DRIVER_LOCAL)->exists($path);
     }
 
-    /**
-     * Путь к файлу заказа с «человеческим» именем (как в Nextcloud), с учётом коллизий в каталоге.
-     */
     public function resolveOrderDocumentPath(int $orderId, string $preferredFilename, ?string $driver = null): string
     {
         return $this->resolveUniquePathInDirectory(
@@ -264,9 +275,6 @@ class DocumentStorageService
         );
     }
 
-    /**
-     * Вставляет суффикс перед расширением: «договор.pdf» + «-signed» → «договор-signed.pdf».
-     */
     public function filenameWithVariant(string $filename, string $variant): string
     {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -358,33 +366,36 @@ class DocumentStorageService
         return $directory.'/'.$candidate;
     }
 
-    private function resolveDriver(?string $driver): string
+    private function resolveWriteDriver(?string $preferred = null): string
     {
-        $resolved = $driver ?? $this->configuredDriver;
+        $preferred ??= $this->configuredDriver;
 
-        if (in_array($resolved, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
-            return self::DRIVER_TENANT;
+        if ($this->shouldForceTenantWrites()) {
+            return $this->tenantStorageDriverLabel();
         }
 
-        if ($resolved === self::DRIVER_NEXTCLOUD) {
-            return self::DRIVER_NEXTCLOUD;
+        if (in_array($preferred, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
+            return self::DRIVER_LOCAL;
         }
 
         return self::DRIVER_LOCAL;
     }
 
+    private function shouldForceTenantWrites(): bool
+    {
+        return (bool) config('tenant_storage.use_for_documents', true)
+            && TenantContext::id() !== null;
+    }
+
     private function usesTenantStorage(?string $driver): bool
     {
-        if ($driver === self::DRIVER_NEXTCLOUD) {
-            return false;
-        }
-
         if (in_array($driver, [self::DRIVER_TENANT, 'tenant_local', 'tenant_s3'], true)) {
             return TenantContext::id() !== null;
         }
 
         return (bool) config('tenant_storage.use_for_documents', true)
-            && TenantContext::id() !== null;
+            && TenantContext::id() !== null
+            && ($driver === null || $driver === self::DRIVER_LOCAL);
     }
 
     private function tenantStorageDriverLabel(): string

@@ -36,7 +36,9 @@ use App\Http\Controllers\MailThreadAnalysisController;
 use App\Http\Controllers\ManagementAccountingController;
 use App\Http\Controllers\ManagementAccountingImportController;
 use App\Http\Controllers\MessengerController;
+use App\Http\Controllers\CarrierMatching\LeadCarrierMatchingController;
 use App\Http\Controllers\Mobile\MobileAppUpdateController;
+use App\Http\Controllers\Mobile\MobileCarrierMatchingController;
 use App\Http\Controllers\Mobile\MobileCounterpartyShellController;
 use App\Http\Controllers\Mobile\MobileShellController;
 use App\Http\Controllers\OnboardingController;
@@ -141,6 +143,15 @@ if ($sameShowcaseAndCrmHost) {
             }
         });
     }
+
+    // Tenant subdomains ({slug}.CRM_DOMAIN): apex keeps the landing; tenants go to cabinet.
+    Route::get('/', function () {
+        if (auth()->check()) {
+            return redirect('/dashboard');
+        }
+
+        return redirect('/login');
+    });
 } else {
     foreach ($showcaseHosts as $index => $showcaseDomain) {
         $namePublicRoutes = $index === 0;
@@ -792,6 +803,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('visibility.area:leads')
         ->name('leads.grid-field.update');
 
+    Route::middleware(['visibility.area:leads', 'feature:carrier_matching'])
+        ->prefix('leads/{lead}/carrier-matching')
+        ->name('leads.carrier-matching.')
+        ->group(function (): void {
+            Route::post('/share', [LeadCarrierMatchingController::class, 'share'])->name('share');
+            Route::get('/offers', [LeadCarrierMatchingController::class, 'offers'])->name('offers');
+            Route::post('/offers/{offer}/accept', [LeadCarrierMatchingController::class, 'acceptOffer'])->name('offers.accept');
+        });
+
     Route::get('/modules', fn () => Inertia::render('Modules/Index'))
         ->middleware('visibility.area.any:modules_how_much_fits|modules_how_much_costs|modules_import_cost|modules_proposal_templates|modules')
         ->name('modules.index');
@@ -904,6 +924,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/orders/{order}/summary', [MobileCounterpartyShellController::class, 'orderSummary'])->name('orders.summary');
         Route::get('/orders/{order}/document-slots', [MobileCounterpartyShellController::class, 'orderDocumentSlots'])->name('orders.document-slots');
         Route::post('/orders/{order}/documents', [MobileCounterpartyShellController::class, 'storeDocument'])->name('orders.documents.store');
+
+        Route::middleware('feature:carrier_matching')->group(function (): void {
+            Route::get('/cargo-requests', [MobileCarrierMatchingController::class, 'cargoRequests'])->name('cargo-requests.index');
+            Route::post('/cargo-requests', [MobileCarrierMatchingController::class, 'storeCargoRequest'])->name('cargo-requests.store');
+            Route::get('/cargo-requests/{lead}', [MobileCarrierMatchingController::class, 'showCargoRequest'])->name('cargo-requests.show');
+
+            Route::get('/matching-loads', [MobileCarrierMatchingController::class, 'matchingLoads'])->name('matching-loads.index');
+            Route::get('/matching-loads/{post}', [MobileCarrierMatchingController::class, 'showMatchingLoad'])->name('matching-loads.show');
+            Route::post('/matching-loads/{post}/bids', [MobileCarrierMatchingController::class, 'storeBid'])->name('matching-loads.bids.store');
+        });
     });
 
     Route::prefix('cabinet-notifications')->name('cabinet-notifications.')->group(function () {

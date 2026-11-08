@@ -6,7 +6,7 @@
         );
     }
     $crmThemePalette = \App\Support\CrmAppearance::paletteForSkin(
-        (string) ($crmHtmlAppearance['workspace_skin'] ?? 'classic'),
+        (string) ($crmHtmlAppearance['workspace_skin'] ?? 'sky'),
     );
     $crmThemeColor = $crmHtmlAppearance['theme_colors']['accent']
         ?? $crmThemePalette['accent']

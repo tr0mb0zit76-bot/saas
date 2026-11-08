@@ -4,6 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Modal.vue';
 import {
     applyCrmAppearanceToDocument,
+    CRM_APPEARANCE_DEFAULTS,
     CRM_COLOR_FIELDS,
     CRM_PALETTES,
     effectiveThemeColors,
@@ -25,12 +26,12 @@ const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 
 const form = reactive({
-    workspace_skin: 'classic',
-    button_radius: 'sharp',
-    primary_accent: 'emerald',
-    tab_style: 'filled',
-    nav_icon_style: 'monochrome',
-    theme_colors: null,
+    workspace_skin: CRM_APPEARANCE_DEFAULTS.workspace_skin,
+    button_radius: CRM_APPEARANCE_DEFAULTS.button_radius,
+    primary_accent: CRM_APPEARANCE_DEFAULTS.primary_accent,
+    tab_style: CRM_APPEARANCE_DEFAULTS.tab_style,
+    nav_icon_style: CRM_APPEARANCE_DEFAULTS.nav_icon_style,
+    theme_colors: CRM_APPEARANCE_DEFAULTS.theme_colors,
 });
 
 const saving = ref(false);
@@ -132,9 +133,9 @@ const tabOptions = [
 ];
 
 const workspaceSkinOptions = [
-    { value: 'classic', label: 'Классический', hint: 'Zinc-оболочка, как в таблицах.' },
     { value: 'sky', label: 'Sky', hint: 'Мягкие карточки и голубой акцент.' },
     { value: 'traklo', label: 'Traklo', hint: 'Палитра витрины Traklo Pro.' },
+    { value: 'classic', label: 'Классический', hint: 'Zinc-оболочка, как в таблицах.' },
     { value: 'emerald', label: 'Изумруд', hint: 'Свежий зелёный акцент.' },
     { value: 'violet', label: 'Фиолет', hint: 'Спокойный фиолетовый тон.' },
     { value: 'amber', label: 'Янтарь', hint: 'Тёплый янтарный акцент.' },

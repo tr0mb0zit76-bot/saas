@@ -19,7 +19,6 @@ use App\Policies\SalesScriptTransitionPolicy;
 use App\Policies\SalesScriptVersionPolicy;
 use App\Policies\TaskPolicy;
 use App\Services\Inference\DeepSeekChatCompletionClient;
-use App\Services\NextcloudWebDavStorage;
 use App\Services\SalesScripts\TrainerAssistantAutoReactionService;
 use App\Support\InertiaAppSurface;
 use App\Support\PlatformHost;
@@ -40,17 +39,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(NextcloudWebDavStorage::class, function () {
-            return new NextcloudWebDavStorage(
-                baseUrl: config('document_storage.nextcloud.base_url'),
-                username: config('document_storage.nextcloud.webdav_user'),
-                password: config('document_storage.nextcloud.webdav_password'),
-                webdavRoot: (string) config('document_storage.nextcloud.webdav_root', '/remote.php/dav/files'),
-                timeoutSeconds: (int) config('document_storage.nextcloud.timeout', 30),
-                verifySsl: (bool) config('document_storage.nextcloud.verify_ssl', true),
-            );
-        });
-
         $this->app->singleton(DeepSeekChatCompletionClient::class, function (): DeepSeekChatCompletionClient {
             $cfg = config('ai.inference.deepseek', []);
 
@@ -140,22 +128,28 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureGeneratedUrls(?Request $request): void
     {
-        if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
+        if ((bool) config('app.force_https')) {
             URL::forceScheme('https');
+            // Keep assets/routes on the request host (tenant subdomain), not APP_URL apex —
+            // absolute cross-origin ES modules from traklo.pro fail CORS on {slug}.traklo.pro.
+            if ($request !== null) {
+                URL::forceRootUrl($request->getSchemeAndHttpHost());
+            }
 
             return;
         }
 
         $appUrl = strtolower((string) config('app.url', ''));
 
-        // Lab HTTP: never upgrade scheme from X-Forwarded-Proto — browser stays on http://
-        // while Ziggy/route() would otherwise emit https:// → session cookie not sent → 419.
+        // Lab APP_URL=http://…: follow real TLS on this connection, not a false
+        // X-Forwarded-Proto: https from OSPanel (that caused https links on plain http → 419).
+        // If the browser really opened https://saas.local, SERVER HTTPS is on — keep https
+        // so Vite ES modules are same-origin (http assets on https page → CORS/mixed content).
         if (str_starts_with($appUrl, 'http://')) {
-            URL::forceScheme('http');
-
             if ($request !== null) {
-                URL::forceRootUrl($request->getSchemeAndHttpHost());
+                URL::forceRootUrl($this->labRootUrl($request));
             } else {
+                URL::forceScheme('http');
                 URL::forceRootUrl(rtrim((string) config('app.url'), '/'));
             }
 
@@ -196,15 +190,9 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Showcase) {
-            URL::forceRootUrl($request->getSchemeAndHttpHost());
-
-            return;
-        }
-
-        if ($appUrl !== '') {
-            URL::forceRootUrl(rtrim((string) config('app.url'), '/'));
-        }
+        // Showcase, CRM apex, and tenant subdomains all use the request host so Vite/Ziggy
+        // assets stay same-origin (required for ES modules).
+        URL::forceRootUrl($request->getSchemeAndHttpHost());
     }
 
     /**
@@ -214,7 +202,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureLabHttpSessionCookies(): void
     {
-        if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
+        if ((bool) config('app.force_https')) {
             return;
         }
 
@@ -223,5 +211,20 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with($appUrl, 'http://')) {
             config(['session.secure' => false]);
         }
+    }
+
+    /**
+     * Build root URL for lab: prefer actual TLS on the socket over forwarded proto.
+     */
+    private function labRootUrl(Request $request): string
+    {
+        $https = $request->server('HTTPS');
+        $httpsOn = $https === 'on' || $https === '1' || $https === 1;
+        $serverPort = (string) $request->server('SERVER_PORT', '');
+        $httpsOn = $httpsOn || $serverPort === '443';
+
+        $scheme = $httpsOn ? 'https' : 'http';
+
+        return $scheme.'://'.$request->getHttpHost();
     }
 }

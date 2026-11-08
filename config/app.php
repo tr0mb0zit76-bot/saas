@@ -69,6 +69,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Force HTTPS for generated URLs (Vite/Ziggy/redirects). Must live in config so
+    | config:cache keeps the value — runtime env() is empty after caching.
+    */
+    'force_https' => filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL),
+
+    /*
     | Домены витрины и кабинета (разные хосты в проде: avtoaliyans.ru vs crm.avtoaliyans.ru).
     | Локально по умолчанию: витрина v5.local, кабинет из CRM_DOMAIN (например crm.avtoaliyans.local).
     */

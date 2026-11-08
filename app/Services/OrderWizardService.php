@@ -1408,9 +1408,7 @@ class OrderWizardService
 
         $this->documentStorage->delete(
             (string) $path,
-            $driver === DocumentStorageService::DRIVER_NEXTCLOUD
-                ? DocumentStorageService::DRIVER_NEXTCLOUD
-                : DocumentStorageService::DRIVER_LOCAL,
+            $this->documentStorage->resolveStoredDriver($driver),
         );
     }
 

@@ -21,7 +21,7 @@ class ForceLabHttpSessionCookies
             return $next($request);
         }
 
-        if (! filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)
+        if (! (bool) config('app.force_https')
             && str_starts_with(strtolower((string) config('app.url', '')), 'http://')) {
             config(['session.secure' => false]);
         }

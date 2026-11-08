@@ -1,7 +1,25 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-08 · **Фаза:** Phase 4 + prod CD · **Ветка:** `cursor/traklo-session-integrate-9d42`  
-**HEAD (at handoff):** `5567ad2` (prod на том же SHA)
+**Обновлено:** 2026-11-08 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Orientum prod URL fix (2026-11-08)
+
+Tenant `orientum` (id=2) на `orientum.traklo.pro`: корень → `/login` (302), login 200.  
+Причина ассетов на apex: после `config:cache` runtime `env('FORCE_HTTPS')` пустой → не срабатывал `forceRootUrl(request host)`.  
+Фикс: `config('app.force_https')` + ключ в `config/app.php`; hotfix на prod + `config:cache`. Link preload теперь `https://orientum.traklo.pro/build/...`.
+
+Логин: `admin@orientum.local` (пароль в vault/seed заметках сессии). Feature `carrier_matching` на тарифе Orientum ещё может отсутствовать — reseeds планов отдельно.
+
+## Carrier matching P0 (2026-11-08)
+
+ADR-017 **Accepted**. Флаг `carrier_matching` на Start/Pro/Enterprise (отдельно от Enterprise `load_board`).
+
+Поток: клиентский кабинет → Lead (`traklo_customer_request`) → staff share выбранным перевозчикам tenant → ставка в кабинете перевозчика → accept пишет в `Lead.performers` **без Order**.
+
+Код: `CarrierMatchingService`, `LeadCarrierMatchingController`, `MobileCarrierMatchingController`.  
+Тесты: `tests/Feature/Saas/ClientLeadCarrierBidIsolationTest.php`.
+
+Ещё нет: Vue UI staff/кабинет, профиль маршрутов перевозчика (follow-on).
 
 ## Prod CD (2026-11-08)
 

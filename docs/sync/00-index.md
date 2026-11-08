@@ -45,6 +45,7 @@
 ## Продукт и инфра
 
 - [[architecture/saas-product-roadmap-brief|Roadmap brief M6/M7]]
+- [[architecture/saas-refinement-backlog|План доработок (WS) — канон]] ← **WS-9 AI-секретарь**
 - [[traklo-pro-storage|Хранилище Traklo Pro (lab vs prod)]]
 
 ## Исходный CRM (read-only)

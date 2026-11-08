@@ -91,6 +91,40 @@ html.dark[data-crm-workspace-skin='traklo'] .orders-grid-theme {
     --ag-header-foreground-color: rgb(var(--crm-text));
 }
 
+/* AG Grid alpine is light-only; under html.dark map tokens so filters/selects stay readable. */
+html.dark .orders-grid-theme {
+    --ag-background-color: rgb(var(--crm-surface));
+    --ag-header-background-color: rgb(var(--crm-accent-soft) / 0.35);
+    --ag-header-foreground-color: rgb(var(--crm-text));
+    --ag-foreground-color: rgb(var(--crm-text));
+    --ag-secondary-foreground-color: rgb(var(--crm-text-muted));
+    --ag-border-color: rgb(var(--crm-border));
+    --ag-row-hover-color: rgb(var(--crm-accent-soft) / 0.22);
+    --ag-selected-row-background-color: rgb(var(--crm-accent-soft) / 0.4);
+    --ag-odd-row-background-color: rgb(var(--crm-surface-muted));
+    --ag-control-panel-background-color: rgb(var(--crm-surface));
+    --ag-input-focus-border-color: rgb(var(--crm-accent));
+    --ag-range-selection-border-color: rgb(var(--crm-accent));
+    color-scheme: dark;
+}
+
+html.dark .orders-grid-theme .ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-wrapper.ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-select .ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-input-field-input,
+html.dark .orders-grid-theme .ag-text-field-input,
+html.dark .orders-grid-theme input[class^='ag-'],
+html.dark .orders-grid-theme select[class^='ag-'] {
+    background-color: rgb(var(--crm-surface-muted)) !important;
+    color: rgb(var(--crm-text)) !important;
+    border-color: rgb(var(--crm-border)) !important;
+}
+
+html.dark .orders-grid-theme .ag-picker-field-display,
+html.dark .orders-grid-theme .ag-picker-field-icon {
+    color: rgb(var(--crm-text)) !important;
+}
+
 html[data-crm-workspace-skin='emerald'] {
     --crm-accent: 5 150 105;
     --crm-accent-soft: 209 250 229;

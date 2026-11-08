@@ -106,6 +106,37 @@ export const CRM_PALETTES = {
     },
 };
 
+/** Dark counterparts — must stay in sync with html.dark rules in crm-*-theme.css */
+const CRM_DARK_BASE = {
+    surface: '#18181b',
+    surface_muted: '#09090b',
+    border: '#3f3f46',
+    text: '#f4f4f5',
+    text_muted: '#a1a1aa',
+    accent_contrast: '#09090b',
+};
+
+export const CRM_PALETTES_DARK = {
+    classic: { ...CRM_DARK_BASE, accent: '#a1a1aa', accent_soft: '#27272a' },
+    sky: { ...CRM_DARK_BASE, accent: '#38bdf8', accent_soft: '#0c4a6e' },
+    traklo: {
+        accent: '#60a5fa',
+        accent_soft: '#1e3a8a',
+        surface: '#0b1220',
+        surface_muted: '#070b14',
+        border: '#334155',
+        text: '#f1f5f9',
+        text_muted: '#94a3b8',
+        accent_contrast: '#070b14',
+    },
+    emerald: { ...CRM_DARK_BASE, accent: '#34d399', accent_soft: '#064e3b' },
+    violet: { ...CRM_DARK_BASE, accent: '#a78bfa', accent_soft: '#4c1d95' },
+    amber: { ...CRM_DARK_BASE, accent: '#fbbf24', accent_soft: '#78350f' },
+    rose: { ...CRM_DARK_BASE, accent: '#fb7185', accent_soft: '#881337' },
+    teal: { ...CRM_DARK_BASE, accent: '#2dd4bf', accent_soft: '#115e59' },
+    indigo: { ...CRM_DARK_BASE, accent: '#818cf8', accent_soft: '#312e81' },
+};
+
 export const CRM_APPEARANCE_DEFAULTS = {
     button_radius: 'rounded',
     primary_accent: 'sky',
@@ -122,9 +153,22 @@ let persistTimer = null;
 
 /**
  * @param {string} skin
+ * @param {{ dark?: boolean }} [options]
  */
-export function paletteForSkin(skin) {
+export function paletteForSkin(skin, options = {}) {
+    if (options.dark) {
+        return CRM_PALETTES_DARK[skin] ?? CRM_PALETTES_DARK.sky;
+    }
+
     return CRM_PALETTES[skin] ?? CRM_PALETTES.sky;
+}
+
+export function documentPrefersDarkColorScheme() {
+    if (typeof document === 'undefined') {
+        return false;
+    }
+
+    return document.documentElement.classList.contains('dark');
 }
 
 /**
@@ -174,12 +218,21 @@ export function normalizeThemeColors(skin, value) {
 
 /**
  * Effective palette for pickers (preset + overrides).
+ * Dark mode uses dark presets; light custom overrides are not applied on dark
+ * (they would paint light text onto dark shells / white text on white cards).
  *
  * @param {{ workspace_skin?: string, theme_colors?: Record<string, string>|null }} appearance
+ * @param {{ dark?: boolean }} [options]
  */
-export function effectiveThemeColors(appearance) {
+export function effectiveThemeColors(appearance, options = {}) {
+    const dark = Boolean(options.dark);
     const skin = appearance?.workspace_skin ?? CRM_APPEARANCE_DEFAULTS.workspace_skin;
-    const preset = paletteForSkin(skin);
+    const preset = paletteForSkin(skin, { dark });
+
+    if (dark) {
+        return preset;
+    }
+
     const overrides = normalizeThemeColors(skin, appearance?.theme_colors);
 
     return overrides ?? preset;
@@ -317,9 +370,14 @@ export function applyCrmAppearanceToDocument(appearance) {
     html.dataset.crmWorkspaceSkin = resolved.workspace_skin;
     html.dataset.crmNavIcons = resolved.nav_icon_style;
 
+    const dark = documentPrefersDarkColorScheme();
+    html.style.colorScheme = dark ? 'dark' : 'light';
+
     // Always paint effective palette (preset or overrides). Relying only on
     // CSS [data-crm-workspace-skin=…] tokens left preset clicks looking dead.
-    const colors = effectiveThemeColors(resolved);
+    // Must follow light/dark: inline light tokens previously overrode .dark CSS
+    // and left dark:text-* labels on white surfaces.
+    const colors = effectiveThemeColors(resolved, { dark });
     clearThemeColorProperties(html);
 
     for (const field of CRM_COLOR_FIELDS) {

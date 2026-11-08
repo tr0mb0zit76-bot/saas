@@ -11,6 +11,7 @@ return [
                 'contractors',
                 'tasks',
                 'grid_views',
+                'carrier_matching',
             ],
             'limits' => [
                 'users' => 5,
@@ -36,6 +37,7 @@ return [
                 'proposals_html',
                 'how_much_fits',
                 'mcp_read',
+                'carrier_matching',
                 'traklo_mobile',
             ],
             'limits' => [
@@ -69,6 +71,7 @@ return [
                 'budgeting',
                 'company_planning',
                 'ai_analytics',
+                'carrier_matching',
                 'load_board',
                 'import_cost',
                 'integrations',

@@ -7,6 +7,7 @@ import '../css/crm-appearance.css';
 import {
     applyCrmAppearanceToDocument,
     CRM_APPEARANCE_CHANGED,
+    CRM_APPEARANCE_DEFAULTS,
     readLocalCrmAppearance,
     resolveCrmAppearance,
 } from './support/crmAppearance.js';
@@ -32,11 +33,14 @@ const shouldUseDarkTheme = savedTheme === 'dark' || (savedTheme === null && pref
 document.documentElement.classList.toggle('dark', shouldUseDarkTheme);
 document.documentElement.classList.remove('light');
 
-applyCrmAppearanceToDocument(resolveCrmAppearance({ ui_preferences: readLocalCrmAppearance() }));
+// First paint = product default (Sky). Do not let a stale localStorage
+// "classic" from older modal defaults override before Inertia auth loads.
+applyCrmAppearanceToDocument(CRM_APPEARANCE_DEFAULTS);
 
 window.addEventListener(CRM_APPEARANCE_CHANGED, (event) => {
     applyCrmAppearanceToDocument(resolveCrmAppearance({
         ui_preferences: {
+            ...CRM_APPEARANCE_DEFAULTS,
             ...readLocalCrmAppearance(),
             ...(event.detail ?? {}),
         },

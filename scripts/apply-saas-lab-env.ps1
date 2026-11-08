@@ -37,6 +37,9 @@ $replacements = [ordered]@{
     'SAAS_TRIAL_DAYS'            = '14'
     'SAAS_DEMO_SIGNUP_ENABLED'   = 'true'
     'SESSION_SECURE_COOKIE'      = 'false'
+    'DOCUMENT_STORAGE'           = 'local'
+    'TENANT_STORAGE_DISK'        = 'tenant_local'
+    'TENANT_STORAGE_FOR_DOCUMENTS' = 'true'
 }
 
 foreach ($key in $replacements.Keys) {
@@ -61,6 +64,7 @@ Write-Host "  SHOWCASE_MODE=traklo_pro"
 Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
 Write-Host "  SAAS_DEMO_SIGNUP_ENABLED=true"
 Write-Host "  SESSION_SECURE_COOKIE=false (lab HTTP — avoids Secure cookies → 419)"
+Write-Host "  DOCUMENT_STORAGE=local + TENANT_STORAGE_DISK=tenant_local (no Nextcloud for SaaS)"
 
 if ($SkipArtisanClear) { return }
 

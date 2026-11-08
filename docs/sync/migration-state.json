@@ -1,7 +1,8 @@
 {
   "version": 1,
-  "updated_at": "2026-10-15T09:15:00Z",
+  "updated_at": "2026-11-08T07:00:00Z",
   "current_phase": "P4",
+  "product_backlog": "docs/architecture/saas-refinement-backlog.md",
   "phases": {
     "M0": {
       "name": "Prerequisites",
@@ -156,6 +157,18 @@
     "UX.3": {
       "status": "done",
       "note": "Traklo skin CSS cascade fix; lab 419/session cookies; agGrid PATCH workspace_skin; favicon/sidebar Traklo; repair-lab-after-pull; test DB saas_crm_test"
+    },
+    "WS-9.1": {
+      "status": "planned",
+      "note": "AI secretary Phase 1: WorkPulseAggregator + Agenda + Action Cards; brief narrative optional; no chat; privacy pack + opt-in (saas-refinement-backlog WS-9)"
+    },
+    "WS-9.2": {
+      "status": "planned",
+      "note": "Role personalization + AI coaching analytics link"
+    },
+    "WS-9.3": {
+      "status": "planned",
+      "note": "Write-back drafts only (task/mail) with human confirm + audit; whitelist tools"
     }
   },
   "config": {

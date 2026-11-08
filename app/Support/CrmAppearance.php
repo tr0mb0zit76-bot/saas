@@ -233,9 +233,9 @@ final class CrmAppearance
     public static function workspaceSkinOptions(): array
     {
         return [
-            ['value' => self::WORKSPACE_SKIN_CLASSIC, 'label' => 'Классический'],
             ['value' => self::WORKSPACE_SKIN_SKY, 'label' => 'Sky'],
             ['value' => self::WORKSPACE_SKIN_TRAKLO, 'label' => 'Traklo'],
+            ['value' => self::WORKSPACE_SKIN_CLASSIC, 'label' => 'Классический'],
             ['value' => self::WORKSPACE_SKIN_EMERALD, 'label' => 'Изумруд'],
             ['value' => self::WORKSPACE_SKIN_VIOLET, 'label' => 'Фиолет'],
             ['value' => self::WORKSPACE_SKIN_AMBER, 'label' => 'Янтарь'],
