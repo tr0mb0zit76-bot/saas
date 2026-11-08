@@ -31,6 +31,46 @@ class ProfileTest extends TestCase
         $this->assertSame('traklo', $user->ui_preferences['workspace_skin'] ?? null);
     }
 
+    public function test_ui_preferences_theme_colors_can_be_updated_and_cleared(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('users', 'ui_preferences')) {
+            $this->markTestSkipped('Колонка users.ui_preferences недоступна.');
+        }
+
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile/ui-preferences', [
+                'workspace_skin' => 'traklo',
+                'theme_colors' => [
+                    'accent' => '#ff5500',
+                    'accent_soft' => '#dbeafe',
+                    'surface' => '#ffffff',
+                    'surface_muted' => '#f8fafc',
+                    'border' => '#e2e8f0',
+                    'text' => '#0f172a',
+                    'text_muted' => '#475569',
+                    'accent_contrast' => '#ffffff',
+                ],
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect();
+        $user->refresh();
+        $this->assertSame('#ff5500', $user->ui_preferences['theme_colors']['accent'] ?? null);
+
+        $clear = $this
+            ->actingAs($user)
+            ->patch('/profile/ui-preferences', [
+                'theme_colors' => null,
+            ]);
+
+        $clear->assertSessionHasNoErrors()->assertRedirect();
+        $user->refresh();
+        $this->assertArrayHasKey('theme_colors', $user->ui_preferences);
+        $this->assertNull($user->ui_preferences['theme_colors']);
+    }
+
     public function test_profile_page_is_displayed(): void
     {
         $user = User::factory()->create();

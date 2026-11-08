@@ -5,11 +5,12 @@
             is_array(auth()->user()->ui_preferences) ? auth()->user()->ui_preferences : null,
         );
     }
-    $crmThemeColor = match ($crmHtmlAppearance['workspace_skin'] ?? 'classic') {
-        'sky' => '#0284c7',
-        'traklo' => '#2563eb',
-        default => '#18181b',
-    };
+    $crmThemePalette = \App\Support\CrmAppearance::paletteForSkin(
+        (string) ($crmHtmlAppearance['workspace_skin'] ?? 'classic'),
+    );
+    $crmThemeColor = $crmHtmlAppearance['theme_colors']['accent']
+        ?? $crmThemePalette['accent']
+        ?? '#18181b';
 @endphp
 <!DOCTYPE html>
 <html
@@ -18,6 +19,7 @@
     data-crm-accent="{{ $crmHtmlAppearance['primary_accent'] }}"
     data-crm-tab-style="{{ $crmHtmlAppearance['tab_style'] }}"
     data-crm-workspace-skin="{{ $crmHtmlAppearance['workspace_skin'] }}"
+    data-crm-nav-icons="{{ $crmHtmlAppearance['nav_icon_style'] }}"
 >
     <head>
         <meta charset="utf-8">

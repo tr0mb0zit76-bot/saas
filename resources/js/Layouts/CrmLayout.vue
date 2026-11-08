@@ -285,7 +285,10 @@
                             :title="collapsed ? item.label : false"
                             @click="handleMenuSelect(item.key, $event)"
                         >
-                            <span class="relative inline-flex shrink-0">
+                            <span
+                                class="relative inline-flex shrink-0"
+                                :class="crmNavIconWrapClass(item.key)"
+                            >
                                 <component :is="item.icon" class="h-5 w-5" />
                                 <span
                                     v-if="menuBadgeFor(item.key) > 0"
@@ -642,6 +645,7 @@ import {
     applyCrmAppearanceToDocument,
     resolveCrmAppearance,
 } from '@/support/crmAppearance.js';
+import { crmNavIconWrapClass } from '@/support/crmNavIconStyle.js';
 import { visitInertiaPath } from '@/support/inertiaHttpsVisit.js';
 import { postLogout } from '@/support/sessionLogout.js';
 import {
