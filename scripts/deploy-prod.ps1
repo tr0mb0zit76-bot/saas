@@ -56,8 +56,10 @@ if ($useBundle) {
     ssh -o ConnectTimeout=60 $HostName "set -e; cd '$AppPath'; git fetch /tmp/traklo-deploy.bundle '${Ref}:refs/remotes/origin/${Ref}'; git checkout -f -B '$Ref' 'origin/$Ref'; git reset --hard 'origin/$Ref'; rm -f /tmp/traklo-deploy.bundle; SKIP_GIT=1 bash scripts/deploy-prod.sh '$Ref'"
     Remove-Item $bundle -Force -ErrorAction SilentlyContinue
 } else {
+    # Checkout first, then run deploy with SKIP_GIT=1 so bash loads the *new* script
+    # (running deploy-prod.sh before reset keeps the old script body in memory).
     Write-Host "==> remote pull + deploy"
-    ssh -o ConnectTimeout=60 $HostName "cd '$AppPath' && bash scripts/deploy-prod.sh '$Ref'"
+    ssh -o ConnectTimeout=60 $HostName "set -e; cd '$AppPath'; git fetch --prune origin; git checkout -f -B '$Ref' 'origin/$Ref'; git reset --hard 'origin/$Ref'; SKIP_GIT=1 bash scripts/deploy-prod.sh '$Ref'"
 }
 
 if ($LASTEXITCODE -ne 0) { throw 'remote deploy failed' }
