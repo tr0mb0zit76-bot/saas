@@ -1,0 +1,44 @@
+name: Deploy prod
+
+on:
+  push:
+    branches:
+      - main
+      - cursor/traklo-session-integrate-9d42
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to deploy on the server
+        required: false
+        default: ''
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: 22
+          fingerprint: ${{ secrets.PROD_SSH_FINGERPRINT }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            APP_DIR='${{ secrets.PROD_APP_DIR }}'
+            REF_INPUT='${{ github.event.inputs.ref }}'
+            if [ -n "$REF_INPUT" ]; then
+              REF="$REF_INPUT"
+            else
+              REF='${{ github.ref_name }}'
+            fi
+            cd "$APP_DIR"
+            bash scripts/deploy-prod.sh "$REF"

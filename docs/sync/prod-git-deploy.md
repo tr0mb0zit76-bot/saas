@@ -2,24 +2,35 @@
 
 **Host:** `admtr4kl0@89.111.169.211`  
 **App:** `/var/www/www-root/data/www/traklo.pro`  
-**Remote:** `git@github.com:tr0mb0zit76-bot/saas.git`  
+**Remote:** `git@github.com:tr0mb0zit76-bot/saas.git` (SSH; ключ аккаунта `traklo.pro-deploy`)  
 **Branch (now):** `cursor/traklo-session-integrate-9d42` (пока не смержено в `main`)
 
-## Разовый шаг: deploy key
+## SSH-ключ на сервере (git pull с GitHub)
 
-На сервере уже есть ключ `~/.ssh/traklo_deploy`. Добавьте **public** key в GitHub:
+`~/.ssh/traklo_deploy` → SSH keys аккаунта `tr0mb0zit76-bot` (не Deploy keys). Fingerprint `SHA256:oMUv9L9rRtDPziZrJQU/F2utHwxB1gSiU/54mt3K7Jc`.
 
-**Repo → Settings → Deploy keys → Add deploy key** (read-only):
-
-```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOQqECoCqKFdt7r1BwNuKfKTIExNowWIbx+srTCXQhvE traklo.pro-deploy
-```
-
-Проверка на сервере:
+Проверка:
 
 ```bash
 ssh -T git@github.com
+# Hi tr0mb0zit76-bot! You've successfully authenticated...
 cd /var/www/www-root/data/www/traklo.pro && git fetch origin
+```
+
+## GitHub Actions CD
+
+Workflow: `.github/workflows/deploy-prod.yml`  
+Триггер: push в `main` или `cursor/traklo-session-integrate-9d42`, либо `workflow_dispatch`.
+
+Secrets (repo): `PROD_HOST`, `PROD_USER`, `PROD_APP_DIR`, `PROD_SSH_KEY`, `PROD_SSH_FINGERPRINT`.  
+Environment: `production`.
+
+CI SSH-ключ (отдельный от git-ключа сервера) лежит в `authorized_keys` пользователя `admtr4kl0`. Actions заходит по SSH и запускает `bash scripts/deploy-prod.sh <ref>`.
+
+Ручной прогон:
+
+```bash
+gh workflow run deploy-prod.yml -R tr0mb0zit76-bot/saas --ref cursor/traklo-session-integrate-9d42
 ```
 
 ## Обычный деплой (с этой машины)
