@@ -34,10 +34,14 @@ fi
 
 PHP_BIN="${PHP_BIN:-/usr/bin/php}"
 
-echo "==> git fetch / reset ${REF}"
-git fetch --prune origin
-git checkout "$REF"
-git reset --hard "origin/${REF}"
+if [[ "${SKIP_GIT:-0}" == "1" ]]; then
+  echo "==> skip git update (SKIP_GIT=1), HEAD=$(git rev-parse --short HEAD)"
+else
+  echo "==> git fetch / reset ${REF}"
+  git fetch --prune origin
+  git checkout "$REF"
+  git reset --hard "origin/${REF}"
+fi
 
 echo "==> composer"
 composer install --no-dev --optimize-autoloader --no-interaction
