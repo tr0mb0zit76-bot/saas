@@ -8,7 +8,13 @@ Tenant `orientum` (id=2) на `orientum.traklo.pro`: корень → `/login` (
 Причина ассетов на apex: после `config:cache` runtime `env('FORCE_HTTPS')` пустой → не срабатывал `forceRootUrl(request host)`.  
 Фикс: `config('app.force_https')` + ключ в `config/app.php`; hotfix на prod + `config:cache`. Link preload теперь `https://orientum.traklo.pro/build/...`.
 
-Логин: `admin@orientum.local` (пароль в vault/seed заметках сессии). Feature `carrier_matching` на тарифе Orientum ещё может отсутствовать — reseeds планов отдельно.
+Логин: `admin@orientum.local` (пароль в vault/seed заметках сессии).
+
+**Orientum = наша компания (2026-11-08):** tenant id=2 переведён на `enterprise`; `settings.features` = полный каталог (28/28, включая `carrier_matching`, `load_board`, `fleet`, `mcp_write`, управленку и т.д.); `subscription_plans` на prod синхронизированы из `config/saas-plans.php`.
+
+**Traklo invite / контакты (2026-11-08):** роли `counterparty_customer|carrier` сидятся per-tenant в `TenantProvisioner` (на Orientum уже есть). Блок приглашения перенесён с «Портрет» на вкладку «Контакты» (аккордеон + бейдж Traklo). Sync контактов больше не delete-all — upsert по `id`. Лиды из кабинета: `source = traklo_customer_request · {ФИО контакта}`.
+
+**Кабинет заказчика — заявки (2026-11-08):** вкладка «Заявки» в `Messenger.vue` для `external_party=customer` при фиче `carrier_matching`: список + форма (маршрут/груз) → `mobile.shell.counterparty.cargo-requests.*`. Nav key `cargo_requests` в `ExternalMobileNavCatalog` / default nav роли customer.
 
 ## Carrier matching P0 (2026-11-08)
 
@@ -19,7 +25,7 @@ ADR-017 **Accepted**. Флаг `carrier_matching` на Start/Pro/Enterprise (о�
 Код: `CarrierMatchingService`, `LeadCarrierMatchingController`, `MobileCarrierMatchingController`.  
 Тесты: `tests/Feature/Saas/ClientLeadCarrierBidIsolationTest.php`.
 
-Ещё нет: Vue UI staff/кабинет, профиль маршрутов перевозчика (follow-on).
+Ещё нет: Vue UI staff share / кабинет перевозчика (ставки), профиль маршрутов перевозчика (follow-on).
 
 ## Prod CD (2026-11-08)
 

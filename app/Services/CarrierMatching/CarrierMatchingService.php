@@ -38,10 +38,15 @@ class CarrierMatchingService
             $loading = trim((string) ($payload['loading_location'] ?? ''));
             $unloading = trim((string) ($payload['unloading_location'] ?? ''));
 
+            $contactName = trim((string) ($customer->name ?? ''));
+            $source = $contactName !== ''
+                ? self::SOURCE_CUSTOMER_REQUEST.' · '.$contactName
+                : self::SOURCE_CUSTOMER_REQUEST;
+
             $lead = Lead::query()->create([
                 'number' => $this->nextLeadNumber(),
                 'status' => LeadStatus::values()[0],
-                'source' => self::SOURCE_CUSTOMER_REQUEST,
+                'source' => $source,
                 'counterparty_id' => $contractorId,
                 'title' => (string) ($payload['title'] ?? sprintf('Заявка: %s → %s', $loading, $unloading)),
                 'description' => $payload['comment'] ?? null,
@@ -54,6 +59,8 @@ class CarrierMatchingService
                 'metadata' => [
                     'privacy_notice_ack' => true,
                     'created_via' => 'customer_cabinet',
+                    'contractor_contact_id' => $customer->contractor_contact_id,
+                    'contact_name' => $contactName !== '' ? $contactName : null,
                 ],
             ]);
 
@@ -76,7 +83,10 @@ class CarrierMatchingService
         return Lead::query()
             ->with(['cargoItems', 'routePoints'])
             ->where('counterparty_id', $contractorId)
-            ->where('source', self::SOURCE_CUSTOMER_REQUEST)
+            ->where(function ($query): void {
+                $query->where('source', self::SOURCE_CUSTOMER_REQUEST)
+                    ->orWhere('source', 'like', self::SOURCE_CUSTOMER_REQUEST.' · %');
+            })
             ->orderByDesc('id')
             ->limit(50)
             ->get();
@@ -89,7 +99,15 @@ class CarrierMatchingService
         }
 
         return (int) $lead->counterparty_id === (int) $customer->contractor_id
-            && (string) $lead->source === self::SOURCE_CUSTOMER_REQUEST;
+            && self::isCustomerRequestSource($lead->source);
+    }
+
+    public static function isCustomerRequestSource(mixed $source): bool
+    {
+        $value = trim((string) $source);
+
+        return $value === self::SOURCE_CUSTOMER_REQUEST
+            || str_starts_with($value, self::SOURCE_CUSTOMER_REQUEST.' · ');
     }
 
     /**
@@ -436,6 +454,7 @@ class CarrierMatchingService
             'id' => $lead->id,
             'number' => $lead->number,
             'status' => $lead->status,
+            'status_label' => LeadStatus::label((string) $lead->status),
             'title' => $lead->title,
             'loading_location' => $lead->loading_location,
             'unloading_location' => $lead->unloading_location,

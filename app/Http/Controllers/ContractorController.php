@@ -1361,9 +1361,20 @@ class ContractorController extends Controller
         if (Schema::hasTable('contractor_contacts')
             && array_key_exists('contacts', $validated)
             && is_array($validated['contacts'])) {
-            $contractor->contacts()->delete();
+            $keepIds = [];
 
             foreach ($validated['contacts'] as $contact) {
+                if (! is_array($contact)) {
+                    continue;
+                }
+
+                $contactId = isset($contact['id']) ? (int) $contact['id'] : 0;
+                unset(
+                    $contact['id'],
+                    $contact['has_traklo_user'],
+                    $contact['role_in_deal_label'],
+                );
+
                 if (! Schema::hasColumn('contractor_contacts', 'is_decision_maker')) {
                     unset($contact['is_decision_maker']);
                 }
@@ -1377,8 +1388,29 @@ class ContractorController extends Controller
                     unset($contact['role_in_deal'], $contact['communication_notes']);
                 }
 
-                $contractor->contacts()->create($contact);
+                if (! Schema::hasColumn('contractor_contacts', 'is_traklo_primary')) {
+                    unset($contact['is_traklo_primary']);
+                }
+
+                if ($contactId > 0) {
+                    $existing = $contractor->contacts()->whereKey($contactId)->first();
+                    if ($existing !== null) {
+                        $existing->fill($contact)->save();
+                        $keepIds[] = $existing->id;
+
+                        continue;
+                    }
+                }
+
+                $created = $contractor->contacts()->create($contact);
+                $keepIds[] = (int) $created->id;
             }
+
+            $deleteQuery = $contractor->contacts();
+            if ($keepIds !== []) {
+                $deleteQuery->whereNotIn('id', $keepIds);
+            }
+            $deleteQuery->delete();
         }
 
         if (Schema::hasTable('contractor_interactions')

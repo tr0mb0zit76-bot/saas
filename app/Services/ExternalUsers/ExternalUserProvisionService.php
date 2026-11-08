@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\CounterpartyPartyResolver;
 use App\Support\ExternalParty;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -191,12 +192,40 @@ class ExternalUserProvisionService
 
         $role = Role::query()->where('name', $roleName)->first();
 
-        if ($role === null) {
+        if ($role !== null) {
+            return $role;
+        }
+
+        $tenantId = TenantContext::id();
+        if ($tenantId === null) {
             throw ValidationException::withMessages([
                 'role' => 'Роль '.$roleName.' не найдена. Выполните миграции.',
             ]);
         }
 
-        return $role;
+        $counterpartyAreas = [
+            'counterparty_orders',
+            'counterparty_documents',
+            'counterparty_portal',
+        ];
+
+        return Role::query()->updateOrCreate(
+            ['tenant_id' => $tenantId, 'name' => $roleName],
+            [
+                'tenant_id' => $tenantId,
+                'display_name' => $party === ExternalParty::Carrier
+                    ? 'Контакт перевозчика (Traklo)'
+                    : 'Контакт заказчика (Traklo)',
+                'description' => 'Внешний пользователь Traklo',
+                'permissions' => [],
+                'visibility_areas' => $counterpartyAreas,
+                'visibility_scopes' => [],
+                'columns_config' => [],
+                'has_signing_authority' => false,
+                'default_mobile_nav_keys' => $party === ExternalParty::Carrier
+                    ? ['counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal']
+                    : ['cargo_requests', 'counterparty_orders', 'counterparty_documents', 'chats'],
+            ],
+        );
     }
 }

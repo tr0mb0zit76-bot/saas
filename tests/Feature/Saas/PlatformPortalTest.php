@@ -79,6 +79,23 @@ class PlatformPortalTest extends SaasTestCase
         ])->assertRedirect(route('platform.dashboard'));
 
         $this->assertAuthenticatedAs($this->platformAdmin);
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
+    public function test_platform_admin_without_tenant_can_use_dashboard_after_login(): void
+    {
+        TenantContext::bypass(true);
+        $this->platformAdmin->forceFill(['tenant_id' => null, 'role_id' => null])->save();
+        TenantContext::bypass(false);
+
+        $this->post($this->platformUrl('/login'), [
+            'email' => 'platform-admin@saas.local',
+            'password' => 'password',
+        ])->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+        $this->assertAuthenticatedAs($this->platformAdmin);
     }
 
     public function test_non_platform_email_cannot_log_in_via_platform_portal(): void

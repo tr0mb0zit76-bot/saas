@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  */
 final class ExternalMobileNavCatalog
 {
-    public const ORDER = ['counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal'];
+    public const ORDER = ['cargo_requests', 'counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal'];
 
     /**
      * @return list<string>
@@ -26,6 +26,15 @@ final class ExternalMobileNavCatalog
         foreach (self::ORDER as $key) {
             if ($key === 'chats') {
                 $out[] = $key;
+
+                continue;
+            }
+
+            // Customer cargo requests: always offered when party is customer (feature gated in UI/routes).
+            if ($key === 'cargo_requests') {
+                if ($party === ExternalParty::Customer) {
+                    $out[] = $key;
+                }
 
                 continue;
             }
@@ -49,6 +58,7 @@ final class ExternalMobileNavCatalog
     public static function labels(): array
     {
         return [
+            'cargo_requests' => 'Заявки',
             'counterparty_orders' => 'Заказы',
             'counterparty_documents' => 'Документы',
             'chats' => 'Чаты',

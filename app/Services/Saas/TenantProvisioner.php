@@ -24,6 +24,22 @@ final class TenantProvisioner
         ['name' => 'viewer', 'display_name' => 'Наблюдатель'],
     ];
 
+    /**
+     * @var list<array{name: string, display_name: string, external_party: string}>
+     */
+    private const EXTERNAL_ROLES = [
+        [
+            'name' => 'counterparty_carrier',
+            'display_name' => 'Контакт перевозчика (Traklo)',
+            'external_party' => 'carrier',
+        ],
+        [
+            'name' => 'counterparty_customer',
+            'display_name' => 'Контакт заказчика (Traklo)',
+            'external_party' => 'customer',
+        ],
+    ];
+
     public function provision(Tenant $tenant): Tenant
     {
         TenantContext::runAs($tenant, function () use ($tenant): void {
@@ -55,6 +71,34 @@ final class TenantProvisioner
                     'permissions' => RoleAccess::permissionKeys(),
                     'visibility_areas' => RoleAccess::defaultVisibilityAreas($name),
                     'visibility_scopes' => RoleAccess::defaultVisibilityScopes($name),
+                ],
+            );
+        }
+
+        $counterpartyAreas = [
+            'counterparty_orders',
+            'counterparty_documents',
+            'counterparty_portal',
+        ];
+
+        foreach (self::EXTERNAL_ROLES as $definition) {
+            $name = $definition['name'];
+            $party = $definition['external_party'];
+
+            $roles[$name] = Role::query()->updateOrCreate(
+                ['tenant_id' => $tenant->id, 'name' => $name],
+                [
+                    'tenant_id' => $tenant->id,
+                    'display_name' => $definition['display_name'],
+                    'description' => 'Внешний пользователь Traklo',
+                    'permissions' => [],
+                    'visibility_areas' => $counterpartyAreas,
+                    'visibility_scopes' => [],
+                    'columns_config' => [],
+                    'has_signing_authority' => false,
+                    'default_mobile_nav_keys' => $party === 'carrier'
+                        ? ['counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal']
+                        : ['cargo_requests', 'counterparty_orders', 'counterparty_documents', 'chats'],
                 ],
             );
         }

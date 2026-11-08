@@ -43,12 +43,10 @@ class ClientLeadCarrierBidIsolationTest extends SaasTestCase
             ->assertJsonPath('lead.cargo.name', 'Паллеты');
 
         $leadId = (int) $response->json('lead.id');
-        $this->assertDatabaseHas('leads', [
-            'id' => $leadId,
-            'tenant_id' => $fixture['tenant']->id,
-            'counterparty_id' => $fixture['customerContractor']->id,
-            'source' => CarrierMatchingService::SOURCE_CUSTOMER_REQUEST,
-        ]);
+        $lead = Lead::query()->findOrFail($leadId);
+        $this->assertSame($fixture['tenant']->id, (int) $lead->tenant_id);
+        $this->assertSame($fixture['customerContractor']->id, (int) $lead->counterparty_id);
+        $this->assertTrue(CarrierMatchingService::isCustomerRequestSource((string) $lead->source));
 
         $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
     }

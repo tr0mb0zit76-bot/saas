@@ -16,6 +16,10 @@ class IdentifyTenant
         TenantContext::clear();
 
         if (PlatformHost::matchesRequest($request)) {
+            // Auth retrieves User by id under TenantScope; without bypass the
+            // session user (esp. tenant_id null) never loads and login "fails".
+            TenantContext::bypass(true);
+
             return $next($request);
         }
 
