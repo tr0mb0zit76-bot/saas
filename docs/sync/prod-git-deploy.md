@@ -22,10 +22,10 @@ cd /var/www/www-root/data/www/traklo.pro && git fetch origin
 Workflow: `.github/workflows/deploy-prod.yml`  
 Триггер: push в `main` или `cursor/traklo-session-integrate-9d42`, либо `workflow_dispatch`.
 
-Secrets (repo): `PROD_HOST`, `PROD_USER`, `PROD_APP_DIR`, `PROD_SSH_KEY`, `PROD_SSH_FINGERPRINT`.  
-Environment: `production`.
+Runner: **self-hosted** `traklo-prod` на самом VPS (`~/actions-runner`, systemd service).  
+Причина: ISPmanager firewall не пускает inbound SSH с GitHub-hosted runners.
 
-CI SSH-ключ (отдельный от git-ключа сервера) лежит в `authorized_keys` пользователя `admtr4kl0`. Actions заходит по SSH и запускает `bash scripts/deploy-prod.sh <ref>`.
+Environment: `production`. Job просто вызывает `bash scripts/deploy-prod.sh <ref>` в каталоге приложения.
 
 Ручной прогон:
 
@@ -41,7 +41,7 @@ pwsh -File scripts/deploy-prod.ps1
 
 Скрипт: `git push` → на сервере `git pull` (или bundle fallback) → `composer` / `npm run build` / `migrate` / caches.
 
-## Только на сервере (когда deploy key уже есть)
+## Только на сервере
 
 ```bash
 cd /var/www/www-root/data/www/traklo.pro
