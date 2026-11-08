@@ -630,10 +630,12 @@
 
                     <div v-if="cargoRequestsLoading" class="py-8 text-center text-sm text-zinc-500">Загрузка просчётов…</div>
                     <template v-else>
-                        <div
+                        <button
                             v-for="lead in filteredCargoRequests"
                             :key="`cargo-request-${lead.id}`"
-                            class="rounded-3xl border border-white/10 bg-white/[0.04] p-4"
+                            type="button"
+                            class="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-left active:bg-white/[0.06]"
+                            @click="openCargoRequestEdit(lead)"
                         >
                             <div class="flex items-start gap-3">
                                 <div class="min-w-0 flex-1">
@@ -647,14 +649,15 @@
                                     </div>
                                     <div v-if="lead.cargo?.name" class="mt-1 truncate text-xs text-zinc-500">{{ lead.cargo.name }}</div>
                                     <div v-if="cargoRequestSummary(lead)" class="mt-1 text-xs text-zinc-500">{{ cargoRequestSummary(lead) }}</div>
-                                    <div v-if="lead.planned_shipping_date" class="mt-1 text-xs text-zinc-500">
-                                        Дата погрузки: {{ formatShortDate(lead.planned_shipping_date) }}
+                                    <div v-if="lead.planned_shipping_date || lead.loading_date" class="mt-1 text-xs text-zinc-500">
+                                        Дата погрузки: {{ formatShortDate(lead.planned_shipping_date || lead.loading_date) }}
                                     </div>
+                                    <div class="mt-2 text-[11px] font-medium text-sky-300">Изменить</div>
                                 </div>
                                 <span class="shrink-0 text-[10px] text-zinc-500">{{ formatShortDate(lead.created_at) }}</span>
                             </div>
                             <p v-if="lead.notice" class="mt-3 text-[11px] leading-4 text-zinc-500">{{ lead.notice }}</p>
-                        </div>
+                        </button>
                         <div v-if="filteredCargoRequests.length === 0" class="rounded-3xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-zinc-500">
                             {{ search.trim() ? 'Ничего не найдено.' : 'Просчётов пока нет. Создайте первый.' }}
                         </div>
@@ -894,9 +897,13 @@
             >
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-base font-semibold text-zinc-50">Новый просчёт</div>
+                        <div class="text-base font-semibold text-zinc-50">
+                            {{ cargoRequestEditingId ? 'Редактировать просчёт' : 'Новый просчёт' }}
+                        </div>
                         <div class="mt-1 text-xs leading-5 text-zinc-400">
-                            Заполните поля или распознайте текст/скан — затем отправьте экспедитору.
+                            {{ cargoRequestEditingId
+                                ? 'Обновите маршрут или параметры груза — экспедитор увидит изменения.'
+                                : 'Заполните поля или распознайте текст/скан — затем отправьте экспедитору.' }}
                         </div>
                     </div>
                     <button type="button" class="rounded-full p-2 text-zinc-400 active:bg-white/10" @click="closeCargoRequestForm">
@@ -1125,7 +1132,9 @@
                     class="mt-3 w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
                     :disabled="cargoRequestCreating || cargoRequestParsing || !cargoRequestForm.loading_location.trim() || !cargoRequestForm.unloading_location.trim()"
                 >
-                    {{ cargoRequestCreating ? 'Отправляем…' : 'Отправить на просчёт' }}
+                    {{ cargoRequestCreating
+                        ? (cargoRequestEditingId ? 'Сохраняем…' : 'Отправляем…')
+                        : (cargoRequestEditingId ? 'Сохранить изменения' : 'Отправить на просчёт') }}
                 </button>
             </form>
         </div>
@@ -1212,6 +1221,7 @@ const showUploadWizard = ref(false);
 const showSharePicker = ref(false);
 const showMessageLeadIntake = ref(false);
 const showCargoRequestForm = ref(false);
+const cargoRequestEditingId = ref(null);
 const cargoRequestCreating = ref(false);
 const cargoRequestParsing = ref(false);
 const cargoRequestError = ref('');
@@ -1358,6 +1368,7 @@ const {
     loadTrakloLeads,
     loadCargoRequests,
     createCargoRequest,
+    updateCargoRequest,
     parseCargoRequest,
     loadOrderSummary,
     loadLeadSummary,
@@ -1664,6 +1675,7 @@ function closeMessageLeadIntake() {
 }
 
 function resetCargoRequestForm() {
+    cargoRequestEditingId.value = null;
     cargoRequestForm.value = emptyCargoRequestForm();
     cargoRequestParseText.value = '';
     cargoRequestParseWarnings.value = [];
@@ -1675,6 +1687,44 @@ function openCargoRequestForm() {
     showCargoRequestForm.value = true;
 }
 
+function openCargoRequestEdit(lead) {
+    if (!lead?.id) {
+        return;
+    }
+
+    cargoRequestError.value = '';
+    cargoRequestParseText.value = '';
+    cargoRequestParseWarnings.value = [];
+    cargoRequestEditingId.value = Number(lead.id);
+
+    const cargo = lead.cargo ?? {};
+    const next = emptyCargoRequestForm();
+    next.loading_location = lead.loading_location ?? '';
+    next.unloading_location = lead.unloading_location ?? '';
+    next.loading_date = lead.loading_date || lead.planned_shipping_date || '';
+    next.unloading_date = lead.unloading_date || '';
+    next.transport_type = lead.transport_type ?? '';
+    next.cargo_name = cargo.name || lead.cargo_name || '';
+    next.weight_value = cargo.weight_value ?? cargo.weight_kg ?? '';
+    next.weight_unit = cargo.weight_unit === 'kg' ? 'kg' : 't';
+    next.volume_m3 = cargo.volume_m3 ?? '';
+    next.length_m = cargo.length_m ?? cargo.length_value ?? '';
+    next.width_m = cargo.width_m ?? cargo.width_value ?? '';
+    next.height_m = cargo.height_m ?? cargo.height_value ?? '';
+    next.package_count = cargo.package_count ?? '';
+    next.package_type = cargo.package_type ?? '';
+    next.dangerous_goods = Boolean(cargo.dangerous_goods);
+    next.dangerous_class = cargo.dangerous_class ?? '';
+    next.needs_temperature = Boolean(cargo.needs_temperature);
+    next.temp_min = cargo.temp_min ?? '';
+    next.temp_max = cargo.temp_max ?? '';
+    next.is_fragile = Boolean(cargo.is_fragile);
+    next.is_oversized = Boolean(cargo.is_oversized);
+    next.comment = lead.comment || cargo.description || '';
+    cargoRequestForm.value = next;
+    showCargoRequestForm.value = true;
+}
+
 function closeCargoRequestForm() {
     if (cargoRequestCreating.value || cargoRequestParsing.value) {
         return;
@@ -1682,6 +1732,7 @@ function closeCargoRequestForm() {
 
     showCargoRequestForm.value = false;
     cargoRequestError.value = '';
+    cargoRequestEditingId.value = null;
 }
 
 function optionalNumber(value) {
@@ -1847,7 +1898,12 @@ async function submitCargoRequest() {
             payload.cargo.weight_value = Number(weightRaw);
         }
 
-        await createCargoRequest(payload);
+        if (cargoRequestEditingId.value) {
+            await updateCargoRequest(cargoRequestEditingId.value, payload);
+        } else {
+            await createCargoRequest(payload);
+        }
+
         showCargoRequestForm.value = false;
         resetCargoRequestForm();
         await loadCargoRequests();
@@ -1856,7 +1912,7 @@ async function submitCargoRequest() {
         const firstError = errors ? Object.values(errors).flat()[0] : null;
         cargoRequestError.value = firstError
             || exception.response?.data?.message
-            || 'Не удалось отправить просчёт.';
+            || (cargoRequestEditingId.value ? 'Не удалось сохранить просчёт.' : 'Не удалось отправить просчёт.');
     } finally {
         cargoRequestCreating.value = false;
     }

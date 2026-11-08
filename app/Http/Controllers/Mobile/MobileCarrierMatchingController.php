@@ -30,59 +30,25 @@ class MobileCarrierMatchingController extends Controller
     public function storeCargoRequest(Request $request): JsonResponse
     {
         $user = $this->externalUser($request, ExternalParty::Customer);
-
-        $validated = $request->validate([
-            'title' => ['nullable', 'string', 'max:255'],
-            'loading_location' => ['required', 'string', 'max:255'],
-            'unloading_location' => ['required', 'string', 'max:255'],
-            'loading_date' => ['nullable', 'date'],
-            'unloading_date' => ['nullable', 'date', 'after_or_equal:loading_date'],
-            'transport_type' => ['nullable', 'string', 'max:100'],
-            'comment' => ['nullable', 'string', 'max:2000'],
-            'cargo_name' => ['nullable', 'string', 'max:255'],
-            'cargo' => ['nullable', 'array'],
-            'cargo.name' => ['nullable', 'string', 'max:255'],
-            'cargo.weight_value' => ['nullable', 'numeric', 'min:0'],
-            'cargo.weight_kg' => ['nullable', 'numeric', 'min:0'],
-            'cargo.weight_unit' => ['nullable', 'string', 'in:kg,t'],
-            'cargo.volume_m3' => ['nullable', 'numeric', 'min:0'],
-            'cargo.dimension_unit' => ['nullable', 'string', 'in:m,cm,mm'],
-            'cargo.length_m' => ['nullable', 'numeric', 'min:0'],
-            'cargo.width_m' => ['nullable', 'numeric', 'min:0'],
-            'cargo.height_m' => ['nullable', 'numeric', 'min:0'],
-            'cargo.length_value' => ['nullable', 'numeric', 'min:0'],
-            'cargo.width_value' => ['nullable', 'numeric', 'min:0'],
-            'cargo.height_value' => ['nullable', 'numeric', 'min:0'],
-            'cargo.diameter_m' => ['nullable', 'numeric', 'min:0'],
-            'cargo.package_count' => ['nullable', 'integer', 'min:0'],
-            'cargo.package_type' => ['nullable', 'string', 'max:100'],
-            'cargo.description' => ['nullable', 'string', 'max:2000'],
-            'cargo.dangerous_goods' => ['nullable', 'boolean'],
-            'cargo.dangerous_class' => ['nullable', 'string', 'max:50'],
-            'cargo.needs_temperature' => ['nullable', 'boolean'],
-            'cargo.temp_min' => ['nullable', 'numeric'],
-            'cargo.temp_max' => ['nullable', 'numeric'],
-            'cargo.is_fragile' => ['nullable', 'boolean'],
-            'cargo.is_oversized' => ['nullable', 'boolean'],
-            'cargo.hs_code' => ['nullable', 'string', 'max:32'],
-            'cargo.cargo_type' => ['nullable', 'string', 'max:50'],
-        ]);
-
-        if (empty($validated['cargo']['name'] ?? null) && ! empty($validated['cargo_name'] ?? null)) {
-            $validated['cargo'] = array_merge($validated['cargo'] ?? [], [
-                'name' => $validated['cargo_name'],
-            ]);
-        }
-
-        if (empty($validated['cargo']['name'] ?? null)) {
-            $validated['cargo']['name'] = 'Груз';
-        }
-
+        $validated = $this->validatedCargoRequest($request);
         $lead = $this->matching->createCustomerRequest($user, $validated);
 
         return response()->json([
             'lead' => $this->matching->presentLeadForCustomer($lead),
         ], 201);
+    }
+
+    public function updateCargoRequest(Request $request, Lead $lead): JsonResponse
+    {
+        $user = $this->externalUser($request, ExternalParty::Customer);
+        abort_unless($this->matching->customerCanViewLead($user, $lead), 404);
+
+        $validated = $this->validatedCargoRequest($request);
+        $lead = $this->matching->updateCustomerRequest($user, $lead, $validated);
+
+        return response()->json([
+            'lead' => $this->matching->presentLeadForCustomer($lead),
+        ]);
     }
 
     public function cargoRequests(Request $request): JsonResponse
@@ -221,5 +187,60 @@ class MobileCarrierMatchingController extends Controller
         }
 
         return $user;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedCargoRequest(Request $request): array
+    {
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'loading_location' => ['required', 'string', 'max:255'],
+            'unloading_location' => ['required', 'string', 'max:255'],
+            'loading_date' => ['nullable', 'date'],
+            'unloading_date' => ['nullable', 'date', 'after_or_equal:loading_date'],
+            'transport_type' => ['nullable', 'string', 'max:100'],
+            'comment' => ['nullable', 'string', 'max:2000'],
+            'cargo_name' => ['nullable', 'string', 'max:255'],
+            'cargo' => ['nullable', 'array'],
+            'cargo.name' => ['nullable', 'string', 'max:255'],
+            'cargo.weight_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.weight_kg' => ['nullable', 'numeric', 'min:0'],
+            'cargo.weight_unit' => ['nullable', 'string', 'in:kg,t'],
+            'cargo.volume_m3' => ['nullable', 'numeric', 'min:0'],
+            'cargo.dimension_unit' => ['nullable', 'string', 'in:m,cm,mm'],
+            'cargo.length_m' => ['nullable', 'numeric', 'min:0'],
+            'cargo.width_m' => ['nullable', 'numeric', 'min:0'],
+            'cargo.height_m' => ['nullable', 'numeric', 'min:0'],
+            'cargo.length_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.width_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.height_value' => ['nullable', 'numeric', 'min:0'],
+            'cargo.diameter_m' => ['nullable', 'numeric', 'min:0'],
+            'cargo.package_count' => ['nullable', 'integer', 'min:0'],
+            'cargo.package_type' => ['nullable', 'string', 'max:100'],
+            'cargo.description' => ['nullable', 'string', 'max:2000'],
+            'cargo.dangerous_goods' => ['nullable', 'boolean'],
+            'cargo.dangerous_class' => ['nullable', 'string', 'max:50'],
+            'cargo.needs_temperature' => ['nullable', 'boolean'],
+            'cargo.temp_min' => ['nullable', 'numeric'],
+            'cargo.temp_max' => ['nullable', 'numeric'],
+            'cargo.is_fragile' => ['nullable', 'boolean'],
+            'cargo.is_oversized' => ['nullable', 'boolean'],
+            'cargo.hs_code' => ['nullable', 'string', 'max:32'],
+            'cargo.cargo_type' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if (empty($validated['cargo']['name'] ?? null) && ! empty($validated['cargo_name'] ?? null)) {
+            $validated['cargo'] = array_merge($validated['cargo'] ?? [], [
+                'name' => $validated['cargo_name'],
+            ]);
+        }
+
+        if (empty($validated['cargo']['name'] ?? null)) {
+            $validated['cargo']['name'] = 'Груз';
+        }
+
+        return $validated;
     }
 }

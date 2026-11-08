@@ -930,6 +930,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/cargo-requests', [MobileCarrierMatchingController::class, 'storeCargoRequest'])->name('cargo-requests.store');
             Route::post('/cargo-requests/parse', [MobileCarrierMatchingController::class, 'parseCargoRequest'])->name('cargo-requests.parse');
             Route::get('/cargo-requests/{lead}', [MobileCarrierMatchingController::class, 'showCargoRequest'])->name('cargo-requests.show');
+            Route::put('/cargo-requests/{lead}', [MobileCarrierMatchingController::class, 'updateCargoRequest'])->name('cargo-requests.update');
 
             Route::get('/matching-loads', [MobileCarrierMatchingController::class, 'matchingLoads'])->name('matching-loads.index');
             Route::get('/matching-loads/{post}', [MobileCarrierMatchingController::class, 'showMatchingLoad'])->name('matching-loads.show');

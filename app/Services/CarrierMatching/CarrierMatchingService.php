@@ -67,12 +67,36 @@ class CarrierMatchingService
             $this->syncRoutePoints($lead, $payload);
             $this->syncCargoItem($lead, $payload);
 
-            $lead = $lead->fresh(['cargoItems', 'routePoints', 'counterparty:id,name']) ?? $lead;
+            // Lead only — staff publish to carriers later via shareLeadWithCarriers.
+            return $lead->fresh(['cargoItems', 'routePoints']) ?? $lead;
+        });
+    }
 
-            // Staff expect the cargo on «Биржа» immediately; carriers stay hidden until share.
-            $this->ensureBoardPostForLead($lead, $customer, invitedCarrierIds: []);
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function updateCustomerRequest(User $customer, Lead $lead, array $payload): Lead
+    {
+        abort_unless($this->customerCanViewLead($customer, $lead), 404);
 
-            return $lead;
+        return DB::transaction(function () use ($customer, $lead, $payload): Lead {
+            $loading = trim((string) ($payload['loading_location'] ?? ''));
+            $unloading = trim((string) ($payload['unloading_location'] ?? ''));
+
+            $lead->forceFill([
+                'title' => (string) ($payload['title'] ?? sprintf('Просчёт: %s → %s', $loading, $unloading)),
+                'description' => $payload['comment'] ?? null,
+                'loading_location' => $loading,
+                'unloading_location' => $unloading,
+                'planned_shipping_date' => $payload['loading_date'] ?? null,
+                'transport_type' => $payload['transport_type'] ?? null,
+                'updated_by' => $customer->id,
+            ])->save();
+
+            $this->syncRoutePoints($lead, $payload);
+            $this->syncCargoItem($lead, $payload);
+
+            return $lead->fresh(['cargoItems', 'routePoints']) ?? $lead;
         });
     }
 
@@ -481,7 +505,10 @@ class CarrierMatchingService
      */
     public function presentLeadForCustomer(Lead $lead): array
     {
+        $lead->loadMissing(['cargoItems', 'routePoints']);
         $cargo = $lead->cargoItems->first();
+        $unloadingPoint = $lead->routePoints->where('type', 'unloading')->last()
+            ?? $lead->routePoints->last();
 
         return [
             'id' => $lead->id,
@@ -491,8 +518,11 @@ class CarrierMatchingService
             'title' => $lead->title,
             'loading_location' => $lead->loading_location,
             'unloading_location' => $lead->unloading_location,
+            'loading_date' => $lead->planned_shipping_date?->toDateString(),
+            'unloading_date' => $unloadingPoint?->planned_date?->toDateString(),
             'planned_shipping_date' => $lead->planned_shipping_date?->toDateString(),
             'transport_type' => $lead->transport_type,
+            'comment' => $lead->description,
             'cargo' => $cargo ? LeadCargoItemPayloadNormalizer::toFrontend($cargo) : null,
             'notice' => 'Просчёт обрабатывается экспедитором. Данные маршрута и груза могут быть переданы выбранным перевозчикам для подбора ставки.',
             'created_at' => $lead->created_at?->toIso8601String(),

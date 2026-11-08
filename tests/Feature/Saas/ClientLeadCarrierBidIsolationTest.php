@@ -48,11 +48,73 @@ class ClientLeadCarrierBidIsolationTest extends SaasTestCase
         $this->assertSame($fixture['customerContractor']->id, (int) $lead->counterparty_id);
         $this->assertTrue(CarrierMatchingService::isCustomerRequestSource((string) $lead->source));
 
-        $post = LoadBoardPost::query()->where('lead_id', $leadId)->first();
-        $this->assertNotNull($post);
-        $this->assertSame('new', $post->status);
-        $this->assertTrue((bool) data_get($post->metadata, 'carrier_matching.enabled'));
-        $this->assertSame([], data_get($post->metadata, 'carrier_matching.invited_carrier_ids', ['x']));
+        $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
+    }
+
+    public function test_client_can_update_own_cargo_request_without_publishing_board_post(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        $leadId = (int) $this->postJson(route('mobile.shell.counterparty.cargo-requests.store'), [
+            'loading_location' => 'Москва',
+            'unloading_location' => 'Казань',
+            'cargo' => ['name' => 'Паллеты', 'weight_value' => 5, 'weight_unit' => 't'],
+        ])->assertCreated()->json('lead.id');
+
+        $response = $this->putJson(route('mobile.shell.counterparty.cargo-requests.update', $leadId), [
+            'loading_location' => 'Тула',
+            'unloading_location' => 'Самара',
+            'loading_date' => '2026-12-01',
+            'comment' => 'Обновлённый комментарий',
+            'cargo_name' => 'Оборудование',
+            'cargo' => [
+                'name' => 'Оборудование',
+                'weight_value' => 12,
+                'weight_unit' => 't',
+                'package_count' => 4,
+                'package_type' => 'ящики',
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('lead.loading_location', 'Тула')
+            ->assertJsonPath('lead.unloading_location', 'Самара')
+            ->assertJsonPath('lead.cargo.name', 'Оборудование')
+            ->assertJsonPath('lead.comment', 'Обновлённый комментарий');
+
+        $lead = Lead::query()->with('cargoItems')->findOrFail($leadId);
+        $this->assertSame('Тула', $lead->loading_location);
+        $this->assertSame('Самара', $lead->unloading_location);
+        $this->assertSame('Обновлённый комментарий', $lead->description);
+        $this->assertSame(4, (int) $lead->cargoItems->first()?->package_count);
+        $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
+    }
+
+    public function test_client_cannot_update_another_clients_cargo_request(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        TenantContext::set($fixture['tenant']);
+        $otherLead = Lead::query()->create([
+            'tenant_id' => $fixture['tenant']->id,
+            'number' => 'LD-OTHER-EDIT-'.uniqid(),
+            'status' => 'new',
+            'source' => CarrierMatchingService::SOURCE_CUSTOMER_REQUEST,
+            'counterparty_id' => $fixture['otherCustomerContractor']->id,
+            'title' => 'Чужая заявка',
+            'loading_location' => 'X',
+            'unloading_location' => 'Y',
+        ]);
+
+        $this->putJson(route('mobile.shell.counterparty.cargo-requests.update', $otherLead), [
+            'loading_location' => 'Взломанная',
+            'unloading_location' => 'Точка',
+            'cargo' => ['name' => 'Чужой'],
+        ])->assertNotFound();
+
+        $this->assertSame('X', $otherLead->fresh()->loading_location);
     }
 
     public function test_client_cargo_full_fields_reach_matching_share_post(): void

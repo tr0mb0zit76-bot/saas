@@ -202,6 +202,22 @@ export function useMobileShell() {
         return lead;
     }
 
+    async function updateCargoRequest(leadId, payload) {
+        const { data } = await axios.put(route('mobile.shell.counterparty.cargo-requests.update', leadId), payload, {
+            headers: { Accept: 'application/json' },
+        });
+
+        const lead = data.lead ?? null;
+
+        if (lead) {
+            cargoRequests.value = cargoRequests.value.map((item) => (
+                Number(item.id) === Number(lead.id) ? lead : item
+            ));
+        }
+
+        return lead;
+    }
+
     async function parseCargoRequest({ message = null, file = null } = {}) {
         const formData = new FormData();
 
@@ -324,6 +340,7 @@ export function useMobileShell() {
         loadTrakloLeads,
         loadCargoRequests,
         createCargoRequest,
+        updateCargoRequest,
         parseCargoRequest,
         loadTab,
         loadOrderSummary,
