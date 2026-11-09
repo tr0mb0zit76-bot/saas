@@ -9,6 +9,7 @@ use App\Models\LoadBoardPost;
 use App\Models\User;
 use App\Services\CarrierMatching\CarrierMatchingService;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,9 +26,16 @@ class LeadCarrierMatchingController extends Controller
         abort_if($user === null || $user->isExternal(), 403);
         abort_unless(RoleAccess::canAccessVisibilityArea($user, 'leads'), 403);
 
+        $tenantId = TenantContext::id();
+        abort_if($tenantId === null, 403, 'Tenant context required.');
+
         $validated = $request->validate([
             'carrier_ids' => ['required', 'array', 'min:1'],
-            'carrier_ids.*' => ['integer', 'min:1', Rule::exists('contractors', 'id')],
+            'carrier_ids.*' => [
+                'integer',
+                'min:1',
+                Rule::exists('contractors', 'id')->where(fn ($query) => $query->where('tenant_id', $tenantId)),
+            ],
         ]);
 
         $post = $this->matching->shareLeadWithCarriers(

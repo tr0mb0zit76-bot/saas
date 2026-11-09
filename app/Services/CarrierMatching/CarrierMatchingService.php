@@ -79,6 +79,13 @@ class CarrierMatchingService
     {
         abort_unless($this->customerCanViewLead($customer, $lead), 404);
 
+        $quoteStatus = (string) ($lead->quote_status ?: 'none');
+        abort_if(
+            in_array($quoteStatus, ['sent', 'agreed'], true),
+            422,
+            'После отправки оферты заявку можно менять только через экспедитора.',
+        );
+
         return DB::transaction(function () use ($customer, $lead, $payload): Lead {
             $loading = trim((string) ($payload['loading_location'] ?? ''));
             $unloading = trim((string) ($payload['unloading_location'] ?? ''));
