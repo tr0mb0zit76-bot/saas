@@ -167,6 +167,16 @@ class ExternalUserProvisionService
             ]);
         }
 
+        // Fail-closed: never rebind an external user onto another contractor.
+        if (
+            $user->contractor_id !== null
+            && (int) $user->contractor_id !== (int) $contractor->id
+        ) {
+            throw ValidationException::withMessages([
+                'email' => 'Email уже привязан к другому контрагенту Traklo.',
+            ]);
+        }
+
         if (
             $user->contractor_contact_id !== null
             && (int) $user->contractor_contact_id !== (int) $contact->id

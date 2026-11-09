@@ -70,4 +70,36 @@ class ExternalUserInviteService
             ->where('token_hash', $this->hashToken($token))
             ->first();
     }
+
+    /**
+     * Single-use consume under row lock — concurrent POSTs cannot both activate.
+     *
+     * @param  callable(User): void  $activateUser
+     */
+    public function consumeOpenInvite(string $token, callable $activateUser): User
+    {
+        return DB::transaction(function () use ($token, $activateUser): User {
+            $invite = ExternalUserInvite::query()
+                ->with(['user'])
+                ->where('token_hash', $this->hashToken(trim($token)))
+                ->lockForUpdate()
+                ->first();
+
+            if ($invite === null || ! $invite->isOpen()) {
+                abort(410, 'Ссылка недействительна или истекла.');
+            }
+
+            $user = $invite->user;
+
+            if (! $user instanceof User) {
+                abort(410, 'Пользователь не найден.');
+            }
+
+            $activateUser($user);
+
+            $invite->forceFill(['consumed_at' => now()])->save();
+
+            return $user->fresh() ?? $user;
+        });
+    }
 }

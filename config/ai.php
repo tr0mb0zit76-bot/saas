@@ -147,6 +147,21 @@ return [
         'max_wall_seconds' => max(15, min(300, (int) env('AI_COMMAND_BAR_MAX_WALL_SECONDS', 240))),
 
         /*
+        | High-risk mutating tools (orders/contractors/passport fields) require
+        | dry_run → confirm_token before write. Opt out only for lab experiments.
+        */
+        'require_write_confirmation' => (bool) env('AI_COMMAND_BAR_REQUIRE_WRITE_CONFIRMATION', true),
+        'confirmed_write_tools' => [
+            'create_contractor',
+            'create_fleet_driver',
+            'create_fleet_vehicle',
+            'update_order_field',
+            'update_order_route_actual',
+            'upsert_disposition_entry',
+            'upsert_print_form_basic_terms',
+        ],
+
+        /*
         | История диалога: storage — localStorage, request — валидация API,
         | llm — сколько последних реплик уходит в модель. *_extended — режим «Расширить память».
         */
