@@ -76,6 +76,13 @@ defineProps({
     );
 }
 
+.traklo-bar {
+    /* Opaque pill behind the input so dark-scheme autofill can't go translucent. */
+    border-radius: 9999px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+}
+
 .traklo-bar--email {
     top: 60.8%;
     left: 35.5%;
@@ -88,6 +95,33 @@ defineProps({
     left: 35.5%;
     width: 20.5%;
     height: 5.8%;
+}
+
+/*
+ * Chromium on html.dark paints -webkit-autofill as a frosted chip and ignores
+ * background-color. Force light color-scheme + inset fill so saved credentials
+ * stay opaque white inside the bubble bars (same idea as mobile-shell-theme).
+ */
+.traklo-bar :deep(input) {
+    color-scheme: light;
+}
+
+.traklo-bar :deep(input:-webkit-autofill),
+.traklo-bar :deep(input:-webkit-autofill:hover),
+.traklo-bar :deep(input:-webkit-autofill:focus),
+.traklo-bar :deep(input:-webkit-autofill:active) {
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #1d4ed8;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 100vmax #ffffff inset !important;
+    transition: background-color 99999s ease-out 0s;
+}
+
+.traklo-bar :deep(input:-webkit-autofill:focus) {
+    box-shadow:
+        0 0 0 100vmax #ffffff inset,
+        0 0 0 2px rgb(255 255 255 / 0.55),
+        0 0 0 4px rgb(37 99 235 / 0.45) !important;
 }
 
 /* Lower + a bit right; room for button in bottom-right of bubble face */
