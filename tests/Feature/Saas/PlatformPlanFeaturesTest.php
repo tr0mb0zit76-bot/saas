@@ -169,6 +169,28 @@ class PlatformPlanFeaturesTest extends SaasTestCase
         $this->assertSame(100, $limits['storage_mb']);
     }
 
+    public function test_subscription_plan_seeder_preserves_admin_feature_edits(): void
+    {
+        SubscriptionPlan::query()->where('key', 'start')->update([
+            'features' => ['leads', 'orders', 'mail'],
+            'limits' => [
+                'users' => 9,
+                'orders_per_month' => 99,
+                'storage_mb' => 999,
+            ],
+        ]);
+
+        $this->seed(\Database\Seeders\SubscriptionPlanSeeder::class);
+
+        $plan = SubscriptionPlan::query()->where('key', 'start')->first();
+
+        $this->assertNotNull($plan);
+        $this->assertSame(['leads', 'orders', 'mail'], $plan->featuresList());
+        $this->assertSame(9, $plan->limitsMap()['users']);
+        $this->assertSame(99, $plan->limitsMap()['orders_per_month']);
+        $this->assertSame(999, $plan->limitsMap()['storage_mb']);
+    }
+
     private function platformUrl(string $path = '/'): string
     {
         return PlatformHost::url($path);

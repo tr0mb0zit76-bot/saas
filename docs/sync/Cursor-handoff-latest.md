@@ -1,6 +1,33 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-08 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Platform packages = SubscriptionPlan features (2026-11-09)
+
+«Пакеты» = тарифы `subscription_plans` (start/pro/enterprise). Состав модулей правится чекбоксами без кода:
+
+- UI: `platform.*/plans` → «Модули» → `/plans/{key}/features`
+- Persist: `SubscriptionPlan.features` (+ limits); gating: `Tenant::featureEnabled` ← plan DB (+ optional `settings.features` override)
+- Каталог лейблов: `config/saas-features.php`; дефолты seed: `config/saas-plans.php`
+- Harden: `SubscriptionPlanSeeder` больше **не** затирает features/limits при re-seed (только create + label/sort)
+- Tests: `tests/Feature/Saas/PlatformPlanFeaturesTest.php` (5 passed)
+
+## Архитектура просчёта — ADR-018 **Accepted** (2026-11-09)
+
+Канон: [`docs/architecture/decisions/ADR-018-client-quote-lifecycle.md`](../architecture/decisions/ADR-018-client-quote-lifecycle.md). Amends ADR-017.
+
+**PO locks:**
+1. `target_price` = ориентир клиента (сколько хочет платить). Наша оферта клиенту — отдельное поле **`quoted_price`** (+ `quoted_currency`, `quote_status`, `quote_sent_at`, `quote_agreed_at`).
+2. Поток: staff готовит оферту → **отправляет** клиенту → цена **согласована** (staff) → **затем** Order. Клиент оферту не сочиняет.
+3. Внешние перевозчики на доску — **после** client-facing quote lifecycle, не раньше.
+
+**SoT:** Lead = просчёт; matching Post/Offer = инструмент себестоимости; клиенту amount только при `quote_status` ∈ {`sent`,`agreed`}; никогда draft / `calculated_cost` / ставки.
+
+**State machine:** `none` → `draft` → `sent` → `agreed` → Order (+ optional `rejected`/`withdrawn` later).
+
+**Следующий MVP slice (код):** migration колонок → staff «Ответить клиенту» (`sent`) + «Цена согласована» (`agreed`) → `presentLeadForCustomer` отдаёт `quoted_price` только после send → gate Lead→Order на `agreed` → SaaS isolation tests. External carriers / heuristics — later.
+
+**Вердикты (ask #2):** security [carrier quote isolation](c95f7d2d-c909-4939-9e49-ba92353002bd) · qa [quote flow gates](f53d5176-26cb-4346-a3a8-c6f73be059b5) · privacy [board stats 152-ФЗ](b836468e-152c-47d5-b472-d39546396c93).
 
 ## Orientum prod URL fix (2026-11-08)
 
