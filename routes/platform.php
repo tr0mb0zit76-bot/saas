@@ -29,6 +29,10 @@ Route::domain($platformDomain)->group(function (): void {
             ->name('platform.logout');
 
         Route::get('/', [PlatformDashboardController::class, 'index'])->name('platform.dashboard');
+        // Safety net: CRM Ziggy/bookmarks use /dashboard; keep operators on the portal.
+        Route::get('/dashboard', function () {
+            return redirect()->route('platform.dashboard');
+        })->name('platform.dashboard.alias');
         Route::get('/plans', [PlatformPlansController::class, 'index'])->name('platform.plans.index');
         Route::get('/plans/{planKey}/features', [PlatformPlansController::class, 'edit'])->name('platform.plans.edit');
         Route::patch('/plans/{planKey}/features', [PlatformPlansController::class, 'updateFeatures'])->name('platform.plans.features.update');

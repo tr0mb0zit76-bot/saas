@@ -52,13 +52,26 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
-        $middleware->redirectGuestsTo(function (Request $request): string {
-            if (PlatformHost::matchesRequest($request)) {
-                return PlatformHost::url('/login');
-            }
+        // Set guests + users together: redirectUsersTo() alone re-enters redirectTo(guests: null)
+        // and overwrites Authenticate::$redirectTo with fn () => null → 401 instead of /login.
+        $middleware->redirectTo(
+            guests: function (Request $request): string {
+                if (PlatformHost::matchesRequest($request)) {
+                    return PlatformHost::url('/login');
+                }
 
-            return $request->is('mobile/*') ? '/mobile/login' : '/login';
-        });
+                return $request->is('mobile/*') ? '/mobile/login' : '/login';
+            },
+            users: function (Request $request): string {
+                // Guest middleware defaults to route('dashboard') (CRM). On the platform host
+                // that path is aborted by AbortCrmOnPlatformHost → 404 after login / when already authed.
+                if (PlatformHost::matchesRequest($request)) {
+                    return route('platform.dashboard');
+                }
+
+                return route('dashboard');
+            },
+        );
 
         $middleware->alias([
             'visibility.area' => EnsureVisibilityAreaAccess::class,

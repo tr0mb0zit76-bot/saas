@@ -83,6 +83,24 @@ class PlatformPortalTest extends SaasTestCase
         $this->get($this->platformUrl('/'))->assertOk();
     }
 
+    public function test_authenticated_platform_admin_is_redirected_from_login_to_platform_home(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/login'))
+            ->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
+    public function test_platform_dashboard_alias_does_not_404(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/dashboard'))
+            ->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
     public function test_platform_admin_without_tenant_can_use_dashboard_after_login(): void
     {
         TenantContext::bypass(true);
