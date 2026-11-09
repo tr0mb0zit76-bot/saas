@@ -101,6 +101,11 @@ class TransportTextIntakeService
 
     private function canUseLlm(User $user): bool
     {
+        // Fail-closed: external cabinet free-text (PII/INN) must not leave to vendor LLM.
+        if ($user->isExternal()) {
+            return false;
+        }
+
         if (! (bool) config('ai.order_intake.enabled', true)) {
             return false;
         }

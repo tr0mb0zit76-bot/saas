@@ -2,6 +2,24 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Platform login 404 fix (2026-11-09)
+
+**Причина:** `RedirectIfAuthenticated` по умолчанию вёл на CRM `route('dashboard')`; на `platform.traklo.pro` это ловил `AbortCrmOnPlatformHost` → 404.
+
+**Фикс:** `bootstrap/app.php` `redirectTo(guests+users)` → platform home; alias `GET /dashboard` на portal. Commit `38c0b66`, задеплоено. Tenant login не трогали.
+
+## Security P0 fixes (2026-11-09)
+
+Закрыты C1/C2/C3 (+H2/H5): fleet/driver docs → `TenantStorage` (не `public`); customer `parseCargoRequest` heuristic-only (`TransportTextIntakeService::canUseLlm` fail-closed for externals); production apex/www → 404 без `SAAS_DEFAULT_TENANT_SLUG`; `MCP_DEV_USER_ID` только local/testing; carrier DTO без `customer_name`.
+
+Тесты: `tests/Feature/Saas/SecurityP0IsolationTest.php` — **8 passed**.
+
+## Security audit (full) — 2026-11-09
+
+**Вердикт:** внутренний пилот на **одном** tenant — условно OK; **вторая внешняя компания на том же хосте — NOT pilot-safe** до P0 (см. фиксы выше).
+
+Полный отчёт — в чате security-audit (saas-security). Смежные: privacy [PII/prompts](f9e30b89-7c03-478a-a359-9e6fc87a188a) · qa [Saas test gates](54a7e7c8-a699-4706-9580-61433ceb8c78).
+
 ## Platform packages = SubscriptionPlan features (2026-11-09)
 
 «Пакеты» = тарифы `subscription_plans` (start/pro/enterprise). Состав модулей правится чекбоксами без кода:
