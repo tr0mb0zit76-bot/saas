@@ -54,6 +54,21 @@ class TenantUsersPageTest extends SaasTestCase
                 : []),
         ]);
 
+        $customerRole = null;
+        if (Schema::hasColumn('users', 'is_external')) {
+            $customerRole = Role::query()->create([
+                'tenant_id' => $tenant->id,
+                'name' => 'counterparty_customer',
+                'display_name' => 'Клиент Traklo',
+                'permissions' => [],
+                'visibility_areas' => ['counterparty_orders', 'counterparty_documents', 'counterparty_portal'],
+                'visibility_scopes' => [],
+                ...(Schema::hasColumn('roles', 'has_signing_authority')
+                    ? ['has_signing_authority' => false]
+                    : []),
+            ]);
+        }
+
         TenantContext::bypass(false);
         TenantContext::set($tenant);
         config(['saas.default_tenant_slug' => $tenant->slug]);
@@ -78,13 +93,35 @@ class TenantUsersPageTest extends SaasTestCase
             'is_active' => true,
         ]);
 
+        $externalUser = null;
+        if ($customerRole !== null) {
+            $externalUser = User::query()->create([
+                'tenant_id' => $tenant->id,
+                'role_id' => $customerRole->id,
+                'name' => 'External Traklo User',
+                'email' => 'external-'.$tenant->slug.'@saas.local',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'is_active' => true,
+                'is_external' => true,
+                'external_party' => 'customer',
+            ]);
+        }
+
         $response = $this->actingAs($admin)->get(route('settings.users.index'));
 
         $response->assertOk();
-        $response->assertInertia(function (Assert $page): Assert {
+        $response->assertInertia(function (Assert $page) use ($externalUser): Assert {
             $page->component('Users/Index')
                 ->has('users', 2)
-                ->has('roles', 2);
+                ->has('roles', 2)
+                ->where('users', fn ($users): bool => collect($users)->every(
+                    fn ($user): bool => (int) ($user['id'] ?? 0) !== (int) ($externalUser?->id ?? 0)
+                        && ! str_starts_with((string) ($user['role']['name'] ?? ''), 'counterparty_'),
+                ))
+                ->where('roles', fn ($roles): bool => collect($roles)->every(
+                    fn ($role): bool => ! str_starts_with((string) ($role['name'] ?? ''), 'counterparty_'),
+                ));
 
             if (Schema::hasColumn('roles', 'has_signing_authority')) {
                 // orderBy display_name: Администратор before Менеджер
@@ -94,6 +131,21 @@ class TenantUsersPageTest extends SaasTestCase
 
             return $page;
         });
+
+        if ($externalUser !== null) {
+            $this->actingAs($admin)
+                ->patch(route('users.update', $externalUser), [
+                    'name' => 'Should Not Update',
+                    'email' => $externalUser->email,
+                    'role_ids' => [$externalUser->role_id],
+                    'is_active' => true,
+                ])
+                ->assertNotFound();
+
+            $this->actingAs($admin)
+                ->delete(route('users.destroy', $externalUser))
+                ->assertNotFound();
+        }
     }
 
     public function test_tenant_manager_without_settings_cannot_open_users_page(): void

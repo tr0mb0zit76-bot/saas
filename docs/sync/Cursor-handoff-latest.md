@@ -2,6 +2,12 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## CRM «Пользователи» hides Traklo externals (2026-11-09)
+
+**Не cross-tenant leak** (saas-security): same-tenant external users appeared in staff Users list because `UserManagementController::index` had no `is_external` filter.
+
+**Фикс:** index excludes `is_external`; role dropdown skips `counterparty_*`; PATCH/DELETE → 404 for externals. Test: `TenantUsersPageTest` asserts external absent from props + mutate 404.
+
 ## Orientum «Пользователи» HTTP 503 (2026-11-09)
 
 **Не баг Users/RBAC.** Access log: `GET /settings/users` → **503** at 15:55:10/22 (+0300), body ~6882 B, referrer `/leads` — окно `artisan down` в `deploy-prod.sh` (worker restart 15:56). Kernel/tinker на prod: authenticated admin → **200**, schema/RBAC OK (`admin@orientum.local`, role_id=5).
