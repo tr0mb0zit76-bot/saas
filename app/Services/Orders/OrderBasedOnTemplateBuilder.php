@@ -5,6 +5,7 @@ namespace App\Services\Orders;
 use App\Models\Cargo;
 use App\Models\Order;
 use App\Models\RoutePoint;
+use App\Support\CargoWeightSemantics;
 use App\Support\RoutePointNormalizedData;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -133,6 +134,7 @@ class OrderBasedOnTemplateBuilder
             'weight_value' => $cargo->weight_value ?? $cargo->weight,
             'weight_kg' => $cargo->weight_value ?? $cargo->weight,
             'weight_unit' => $cargo->weight_unit ?: 'kg',
+            'weight_is_total' => CargoWeightSemantics::isTotalWeight($cargo),
             'volume_m3' => $cargo->volume,
             'length_m' => $cargo->length,
             'width_m' => $cargo->width,

@@ -208,6 +208,7 @@ class MobileCarrierMatchingController extends Controller
             'cargo.weight_value' => ['nullable', 'numeric', 'min:0'],
             'cargo.weight_kg' => ['nullable', 'numeric', 'min:0'],
             'cargo.weight_unit' => ['nullable', 'string', 'in:kg,t'],
+            'cargo.weight_is_total' => ['nullable', 'boolean'],
             'cargo.volume_m3' => ['nullable', 'numeric', 'min:0'],
             'cargo.dimension_unit' => ['nullable', 'string', 'in:m,cm,mm'],
             'cargo.length_m' => ['nullable', 'numeric', 'min:0'],

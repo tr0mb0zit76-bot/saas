@@ -14,6 +14,7 @@ export function blankLeadCargoItem() {
         weight_value: null,
         weight_kg: null,
         weight_unit: 'kg',
+        weight_is_total: false,
         volume_m3: null,
         length_m: null,
         width_m: null,
@@ -94,6 +95,7 @@ export function normalizeLeadCargoItem(raw = {}, dictionaries = {}) {
         weight_value: weightValue,
         weight_kg: weightValue,
         weight_unit: raw.weight_unit === 't' ? 't' : 'kg',
+        weight_is_total: Boolean(raw.weight_is_total),
         volume_m3: raw.volume_m3 ?? null,
         length_m: raw.length_m ?? null,
         width_m: raw.width_m ?? null,
@@ -174,6 +176,10 @@ export function cargoWeightInKg(item) {
     return item.weight_unit === 't' ? value * 1000 : value;
 }
 
+export function cargoWeightIsTotal(item) {
+    return Boolean(item?.weight_is_total);
+}
+
 export function cargoPackageCountFactor(item) {
     const count = parseLocaleDecimal(item.package_count);
 
@@ -185,7 +191,12 @@ export function cargoPackageCountFactor(item) {
 }
 
 export function cargoLineTotalWeightKg(item) {
-    return cargoWeightInKg(item) * cargoPackageCountFactor(item);
+    const kg = cargoWeightInKg(item);
+    if (cargoWeightIsTotal(item)) {
+        return kg;
+    }
+
+    return kg * cargoPackageCountFactor(item);
 }
 
 export function cargoLineTotalVolumeM3(item) {

@@ -709,6 +709,11 @@ class CarrierMatchingService
             $cargoPayload['description'] = null;
         }
 
+        // Cabinet «Вес/Общий вес» is always the shipment total — never per-place × мест.
+        if (! array_key_exists('weight_is_total', $cargoPayload)) {
+            $cargoPayload['weight_is_total'] = true;
+        }
+
         $normalized = LeadCargoItemPayloadNormalizer::toDatabase($cargoPayload);
         LeadCargoItem::query()->create([
             'lead_id' => $lead->id,

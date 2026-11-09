@@ -7,6 +7,7 @@ use App\Models\LeadOffer;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\CarrierMatching\CarrierMatchingService;
+use App\Support\LeadCargoItemPayloadNormalizer;
 use App\Support\LeadPerformerPayloadNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -56,18 +57,25 @@ class LeadConversionService
                     'contact_person' => $point->contact_person,
                     'contact_phone' => $point->contact_phone,
                 ])->values()->all(),
-                'cargo_items' => $lead->cargoItems->map(fn ($cargo): array => [
-                    'name' => $cargo->name,
-                    'description' => $cargo->description,
-                    'weight_kg' => $cargo->weight_kg,
-                    'volume_m3' => $cargo->volume_m3,
-                    'package_type' => $cargo->package_type,
-                    'package_count' => $cargo->package_count,
-                    'dangerous_goods' => (bool) $cargo->dangerous_goods,
-                    'dangerous_class' => $cargo->dangerous_class,
-                    'hs_code' => $cargo->hs_code,
-                    'cargo_type' => $cargo->cargo_type,
-                ])->values()->all(),
+                'cargo_items' => $lead->cargoItems->map(function ($cargo): array {
+                    $row = LeadCargoItemPayloadNormalizer::toFrontend($cargo);
+
+                    return [
+                        'name' => $row['name'],
+                        'description' => $row['description'],
+                        'weight_value' => $row['weight_value'],
+                        'weight_kg' => $row['weight_kg'],
+                        'weight_unit' => $row['weight_unit'],
+                        'weight_is_total' => $row['weight_is_total'],
+                        'volume_m3' => $row['volume_m3'],
+                        'package_type' => $row['package_type'],
+                        'package_count' => $row['package_count'],
+                        'dangerous_goods' => $row['dangerous_goods'],
+                        'dangerous_class' => $row['dangerous_class'],
+                        'hs_code' => $row['hs_code'],
+                        'cargo_type' => $row['cargo_type'],
+                    ];
+                })->values()->all(),
                 'financial_term' => $this->buildFinancialTermFromLead($lead),
                 'documents' => [],
             ];

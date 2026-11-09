@@ -742,6 +742,9 @@ class OrderWizardService
                 $cargoAttributes['is_oversized'] = (bool) ($cargoItem['is_oversized'] ?? $cargoType === 'oversized');
                 $cargoAttributes['is_fragile'] = (bool) ($cargoItem['is_fragile'] ?? $cargoType === 'fragile');
                 $atiPayload = $this->normalizeAtiCargoPayloadArray($cargoItem['ati_cargo_payload'] ?? null);
+                if (array_key_exists('weight_is_total', $cargoItem)) {
+                    $atiPayload['weight_is_total'] = (bool) $cargoItem['weight_is_total'];
+                }
                 $performerAllocations = CargoPerformerAllocationBuilder::resolveForCargoItem(
                     $cargoItem,
                     $normalizedPerformers,

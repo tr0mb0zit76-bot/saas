@@ -1015,7 +1015,7 @@
                             />
                         </label>
                         <label class="block min-w-0">
-                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Вес</span>
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Общий вес</span>
                             <input
                                 v-model="cargoRequestForm.weight_value"
                                 type="number"
@@ -1918,6 +1918,7 @@ async function submitCargoRequest() {
 
         if (weightRaw !== '') {
             payload.cargo.weight_value = Number(weightRaw);
+            payload.cargo.weight_is_total = true;
         }
 
         if (cargoRequestEditingId.value) {

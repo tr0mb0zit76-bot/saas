@@ -6,6 +6,7 @@ use App\Models\Contractor;
 use App\Models\Lead;
 use App\Models\PrintFormTemplate;
 use App\Support\CargoPackagesLabelFormatter;
+use App\Support\CargoWeightSemantics;
 use App\Support\DocxPrintFormPlaceholderPreprocessor;
 use App\Support\DocxVmlOverlayStylePatcher;
 use App\Support\PhpWordTemplateOverlayImageInjector;
@@ -506,11 +507,12 @@ class LeadPrintFormDraftService
         $name = trim((string) ($cargo->name ?? ''));
         $factor = $this->leadCargoPackageCountFactor($cargo);
         $perWeight = (float) ($cargo->weight_kg ?? 0);
-        $totalWeight = $perWeight * $factor;
+        $weightIsTotal = CargoWeightSemantics::isTotalWeight($cargo);
+        $totalWeight = $weightIsTotal ? $perWeight : $perWeight * $factor;
 
         $lines = [];
         $wLine = 'Вес: '.$this->formatNumber($totalWeight).' кг';
-        if ($factor > 1) {
+        if (! $weightIsTotal && $factor > 1) {
             $wLine .= ' ('.$this->formatNumber($perWeight).' кг × '.$factor.')';
         }
         $lines[] = $wLine;
