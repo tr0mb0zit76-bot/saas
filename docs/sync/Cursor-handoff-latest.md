@@ -42,11 +42,13 @@
 
 «Пакеты» = тарифы `subscription_plans` (start/pro/enterprise). Состав модулей правится чекбоксами без кода:
 
-- UI: `platform.*/plans` → «Модули» → `/plans/{key}/features`
+- UI: `platform.*/plans` → «Чекбоксы модулей» → `/plans/{key}/features`
 - Persist: `SubscriptionPlan.features` (+ limits); gating: `Tenant::featureEnabled` ← plan DB (+ optional `settings.features` override)
 - Каталог лейблов: `config/saas-features.php`; дефолты seed: `config/saas-plans.php`
 - Harden: `SubscriptionPlanSeeder` больше **не** затирает features/limits при re-seed (только create + label/sort)
-- Tests: `tests/Feature/Saas/PlatformPlanFeaturesTest.php` (5 passed)
+- Discoverability (742031e): nav always visible (was `hidden sm:flex`); dashboard quick links; tenants page points to plan matrix
+- Where to click: **Тарифы и модули** → plan card **Чекбоксы модулей** → save. Per-tenant override: **Арендаторы** → **Модули**
+- Tests: `tests/Feature/Saas/PlatformPlanFeaturesTest.php` (6 passed)
 
 ## Архитектура просчёта — ADR-018 **Accepted** + MVP slice shipped (2026-11-09)
 
