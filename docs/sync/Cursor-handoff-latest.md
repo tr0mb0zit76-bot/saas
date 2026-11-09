@@ -2,6 +2,14 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Cargo «Общий вес» — no × мест blow-up (2026-11-09)
+
+**Симптом:** клиент ввёл 14.4 т как общий вес + 16 мест → «Сводка позиции» 14400×16=230400 кг.
+
+**UX:** кабинет «Просчёты» — поле **Общий вес**; CRM lead/order cargo — селект «Общий вес / Вес места» (`weight_is_total`).
+
+**Код:** `CargoWeightSemantics` + metadata/ati flag; intake defaults total; `cargoLineTotalWeightKg` skips × places when total. Commit `4186a45`. Test: `tests/Unit/CargoWeightSemanticsTest.php` (14.4t+16 → 14400).
+
 ## Lead «Предрасчёт» = транспорт, не растаможка — ADR-019 P0 (2026-11-09)
 
 **Канон:** [`docs/architecture/decisions/ADR-019-lead-precalculation-transport-quote.md`](../architecture/decisions/ADR-019-lead-precalculation-transport-quote.md) (amends ADR-018).
