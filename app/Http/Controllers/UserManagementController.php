@@ -48,12 +48,20 @@ class UserManagementController extends Controller
             'roles' => Role::query()
                 ->orderBy('display_name')
                 ->orderBy('name')
-                ->get(['id', 'name', 'display_name'])
+                ->get(array_values(array_filter([
+                    'id',
+                    'name',
+                    'display_name',
+                    // Column may be absent on older lab DBs; guard like RoleManagementController.
+                    Schema::hasColumn('roles', 'has_signing_authority') ? 'has_signing_authority' : null,
+                ])))
                 ->map(fn (Role $role): array => [
                     'id' => $role->id,
                     'name' => $role->name,
                     'display_name' => $role->display_name,
-                    'default_has_signing_authority' => (bool) ($role->has_signing_authority ?? false),
+                    'default_has_signing_authority' => Schema::hasColumn('roles', 'has_signing_authority')
+                        ? (bool) $role->has_signing_authority
+                        : false,
                 ])
                 ->values(),
             'ownCompanies' => $ownCompanies,

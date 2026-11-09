@@ -2,6 +2,14 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Orientum «Пользователи» HTTP 503 (2026-11-09)
+
+**Не баг Users/RBAC.** Access log: `GET /settings/users` → **503** at 15:55:10/22 (+0300), body ~6882 B, referrer `/leads` — окно `artisan down` в `deploy-prod.sh` (worker restart 15:56). Kernel/tinker на prod: authenticated admin → **200**, schema/RBAC OK (`admin@orientum.local`, role_id=5).
+
+**Сопутствующий код-фикс:** `UserManagementController` раньше делал `get(['id','name','display_name'])` и читал `has_signing_authority` → всегда `false` для default в форме. Теперь колонка выбирается с `Schema::hasColumn` (как Roles). Тест: `tests/Feature/Saas/TenantUsersPageTest.php`.
+
+**Smoke:** https://orientum.traklo.pro/settings/users (под `admin@orientum.local`).
+
 ## Platform 403 after login fix (2026-11-09)
 
 **Причина:** `SESSION_DOMAIN=.traklo.pro` шарит cookie CRM-сессии на `platform.traklo.pro`. Authenticated non-admin попадал в `EnsurePlatformAdmin` → dead 403 «Platform administrator access required.» (после 38c0b66 guest→users redirect на portal home усиливал стену).
