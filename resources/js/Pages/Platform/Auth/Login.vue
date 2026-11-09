@@ -71,7 +71,7 @@ const submit = () => {
                     </div>
 
                     <PrimaryButton
-                        class="traklo-footer-submit justify-center bg-white text-slate-900 hover:bg-blue-50"
+                        class="traklo-footer-submit justify-center !bg-white !text-slate-900 hover:!bg-blue-50 focus:!bg-blue-50 active:!bg-blue-100"
                         :disabled="form.processing"
                     >
                         Войти

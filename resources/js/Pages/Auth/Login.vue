@@ -91,7 +91,7 @@ const subtitle = page.props.tenant?.name
                     </div>
 
                     <PrimaryButton
-                        class="traklo-footer-submit justify-center bg-white text-slate-900 hover:bg-blue-50"
+                        class="traklo-footer-submit justify-center !bg-white !text-slate-900 hover:!bg-blue-50 focus:!bg-blue-50 active:!bg-blue-100"
                         :class="{ 'opacity-50': form.processing }"
                         :disabled="form.processing"
                     >
