@@ -2,6 +2,16 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Platform 403 after login fix (2026-11-09)
+
+**Причина:** `SESSION_DOMAIN=.traklo.pro` шарит cookie CRM-сессии на `platform.traklo.pro`. Authenticated non-admin попадал в `EnsurePlatformAdmin` → dead 403 «Platform administrator access required.» (после 38c0b66 guest→users redirect на portal home усиливал стену).
+
+**Кто admin:** email allowlist `SAAS_PLATFORM_ADMIN_EMAILS` (`PlatformAdmin::isPlatformAdmin`). Prod: `platform-admin@traklo.pro` (user id=4).
+
+**Фикс:** non-admin на portal → logout + redirect `/login` с ошибкой (JSON остаётся 403). Тест: `PlatformPortalTest::test_authenticated_non_platform_user_is_logged_out_to_login_not_403`.
+
+**Вход:** https://platform.traklo.pro/login под email из allowlist (после CRM-сессии сначала откроется login с сообщением).
+
 ## Platform login 404 fix (2026-11-09)
 
 **Причина:** `RedirectIfAuthenticated` по умолчанию вёл на CRM `route('dashboard')`; на `platform.traklo.pro` это ловил `AbortCrmOnPlatformHost` → 404.

@@ -126,6 +126,46 @@ class PlatformPortalTest extends SaasTestCase
         $this->assertGuest();
     }
 
+    public function test_authenticated_non_platform_user_is_logged_out_to_login_not_403(): void
+    {
+        TenantContext::bypass(true);
+
+        $tenant = Tenant::query()->create([
+            'slug' => 'crm-session-'.uniqid(),
+            'name' => 'CRM Session Tenant',
+            'status' => 'active',
+            'plan' => 'start',
+        ]);
+
+        $role = Role::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'admin',
+            'display_name' => 'Admin',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('admin'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('admin'),
+        ]);
+
+        $crmUser = User::query()->create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => 'CRM User',
+            'email' => 'crm-user-'.uniqid().'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        TenantContext::bypass(false);
+
+        $this->actingAs($crmUser)
+            ->get($this->platformUrl('/'))
+            ->assertRedirect(PlatformHost::url('/login'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
     public function test_legacy_crm_platform_path_redirects_to_platform_portal(): void
     {
         $this->get('/platform/tenants')
