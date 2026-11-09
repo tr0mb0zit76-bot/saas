@@ -2,6 +2,12 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Leads grid «Источник» Traklo → Входящий (2026-11-09)
+
+**Симптом:** колонка Источник показывала raw `traklo_customer_request[ · ФИО]` вместо «Входящий».
+
+**Фикс:** `LeadSource::label` + `LeadsGrid.sourceLabel` мапят slug (+ суффикс контакта) на тот же label, что `inbound`. DB не трогаем. Тест: `LeadSourceTest::test_label_maps_traklo_customer_request_to_inbound`.
+
 ## Deploy without default 503 (2026-11-09)
 
 **Причина recurring 503:** `deploy-prod.sh` всегда делал `artisan down` на shared host → platform + все tenants кратковременно (или дольше при обрыве) на Laravel maintenance.
