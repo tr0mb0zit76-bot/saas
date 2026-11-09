@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { Minus, Plus, RefreshCw } from 'lucide-vue-next';
 import {
     blankGoodsLine,
@@ -25,6 +26,7 @@ const props = defineProps({
 
 const emit = defineEmits(['apply-finance']);
 
+const page = usePage();
 const calculating = ref(false);
 const calculateError = ref('');
 let calculateTimer = null;
@@ -32,9 +34,21 @@ let calculateTimer = null;
 const tnVedState = ref({});
 const tnVedTimers = {};
 
+// ADR-019: goods / TN VED / freight allocation only when Растаможка (import_cost) is on.
+const canUseCustoms = computed(() => {
+    const features = page.props.tenant?.features;
+
+    return Array.isArray(features) && features.includes('import_cost');
+});
+
 const currencies = computed(() => props.importCostMeta?.currencies ?? []);
-const disclaimer = computed(() => props.importCostMeta?.disclaimer ?? '');
+const disclaimer = computed(() => (canUseCustoms.value ? (props.importCostMeta?.disclaimer ?? '') : ''));
 const computedTotals = computed(() => precalculation.value?.computed ?? null);
+const offerTotal = computed(() => {
+    const services = computedTotals.value?.services_total;
+
+    return services === null || services === undefined ? null : services;
+});
 const goodsLines = computed({
     get: () => precalculation.value?.goods_lines ?? [],
     set: (lines) => {
@@ -119,14 +133,15 @@ function pullLogisticsFromLegs() {
 }
 
 function applyTotalsToFinance() {
-    const grandTotal = computedTotals.value?.grand_total;
-    if (grandTotal === null || grandTotal === undefined) {
+    // ADR-019: draft client transport offer (quoted_price), never target_price / landed customs total.
+    const servicesTotal = offerTotal.value;
+    if (servicesTotal === null || servicesTotal === undefined) {
         return;
     }
 
     emit('apply-finance', {
-        target_price: grandTotal,
-        calculated_cost: computedTotals.value?.services_total ?? null,
+        quoted_price: servicesTotal,
+        calculated_cost: servicesTotal,
     });
 }
 
@@ -150,7 +165,9 @@ function scheduleCalculate() {
 }
 
 async function runCalculate() {
-    if (goodsLines.value.length === 0 && serviceLines.value.length === 0) {
+    const customsEnabled = canUseCustoms.value;
+    const goodsForCalc = customsEnabled ? goodsLines.value : [];
+    if (goodsForCalc.length === 0 && serviceLines.value.length === 0) {
         precalculation.value = {
             ...precalculation.value,
             computed: null,
@@ -163,8 +180,21 @@ async function runCalculate() {
     calculateError.value = '';
 
     try {
-        const result = await calculateLeadPrecalculation(precalculation.value);
-        precalculation.value = result;
+        const payload = {
+            ...precalculation.value,
+            goods_lines: goodsForCalc,
+            freight: customsEnabled
+                ? precalculation.value.freight
+                : { to_border_total: 0, after_border_total: 0, distribution_basis: 'invoice_rub' },
+        };
+        const result = await calculateLeadPrecalculation(payload);
+        // Preserve stored goods_lines for legacy/enterprise; only refresh computed + services.
+        precalculation.value = {
+            ...precalculation.value,
+            ...result,
+            goods_lines: customsEnabled ? result.goods_lines : precalculation.value.goods_lines,
+            freight: customsEnabled ? result.freight : precalculation.value.freight,
+        };
     } catch (error) {
         calculateError.value = error instanceof Error ? error.message : 'Не удалось выполнить расчёт.';
     } finally {
@@ -173,6 +203,10 @@ async function runCalculate() {
 }
 
 function queueTnVedSearch(lineIndex) {
+    if (!canUseCustoms.value) {
+        return;
+    }
+
     clearTimeout(tnVedTimers[lineIndex]);
     const query = String(goodsLines.value[lineIndex]?.tn_ved_code ?? '').trim();
 
@@ -261,19 +295,19 @@ onUnmounted(() => {
 
 <template>
     <div class="space-y-5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h3 class="text-base font-semibold">Предрасчёт</h3>
                 <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Коммерческий ориентир: товары по ТН ВЭД и услуги (логистика с плеч). Не заменяет таможенную декларацию.
+                    Транспортная цена клиенту: услуги с плеч маршрута → черновик оферты.
                 </p>
-                <p v-if="disclaimer" class="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{{ disclaimer }}</p>
+                <p v-if="disclaimer" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ disclaimer }}</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <button
                     v-if="leadId"
                     type="button"
-                    :class="crmBtnSecondary"
+                    :class="[crmBtnSecondary, 'inline-flex items-center gap-2']"
                     @click="openPrecalculationDocument('html')"
                 >
                     Предпросмотр HTML
@@ -281,42 +315,48 @@ onUnmounted(() => {
                 <button
                     v-if="leadId"
                     type="button"
-                    :class="crmBtnSecondary"
+                    :class="[crmBtnSecondary, 'inline-flex items-center gap-2']"
                     @click="openPrecalculationDocument('pdf')"
                 >
                     PDF
                 </button>
-                <button type="button" :class="crmBtnSecondary" :disabled="calculating" @click="runCalculate">
-                    <RefreshCw class="h-4 w-4" :class="calculating ? 'animate-spin' : ''" />
+                <button
+                    type="button"
+                    :class="[crmBtnSecondary, 'inline-flex items-center gap-2']"
+                    :disabled="calculating"
+                    @click="runCalculate"
+                >
+                    <RefreshCw class="h-4 w-4 shrink-0" :class="calculating ? 'animate-spin' : ''" />
                     Пересчитать
                 </button>
                 <button
                     type="button"
-                    :class="crmBtnSecondary"
-                    :disabled="!computedTotals?.grand_total"
+                    :class="[crmBtnSecondary, 'inline-flex items-center gap-2']"
+                    :disabled="offerTotal === null || offerTotal === undefined"
                     @click="applyTotalsToFinance"
                 >
-                    Подставить в финансы
+                    Подставить в оферту
                 </button>
             </div>
         </div>
 
-        <div class="grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)] md:items-end">
-            <div class="space-y-2">
-                <label :class="crmLabel">Статус</label>
-                <select
-                    :value="precalculation.status"
-                    :class="crmFieldFluid"
-                    @change="updateStatus($event.target.value)"
-                >
-                    <option v-for="option in precalculationStatusOptions" :key="option.value" :value="option.value">
-                        {{ option.label }}
-                    </option>
-                </select>
-            </div>
+        <div class="max-w-xs space-y-2">
+            <label :class="crmLabel">Статус</label>
+            <select
+                :value="precalculation.status"
+                :class="crmFieldFluid"
+                @change="updateStatus($event.target.value)"
+            >
+                <option v-for="option in precalculationStatusOptions" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                </option>
+            </select>
         </div>
 
-        <section class="space-y-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <section
+            v-if="canUseCustoms"
+            class="space-y-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+        >
             <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-zinc-500">Фрахт на отправление</h4>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">
                 Общая сумма распределяется по товарным строкам автоматически при пересчёте.
@@ -357,19 +397,22 @@ onUnmounted(() => {
             </div>
         </section>
 
-        <div class="grid gap-3 sm:grid-cols-3">
-            <div class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <div :class="canUseCustoms ? 'grid gap-3 sm:grid-cols-3' : 'grid gap-3 sm:grid-cols-2'">
+            <div
+                v-if="canUseCustoms"
+                class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800"
+            >
                 <div class="text-xs uppercase tracking-wide text-zinc-500">Товары + таможня</div>
                 <div class="mt-1 text-xl font-semibold">{{ formatPrecalculationMoney(computedTotals?.goods_total) }}</div>
             </div>
             <div class="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <div class="text-xs uppercase tracking-wide text-zinc-500">Услуги</div>
+                <div class="text-xs uppercase tracking-wide text-zinc-500">Услуги / себестоимость</div>
                 <div class="mt-1 text-xl font-semibold">{{ formatPrecalculationMoney(computedTotals?.services_total) }}</div>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
-                <div class="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Итого клиенту</div>
+                <div class="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Оферта клиенту</div>
                 <div class="mt-1 text-xl font-semibold text-emerald-800 dark:text-emerald-200">
-                    {{ formatPrecalculationMoney(computedTotals?.grand_total) }}
+                    {{ formatPrecalculationMoney(offerTotal) }}
                 </div>
             </div>
         </div>
@@ -379,10 +422,10 @@ onUnmounted(() => {
             <li v-for="warning in computedTotals.warnings" :key="warning">• {{ warning }}</li>
         </ul>
 
-        <section class="space-y-3">
+        <section v-if="canUseCustoms" class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-zinc-500">Товарные строки</h4>
-                <button type="button" :class="crmBtnSecondary" @click="addGoodsLine">
+                <button type="button" :class="[crmBtnSecondary, 'inline-flex items-center gap-2']" @click="addGoodsLine">
                     <Plus class="h-4 w-4" />
                     Добавить товар
                 </button>

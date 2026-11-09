@@ -491,7 +491,11 @@ import {
 } from '@/support/contractorPartyAutofill.js';
 import { warnIfDocumentExceedsBudget } from '@/support/documentUploadClientCheck.js';
 import { normalizeLeadCargoItems } from '@/support/leadWizardCargo.js';
-import { defaultLeadRoutePoints, normalizeLeadRoutePoints } from '@/support/leadWizardRoute.js';
+import {
+    defaultLeadRoutePoints,
+    normalizeLeadRoutePoints,
+    seedLeadRoutePointsFromLocations,
+} from '@/support/leadWizardRoute.js';
 import {
     isContractSigningLeadWizard,
     leadWizardVisibleTabKeys,
@@ -686,7 +690,11 @@ function leadToForm(lead) {
         close_outcome_primary_flag: lead.close_outcome_primary_flag ?? '',
         close_outcome_note: lead.lost_reason ?? '',
         route_points: syncLeadRoutePointsFromPerformers(
-            normalizeLeadRoutePoints(lead.route_points),
+            seedLeadRoutePointsFromLocations(
+                normalizeLeadRoutePoints(lead.route_points),
+                lead.loading_location,
+                lead.unloading_location,
+            ),
             normalizeLeadPerformers(lead.performers),
         ),
         performers: normalizeLeadPerformers(lead.performers),
@@ -1324,8 +1332,15 @@ function markStatusTouchedByUser() {
 }
 
 function applyPrecalculationFinance(payload) {
-    if (payload?.target_price !== undefined && payload?.target_price !== null) {
-        form.target_price = payload.target_price;
+    // ADR-019 / ADR-018: Predрасчёт drafts quoted_price — never overwrite target_price (client orientation).
+    if (payload?.quoted_price !== undefined && payload?.quoted_price !== null) {
+        form.quoted_price = payload.quoted_price;
+        if (!form.quoted_currency) {
+            form.quoted_currency = 'RUB';
+        }
+        if (!form.quote_status || form.quote_status === 'none') {
+            form.quote_status = 'draft';
+        }
     }
 
     if (payload?.calculated_cost !== undefined && payload?.calculated_cost !== null) {

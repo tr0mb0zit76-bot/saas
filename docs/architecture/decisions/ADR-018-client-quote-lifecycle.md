@@ -4,7 +4,8 @@
 **Date:** 2026-11-09  
 **Accepted locks:** 2026-11-09 (PO)  
 **Amends:** ADR-017 (tenant carrier matching) — does **not** reopen Enterprise `load_board` to Start/Pro  
-**Related:** ADR-006 (feature gating), ADR-010 (fail-closed tenant scope), privacy minimization for carrier DTO
+**Related:** ADR-006 (feature gating), ADR-010 (fail-closed tenant scope), privacy minimization for carrier DTO  
+**Amended by:** ADR-019 — Lead «Предрасчёт» = transport quote workspace (not TN VED / customs); customs stays under `import_cost`
 
 ## Context
 

@@ -655,11 +655,12 @@ class CarrierMatchingService
         $loading = trim((string) ($payload['loading_location'] ?? ''));
         $unloading = trim((string) ($payload['unloading_location'] ?? ''));
 
+        // Wizard performers use leg_N stages; stage must be leg_1 or Маршрут shows blank points.
         if ($loading !== '') {
             LeadRoutePoint::query()->create([
                 'lead_id' => $lead->id,
                 'type' => 'loading',
-                'stage' => 'loading',
+                'stage' => 'leg_1',
                 'sequence' => 1,
                 'address' => $loading,
                 'planned_date' => $payload['loading_date'] ?? null,
@@ -670,7 +671,7 @@ class CarrierMatchingService
             LeadRoutePoint::query()->create([
                 'lead_id' => $lead->id,
                 'type' => 'unloading',
-                'stage' => 'unloading',
+                'stage' => 'leg_1',
                 'sequence' => 2,
                 'address' => $unloading,
                 'planned_date' => $payload['unloading_date'] ?? null,
@@ -699,6 +700,13 @@ class CarrierMatchingService
 
         if (! isset($cargoPayload['name']) || trim((string) $cargoPayload['name']) === '') {
             $cargoPayload['name'] = (string) ($payload['cargo_name'] ?? 'Груз');
+        }
+
+        // Описание груза — только заметки по позиции; не копировать «Основное»/comment клиента.
+        $comment = trim((string) ($payload['comment'] ?? ''));
+        $cargoDescription = trim((string) ($cargoPayload['description'] ?? ''));
+        if ($cargoDescription === '' || ($comment !== '' && $cargoDescription === $comment)) {
+            $cargoPayload['description'] = null;
         }
 
         $normalized = LeadCargoItemPayloadNormalizer::toDatabase($cargoPayload);

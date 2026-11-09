@@ -2,6 +2,20 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Lead «Предрасчёт» = транспорт, не растаможка — ADR-019 P0 (2026-11-09)
+
+**Канон:** [`docs/architecture/decisions/ADR-019-lead-precalculation-transport-quote.md`](../architecture/decisions/ADR-019-lead-precalculation-transport-quote.md) (amends ADR-018).
+
+**Код P0:**
+- Cabinet intake: `syncRoutePoints` → `stage=leg_1` (+ wizard remap/seed); cargo `description` не копирует comment/«Основное»
+- Predрасчёт UI: hide goods/TN VED/freight unless `import_cost`; transport copy; grid + «Пересчитать» icon inline; «Подставить в оферту» → `quoted_price` draft (не `target_price`)
+- Gate: `leads.precalculation.tn-ved.search` + calculate-with-goods → `feature:import_cost`; transport-only calculate OK on Start
+- Tests: `LeadPrecalculationFeatureGateTest`, intake asserts in `ClientLeadCarrierBidIsolationTest`, unit transport-only calculate
+
+**Deferred:** full legs-rate builder redesign; Lead→Растаможка deep-link; migrate/drop legacy `goods_lines`; privacy export of precalculation JSON.
+
+**Команда:** security [predрасчёт scope](d7ca12a3-8f8a-4815-a365-5b8a005e952d) · qa [test gates](88081e00-f201-4550-ad75-81cede36f1ab) · privacy [TN VED surface](88c9205e-a2ce-400d-96df-b4a88701f6e9).
+
 ## Leads grid «Источник» Traklo → Входящий (2026-11-09)
 
 **Симптом:** колонка Источник показывала raw `traklo_customer_request[ · ФИО]` вместо «Входящий».

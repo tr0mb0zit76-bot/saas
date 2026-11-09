@@ -654,7 +654,7 @@ html.dark[data-crm-workspace-skin='indigo'] {
     }
 
     .crm-btn-secondary {
-        @apply rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50;
+        @apply inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50;
         @apply dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800;
     }
 

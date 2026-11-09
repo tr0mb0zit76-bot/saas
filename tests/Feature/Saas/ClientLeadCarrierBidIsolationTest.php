@@ -43,12 +43,46 @@ class ClientLeadCarrierBidIsolationTest extends SaasTestCase
             ->assertJsonPath('lead.cargo.name', 'Паллеты');
 
         $leadId = (int) $response->json('lead.id');
-        $lead = Lead::query()->findOrFail($leadId);
+        $lead = Lead::query()->with(['routePoints', 'cargoItems'])->findOrFail($leadId);
         $this->assertSame($fixture['tenant']->id, (int) $lead->tenant_id);
         $this->assertSame($fixture['customerContractor']->id, (int) $lead->counterparty_id);
         $this->assertTrue(CarrierMatchingService::isCustomerRequestSource((string) $lead->source));
 
+        $loading = $lead->routePoints->firstWhere('type', 'loading');
+        $unloading = $lead->routePoints->firstWhere('type', 'unloading');
+        $this->assertNotNull($loading);
+        $this->assertNotNull($unloading);
+        $this->assertSame('leg_1', $loading->stage);
+        $this->assertSame('leg_1', $unloading->stage);
+        $this->assertSame('Москва', $loading->address);
+        $this->assertSame('Казань', $unloading->address);
+
         $this->assertSame(0, LoadBoardPost::query()->where('lead_id', $leadId)->count());
+    }
+
+    public function test_client_cargo_comment_does_not_fill_cargo_description(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        $comment = 'Запрос клиента дословно: нужен просчёт до Волгограда';
+
+        $leadId = (int) $this->postJson(route('mobile.shell.counterparty.cargo-requests.store'), [
+            'loading_location' => 'Цзуньи',
+            'unloading_location' => 'Волгоградская область',
+            'comment' => $comment,
+            'cargo' => [
+                'name' => 'Стальной канат',
+                'weight_value' => 19,
+                'weight_unit' => 't',
+                'package_count' => 10,
+                'description' => $comment,
+            ],
+        ])->assertCreated()->json('lead.id');
+
+        $lead = Lead::query()->with('cargoItems')->findOrFail($leadId);
+        $this->assertSame($comment, $lead->description);
+        $this->assertNull($lead->cargoItems->first()?->description);
     }
 
     public function test_client_can_update_own_cargo_request_without_publishing_board_post(): void

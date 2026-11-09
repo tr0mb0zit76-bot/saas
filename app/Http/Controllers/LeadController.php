@@ -68,6 +68,7 @@ use App\Support\PaymentFormDictionary;
 use App\Support\RoleAccess;
 use App\Support\TaskStatus;
 use App\Support\TaskViewAuthorization;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -118,8 +119,21 @@ class LeadController extends Controller
     {
         abort_unless($this->hasLeadsFeatureTables(), 404);
 
+        $payload = $request->validated();
+        $goodsLines = is_array($payload['goods_lines'] ?? null) ? $payload['goods_lines'] : [];
+
+        // ADR-019: goods/TN VED path requires import_cost; transport (service_lines) stays available.
+        if ($goodsLines !== []) {
+            $tenant = TenantContext::get();
+            abort_unless(
+                $tenant !== null && $tenant->featureEnabled('import_cost'),
+                403,
+                'Customs precalculation requires the import_cost feature.',
+            );
+        }
+
         return response()->json(
-            $this->leadPrecalculationService->calculate($request->validated()),
+            $this->leadPrecalculationService->calculate($payload),
         );
     }
 

@@ -262,7 +262,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/leads/contractors', 'storeInlineContractor')->name('leads.contractors.store');
         Route::get('/leads/counterparty-authority-hint', 'counterpartyAuthorityHint')->name('leads.counterparty-authority-hint');
         Route::post('/leads/mass-update', 'massUpdate')->name('leads.mass-update');
-        Route::get('/leads/precalculation/tn-ved/search', 'searchPrecalculationTnVed')->name('leads.precalculation.tn-ved.search');
+        // ADR-019: TN VED / customs search only with Растаможка (import_cost). Transport calculate stays on leads.
+        Route::get('/leads/precalculation/tn-ved/search', 'searchPrecalculationTnVed')
+            ->middleware('feature:import_cost')
+            ->name('leads.precalculation.tn-ved.search');
         Route::post('/leads/precalculation/calculate', 'calculatePrecalculation')->name('leads.precalculation.calculate');
         Route::get('/leads/{lead}/precalculation/document', 'precalculationDocument')->name('leads.precalculation.document');
         Route::get('/leads/{lead}', 'show')->name('leads.show');

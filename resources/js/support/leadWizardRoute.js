@@ -33,13 +33,29 @@ export function defaultLeadRoutePoints() {
     ];
 }
 
+export function normalizeLeadRouteStage(stage, type = 'loading') {
+    const normalized = String(stage ?? '').trim() || 'leg_1';
+    // Legacy customer-request sync stored type name as stage; wizard legs expect leg_N.
+    if (normalized === 'loading' || normalized === 'unloading') {
+        return 'leg_1';
+    }
+
+    if (normalized === type && !/^leg_\d+$/i.test(normalized)) {
+        return 'leg_1';
+    }
+
+    return normalized;
+}
+
 export function normalizeLeadRoutePoint(raw = {}, index = 0) {
-    const stage = String(raw.stage ?? 'leg_1').trim() || 'leg_1';
-    const base = blankLeadRoutePoint(raw.type ?? 'loading', Number(raw.sequence ?? (index + 1)), stage);
+    const type = raw.type ?? 'loading';
+    const stage = normalizeLeadRouteStage(raw.stage ?? 'leg_1', type);
+    const base = blankLeadRoutePoint(type, Number(raw.sequence ?? (index + 1)), stage);
 
     return {
         ...base,
         ...raw,
+        type,
         stage,
         sequence: Number(raw.sequence ?? (index + 1)),
         normalized_data: raw.normalized_data && typeof raw.normalized_data === 'object' ? raw.normalized_data : {},
@@ -55,6 +71,34 @@ export function normalizeLeadRoutePoints(points) {
     }
 
     return points.map((point, index) => normalizeLeadRoutePoint(point, index));
+}
+
+/**
+ * Fill blank loading/unloading addresses from lead.loading_location / unloading_location
+ * (customer request title/body already has them when route points were orphaned by wrong stage).
+ */
+export function seedLeadRoutePointsFromLocations(points, loadingLocation, unloadingLocation) {
+    const next = (Array.isArray(points) ? points : defaultLeadRoutePoints()).map((point) => ({ ...point }));
+    const loading = String(loadingLocation ?? '').trim();
+    const unloading = String(unloadingLocation ?? '').trim();
+
+    if (loading !== '') {
+        const loadingPoint = next.find((point) => point.type === 'loading');
+        if (loadingPoint && String(loadingPoint.address ?? '').trim() === '') {
+            loadingPoint.address = loading;
+            syncRoutePointCityFromAddress(loadingPoint);
+        }
+    }
+
+    if (unloading !== '') {
+        const unloadingPoint = next.find((point) => point.type === 'unloading');
+        if (unloadingPoint && String(unloadingPoint.address ?? '').trim() === '') {
+            unloadingPoint.address = unloading;
+            syncRoutePointCityFromAddress(unloadingPoint);
+        }
+    }
+
+    return next;
 }
 
 export function routePointTimeBlockHeading(type) {

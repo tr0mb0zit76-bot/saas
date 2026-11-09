@@ -1892,7 +1892,8 @@ async function submitCargoRequest() {
             cargo: {
                 name: cargoRequestForm.value.cargo_name.trim() || 'Груз',
                 weight_unit: cargoRequestForm.value.weight_unit === 'kg' ? 'kg' : 't',
-                description: cargoRequestForm.value.comment.trim() || null,
+                // Описание груза не заполняем из comment («Суть сделки») — только поля груза.
+                description: null,
                 package_type: cargoRequestForm.value.package_type.trim() || null,
                 package_count: packageCount !== null ? Math.trunc(packageCount) : null,
                 volume_m3: optionalNumber(cargoRequestForm.value.volume_m3),
