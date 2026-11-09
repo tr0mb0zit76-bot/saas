@@ -12,20 +12,21 @@
 - Harden: `SubscriptionPlanSeeder` больше **не** затирает features/limits при re-seed (только create + label/sort)
 - Tests: `tests/Feature/Saas/PlatformPlanFeaturesTest.php` (5 passed)
 
-## Архитектура просчёта — ADR-018 **Accepted** (2026-11-09)
+## Архитектура просчёта — ADR-018 **Accepted** + MVP slice shipped (2026-11-09)
 
 Канон: [`docs/architecture/decisions/ADR-018-client-quote-lifecycle.md`](../architecture/decisions/ADR-018-client-quote-lifecycle.md). Amends ADR-017.
 
-**PO locks:**
-1. `target_price` = ориентир клиента (сколько хочет платить). Наша оферта клиенту — отдельное поле **`quoted_price`** (+ `quoted_currency`, `quote_status`, `quote_sent_at`, `quote_agreed_at`).
-2. Поток: staff готовит оферту → **отправляет** клиенту → цена **согласована** (staff) → **затем** Order. Клиент оферту не сочиняет.
-3. Внешние перевозчики на доску — **после** client-facing quote lifecycle, не раньше.
+**PO locks:** `target_price` = ориентир клиента; оферта = `quoted_price` + `quoted_currency` / `quote_status` / timestamps. Staff draft → send («Ответить клиенту») → agree («Цена согласована») → Order. External carriers — later.
 
-**SoT:** Lead = просчёт; matching Post/Offer = инструмент себестоимости; клиенту amount только при `quote_status` ∈ {`sent`,`agreed`}; никогда draft / `calculated_cost` / ставки.
+**Код (MVP slice):**
+- Migration `quoted_*` / `quote_*` on `leads`; Lead fillable/casts
+- Staff API: `leads.carrier-matching.quote.{save,send,agree}` + finance tab UI
+- `presentLeadForCustomer`: amount only when `sent`/`agreed`; never draft / cost / bids
+- Messenger «Просчёты» shows sent/agreed quote
+- `LeadConversionService` fail-closed: customer-request (or any started quote) needs `agreed`
+- Tests: `tests/Feature/Saas/ClientLeadQuoteLifecycleTest.php` (**6 passed**)
 
-**State machine:** `none` → `draft` → `sent` → `agreed` → Order (+ optional `rejected`/`withdrawn` later).
-
-**Следующий MVP slice (код):** migration колонок → staff «Ответить клиенту» (`sent`) + «Цена согласована» (`agreed`) → `presentLeadForCustomer` отдаёт `quoted_price` только после send → gate Lead→Order на `agreed` → SaaS isolation tests. External carriers / heuristics — later.
+**Later:** external carrier invite + minimized DTO; staff heuristic hint into draft.
 
 **Вердикты (ask #2):** security [carrier quote isolation](c95f7d2d-c909-4939-9e49-ba92353002bd) · qa [quote flow gates](f53d5176-26cb-4346-a3a8-c6f73be059b5) · privacy [board stats 152-ФЗ](b836468e-152c-47d5-b472-d39546396c93).
 

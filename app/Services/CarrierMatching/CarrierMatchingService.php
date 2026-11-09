@@ -501,6 +501,111 @@ class CarrierMatchingService
     }
 
     /**
+     * Staff Path A: save commercial offer as draft (never customer-visible amount).
+     */
+    public function saveQuoteDraft(Lead $lead, User $staff, float|int|string $price, ?string $currency = null): Lead
+    {
+        abort_if($staff->isExternal(), 403);
+
+        $amount = round((float) $price, 2);
+        abort_unless($amount > 0, 422, 'Укажите цену оферты клиенту.');
+
+        $status = (string) ($lead->quote_status ?: 'none');
+        abort_unless(in_array($status, ['none', 'draft', 'sent'], true), 422, 'Согласованную оферту нельзя снова сделать черновиком.');
+
+        $lead->forceFill([
+            'quoted_price' => $amount,
+            'quoted_currency' => strtoupper(trim((string) ($currency ?: $lead->quoted_currency ?: 'RUB'))) ?: 'RUB',
+            'quote_status' => 'draft',
+            'updated_by' => $staff->id,
+        ])->save();
+
+        return $lead->fresh() ?? $lead;
+    }
+
+    /**
+     * Staff «Ответить клиенту» — make quoted_price visible in customer DTO.
+     */
+    public function sendQuoteToClient(Lead $lead, User $staff): Lead
+    {
+        abort_if($staff->isExternal(), 403);
+        abort_unless($lead->quoted_price !== null && (float) $lead->quoted_price > 0, 422, 'Сначала сохраните цену оферты.');
+
+        $status = (string) ($lead->quote_status ?: 'none');
+        abort_unless(in_array($status, ['draft', 'sent'], true), 422, 'Отправить можно только черновик оферты.');
+
+        $lead->forceFill([
+            'quote_status' => 'sent',
+            'quote_sent_at' => $lead->quote_sent_at ?? now(),
+            'updated_by' => $staff->id,
+        ])->save();
+
+        return $lead->fresh() ?? $lead;
+    }
+
+    /**
+     * Staff «Цена согласована» — unlock Lead → Order.
+     */
+    public function agreeQuote(Lead $lead, User $staff): Lead
+    {
+        abort_if($staff->isExternal(), 403);
+
+        $status = (string) ($lead->quote_status ?: 'none');
+        abort_unless(in_array($status, ['sent', 'agreed'], true), 422, 'Сначала отправьте оферту клиенту.');
+
+        $lead->forceFill([
+            'quote_status' => 'agreed',
+            'quote_agreed_at' => $lead->quote_agreed_at ?? now(),
+            'updated_by' => $staff->id,
+        ])->save();
+
+        return $lead->fresh() ?? $lead;
+    }
+
+    /**
+     * @return array{id: int, quoted_price: float|null, quoted_currency: string, quote_status: string, quote_sent_at: string|null, quote_agreed_at: string|null}
+     */
+    public function presentQuoteForStaff(Lead $lead): array
+    {
+        return [
+            'id' => $lead->id,
+            'quoted_price' => $lead->quoted_price !== null ? (float) $lead->quoted_price : null,
+            'quoted_currency' => (string) ($lead->quoted_currency ?: 'RUB'),
+            'quote_status' => (string) ($lead->quote_status ?: 'none'),
+            'quote_sent_at' => $lead->quote_sent_at?->toIso8601String(),
+            'quote_agreed_at' => $lead->quote_agreed_at?->toIso8601String(),
+        ];
+    }
+
+    public static function quoteStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => 'Черновик оферты',
+            'sent' => 'Оферта отправлена',
+            'agreed' => 'Цена согласована',
+            default => 'Оферта не сформирована',
+        };
+    }
+
+    /**
+     * Fail-closed: customer-request leads need agreed; any started quote flow must finish at agreed.
+     */
+    public static function quoteAllowsOrderConversion(Lead $lead): bool
+    {
+        $status = (string) ($lead->quote_status ?: 'none');
+
+        if ($status === 'agreed') {
+            return true;
+        }
+
+        if ($status === 'none' && ! self::isCustomerRequestSource((string) $lead->source)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function presentLeadForCustomer(Lead $lead): array
@@ -510,11 +615,14 @@ class CarrierMatchingService
         $unloadingPoint = $lead->routePoints->where('type', 'unloading')->last()
             ?? $lead->routePoints->last();
 
-        return [
+        $quoteStatus = (string) ($lead->quote_status ?: 'none');
+        $payload = [
             'id' => $lead->id,
             'number' => $lead->number,
             'status' => $lead->status,
             'status_label' => LeadStatus::label((string) $lead->status),
+            'quote_status' => $quoteStatus,
+            'quote_status_label' => self::quoteStatusLabel($quoteStatus),
             'title' => $lead->title,
             'loading_location' => $lead->loading_location,
             'unloading_location' => $lead->unloading_location,
@@ -527,6 +635,14 @@ class CarrierMatchingService
             'notice' => 'Просчёт обрабатывается экспедитором. Данные маршрута и груза могут быть переданы выбранным перевозчикам для подбора ставки.',
             'created_at' => $lead->created_at?->toIso8601String(),
         ];
+
+        // Amount only after staff send — never draft / calculated_cost / carrier bids.
+        if (in_array($quoteStatus, ['sent', 'agreed'], true) && $lead->quoted_price !== null) {
+            $payload['quoted_price'] = (float) $lead->quoted_price;
+            $payload['quoted_currency'] = (string) ($lead->quoted_currency ?: 'RUB');
+        }
+
+        return $payload;
     }
 
     /**

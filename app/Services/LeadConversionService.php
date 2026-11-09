@@ -6,9 +6,11 @@ use App\Models\Lead;
 use App\Models\LeadOffer;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\CarrierMatching\CarrierMatchingService;
 use App\Support\LeadPerformerPayloadNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class LeadConversionService
 {
@@ -25,6 +27,12 @@ class LeadConversionService
 
             if ($existingOrder !== null) {
                 return $existingOrder;
+            }
+
+            if (! CarrierMatchingService::quoteAllowsOrderConversion($lead)) {
+                throw ValidationException::withMessages([
+                    'quote_status' => 'Конвертация в заказ доступна только после согласования цены с клиентом.',
+                ]);
             }
 
             $performers = $this->orderPerformersFromLead($lead);
@@ -173,13 +181,18 @@ class LeadConversionService
             ];
         }
 
-        if ($lead->target_price === null && $contractorsCosts === []) {
+        $clientPrice = $lead->quoted_price ?? $lead->target_price;
+        $clientCurrency = $lead->quoted_price !== null
+            ? ((string) ($lead->quoted_currency ?: $currency))
+            : $currency;
+
+        if ($clientPrice === null && $contractorsCosts === []) {
             return null;
         }
 
         return [
-            'client_price' => $lead->target_price,
-            'client_currency' => $currency,
+            'client_price' => $clientPrice,
+            'client_currency' => $clientCurrency,
             'client_payment_form' => $lead->customer_payment_form,
             'client_payment_schedule' => [],
             'contractors_costs' => $contractorsCosts,

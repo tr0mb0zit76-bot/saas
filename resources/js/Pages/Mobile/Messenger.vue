@@ -649,6 +649,13 @@
                                     </div>
                                     <div v-if="lead.cargo?.name" class="mt-1 truncate text-xs text-zinc-500">{{ lead.cargo.name }}</div>
                                     <div v-if="cargoRequestSummary(lead)" class="mt-1 text-xs text-zinc-500">{{ cargoRequestSummary(lead) }}</div>
+                                    <div v-if="lead.quote_status_label" class="mt-1 text-xs text-zinc-400">{{ lead.quote_status_label }}</div>
+                                    <div
+                                        v-if="lead.quoted_price != null && ['sent', 'agreed'].includes(lead.quote_status)"
+                                        class="mt-1 text-sm font-semibold tabular-nums text-emerald-300"
+                                    >
+                                        {{ formatCargoQuote(lead) }}
+                                    </div>
                                     <div v-if="lead.planned_shipping_date || lead.loading_date" class="mt-1 text-xs text-zinc-500">
                                         Дата погрузки: {{ formatShortDate(lead.planned_shipping_date || lead.loading_date) }}
                                     </div>
@@ -1792,6 +1799,20 @@ function cargoRequestSummary(lead) {
     }
 
     return parts.join(' · ');
+}
+
+function formatCargoQuote(lead) {
+    const amount = Number(lead?.quoted_price);
+    if (!Number.isFinite(amount)) {
+        return '';
+    }
+
+    const formatted = new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(amount);
+
+    return `${formatted} ${lead?.quoted_currency || 'RUB'}`;
 }
 
 async function runCargoRequestParse(payload) {

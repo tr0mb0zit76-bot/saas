@@ -810,6 +810,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/share', [LeadCarrierMatchingController::class, 'share'])->name('share');
             Route::get('/offers', [LeadCarrierMatchingController::class, 'offers'])->name('offers');
             Route::post('/offers/{offer}/accept', [LeadCarrierMatchingController::class, 'acceptOffer'])->name('offers.accept');
+            Route::post('/quote', [LeadCarrierMatchingController::class, 'saveQuote'])->name('quote.save');
+            Route::post('/quote/send', [LeadCarrierMatchingController::class, 'sendQuote'])->name('quote.send');
+            Route::post('/quote/agree', [LeadCarrierMatchingController::class, 'agreeQuote'])->name('quote.agree');
         });
 
     Route::get('/modules', fn () => Inertia::render('Modules/Index'))

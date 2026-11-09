@@ -1,19 +1,113 @@
 <script setup>
-import { computed } from 'vue';
-import { crmFieldFluid, crmLabel } from '@/support/crmUi.js';
+import { computed, ref, watch } from 'vue';
+import { crmBtnPrimary, crmBtnSecondary, crmFieldFluid, crmLabel } from '@/support/crmUi.js';
 
 const targetPrice = defineModel('targetPrice', { type: [Number, String, null], default: null });
 const targetCurrency = defineModel('targetCurrency', { type: String, default: 'RUB' });
 const calculatedCost = defineModel('calculatedCost', { type: [Number, String, null], default: null });
 const customerPaymentForm = defineModel('customerPaymentForm', { type: [String, null], default: null });
 const carrierPaymentForm = defineModel('carrierPaymentForm', { type: [String, null], default: null });
+const quotedPrice = defineModel('quotedPrice', { type: [Number, String, null], default: null });
+const quotedCurrency = defineModel('quotedCurrency', { type: String, default: 'RUB' });
+const quoteStatus = defineModel('quoteStatus', { type: String, default: 'none' });
 
 const props = defineProps({
+    leadId: { type: [Number, String, null], default: null },
+    canManageClientQuote: { type: Boolean, default: false },
     currencyOptions: { type: Array, default: () => [] },
     paymentFormOptions: { type: Array, default: () => [] },
     expectedMargin: { type: [Number, String, null], default: null },
     routePriceBenchmark: { type: Object, default: null },
 });
+
+const emit = defineEmits(['quote-updated']);
+
+const quoteBusy = ref(false);
+const quoteError = ref('');
+const quoteDraftAmount = ref(quotedPrice.value);
+
+watch(quotedPrice, (value) => {
+    quoteDraftAmount.value = value;
+});
+
+const quoteStatusLabel = computed(() => {
+    switch (quoteStatus.value) {
+        case 'draft':
+            return 'Черновик (клиент не видит сумму)';
+        case 'sent':
+            return 'Отправлена клиенту';
+        case 'agreed':
+            return 'Цена согласована';
+        default:
+            return 'Оферта не сформирована';
+    }
+});
+
+async function postQuote(url, body = null) {
+    quoteBusy.value = true;
+    quoteError.value = '';
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: body === null ? undefined : JSON.stringify(body),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const message = payload?.message
+                || payload?.errors?.quoted_price?.[0]
+                || payload?.errors?.quote_status?.[0]
+                || 'Не удалось обновить оферту.';
+            throw new Error(message);
+        }
+
+        const lead = payload.lead ?? {};
+        quotedPrice.value = lead.quoted_price ?? null;
+        quotedCurrency.value = lead.quoted_currency || 'RUB';
+        quoteStatus.value = lead.quote_status || 'none';
+        quoteDraftAmount.value = lead.quoted_price ?? null;
+        emit('quote-updated', lead);
+    } catch (error) {
+        quoteError.value = error?.message || 'Не удалось обновить оферту.';
+    } finally {
+        quoteBusy.value = false;
+    }
+}
+
+function saveQuoteDraft() {
+    if (!props.leadId) {
+        return;
+    }
+
+    return postQuote(route('leads.carrier-matching.quote.save', props.leadId), {
+        quoted_price: quoteDraftAmount.value,
+        quoted_currency: quotedCurrency.value || targetCurrency.value || 'RUB',
+    });
+}
+
+function sendQuote() {
+    if (!props.leadId) {
+        return;
+    }
+
+    return postQuote(route('leads.carrier-matching.quote.send', props.leadId));
+}
+
+function agreeQuote() {
+    if (!props.leadId) {
+        return;
+    }
+
+    return postQuote(route('leads.carrier-matching.quote.agree', props.leadId));
+}
 
 const previewMargin = computed(() => {
     const client = parseAmount(targetPrice.value);
@@ -72,8 +166,9 @@ function formatMoney(value) {
             <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">Заказчик</h4>
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="space-y-2">
-                    <label :class="crmLabel">Цена клиента</label>
+                    <label :class="crmLabel">Ориентир клиента</label>
                     <input v-model="targetPrice" type="number" min="0" step="0.01" :class="crmFieldFluid" />
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">Сколько клиент хочет платить — не наша оферта.</p>
                 </div>
                 <div class="space-y-2">
                     <label :class="crmLabel">Форма оплаты</label>
@@ -84,6 +179,66 @@ function formatMoney(value) {
                         </option>
                     </select>
                 </div>
+            </div>
+        </section>
+
+        <section
+            v-if="canManageClientQuote && leadId"
+            class="space-y-4 rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+        >
+            <div>
+                <h4 class="text-sm font-semibold uppercase tracking-[0.12em] text-emerald-800 dark:text-emerald-200">Оферта клиенту</h4>
+                <p class="mt-1 text-xs text-emerald-900/80 dark:text-emerald-100/80">
+                    {{ quoteStatusLabel }}. Клиент видит сумму только после «Ответить клиенту».
+                </p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-2">
+                    <label :class="crmLabel">Наша цена (quoted)</label>
+                    <input
+                        v-model="quoteDraftAmount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        :class="crmFieldFluid"
+                        :disabled="quoteBusy || quoteStatus === 'agreed'"
+                    />
+                </div>
+                <div class="space-y-2">
+                    <label :class="crmLabel">Валюта оферты</label>
+                    <select v-model="quotedCurrency" :class="crmFieldFluid" :disabled="quoteBusy || quoteStatus === 'agreed'">
+                        <option v-for="option in currencyOptions" :key="`quote-${option.value}`" :value="option.value">
+                            {{ option.label }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <p v-if="quoteError" class="text-sm text-rose-600 dark:text-rose-300">{{ quoteError }}</p>
+            <div class="flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    :class="crmBtnSecondary"
+                    :disabled="quoteBusy || quoteStatus === 'agreed'"
+                    @click="saveQuoteDraft"
+                >
+                    Сохранить черновик
+                </button>
+                <button
+                    type="button"
+                    :class="crmBtnPrimary"
+                    :disabled="quoteBusy || !['draft', 'sent'].includes(quoteStatus)"
+                    @click="sendQuote"
+                >
+                    Ответить клиенту
+                </button>
+                <button
+                    type="button"
+                    :class="crmBtnSecondary"
+                    :disabled="quoteBusy || !['sent', 'agreed'].includes(quoteStatus)"
+                    @click="agreeQuote"
+                >
+                    Цена согласована
+                </button>
             </div>
         </section>
 
