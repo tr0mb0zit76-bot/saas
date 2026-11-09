@@ -2,6 +2,12 @@
 
 **Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Deploy without default 503 (2026-11-09)
+
+**Причина recurring 503:** `deploy-prod.sh` всегда делал `artisan down` на shared host → platform + все tenants кратковременно (или дольше при обрыве) на Laravel maintenance.
+
+**Фикс:** routine deploy **без** `down`. Opt-in: `WITH_MAINTENANCE=1` / `pwsh -File scripts/deploy-prod.ps1 -Maintenance`. Normal path ещё зовёт `artisan up` на старте, чтобы снять leftover down после interrupted deploy.
+
 ## CRM «Пользователи» hides Traklo externals (2026-11-09)
 
 **Не cross-tenant leak** (saas-security): same-tenant external users appeared in staff Users list because `UserManagementController::index` had no `is_external` filter.
