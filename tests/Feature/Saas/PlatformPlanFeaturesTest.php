@@ -58,6 +58,25 @@ class PlatformPlanFeaturesTest extends SaasTestCase
         TenantContext::bypass(false);
     }
 
+    public function test_platform_admin_can_open_plans_matrix_and_feature_editor(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/plans'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Platform/Plans/Index')
+                ->has('plans')
+                ->has('matrix'));
+
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/plans/start/features'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Platform/Plans/Edit')
+                ->where('plan.key', 'start')
+                ->has('features'));
+    }
+
     public function test_platform_admin_can_edit_plan_features_in_database(): void
     {
         $this->actingAs($this->platformAdmin)
