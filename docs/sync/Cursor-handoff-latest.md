@@ -66,6 +66,24 @@
 
 **Фикс:** `bootstrap/app.php` `redirectTo(guests+users)` → platform home; alias `GET /dashboard` на portal. Commit `38c0b66`, задеплоено. Tenant login не трогали.
 
+## Security P1/P2 remaining (2026-11-09)
+
+Закрыты после P0 (`a52bda4`):
+
+| # | Статус | Фикс |
+| --- | --- | --- |
+| P0 C1–C3, H2, H5 + invite/messenger/fleet tests | **done** | `a52bda4` + `SecurityP0IsolationTest` |
+| P1 H3 | **done** | `AiToolAuditLogger` → `ExternalLlmPayloadSanitizer` |
+| P1 H4 | **done** | high-risk Command Bar writes → dry_run/`confirm_token` (`ai.command_bar.require_write_confirmation`) |
+| P1 H1 | **done** | provision rejects contractor rebind; invite `consumeOpenInvite` + `lockForUpdate` |
+| P2 M1 | **done** | Saas-тест X-Tenant-Slug spoof → 403 |
+| P2 M2 | **done** | `carrier_ids.*` `Rule::exists` scoped by `tenant_id` |
+| P2 M3 | **done** (already) | mass-update leads не трогает `quoted_*` |
+| P2 M5 | **done** | customer cargo update blocked after quote `sent`/`agreed` |
+| P2 M4 2FA | **open / blocked** | ops checklist Phase 4 — не код этого прохода |
+
+Коммиты: `433b941` (P1), `21c82ea` (P2). Тесты: `SecurityP1P2IsolationTest` (**6 passed**). Deploy не делался.
+
 ## Security P0 fixes (2026-11-09)
 
 Закрыты C1/C2/C3 (+H2/H5): fleet/driver docs → `TenantStorage` (не `public`); customer `parseCargoRequest` heuristic-only (`TransportTextIntakeService::canUseLlm` fail-closed for externals); production apex/www → 404 без `SAAS_DEFAULT_TENANT_SLUG`; `MCP_DEV_USER_ID` только local/testing; carrier DTO без `customer_name`.
@@ -74,7 +92,7 @@
 
 ## Security audit (full) — 2026-11-09
 
-**Вердикт:** внутренний пилот на **одном** tenant — условно OK; **вторая внешняя компания на том же хосте — NOT pilot-safe** до P0 (см. фиксы выше).
+**Вердикт (после P0–P2 кода):** внутренняя/вторая компания на том же хосте — **код-блокеры аудита закрыты**; остаётся ops: 2FA tenant-admin, staging host, HTTPS smoke.
 
 Полный отчёт — в чате security-audit (saas-security). Смежные: privacy [PII/prompts](f9e30b89-7c03-478a-a359-9e6fc87a188a) · qa [Saas test gates](54a7e7c8-a699-4706-9580-61433ceb8c78).
 
