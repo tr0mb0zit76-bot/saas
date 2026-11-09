@@ -72,6 +72,7 @@ MVP UX rules:
 4. Fix grid / recalculate icon layout (cosmetic P0 for staff trust).
 5. Sibling intake: map cabinet loading/unloading into Маршрут `route_points` reliably; stop copying deal description into cargo description (places/weight/dims OK).
 6. Tests that must go red on regress (saas-qa): feature gate Start without `import_cost` → 403 on lead customs path; transport default calculate without goods; ClientLeadQuoteLifecycleTest must stay green.
+7. Pilot Orientum: force `settings.features.import_cost = false` even if plan is enterprise / full catalog was enabled — Predрасчёт stays transport-only; Растаможка module stays off until intentionally re-enabled.
 
 **Later:**
 
@@ -84,6 +85,8 @@ MVP UX rules:
 ### 5. Packaging
 
 Unchanged: `import_cost` = Enterprise (Растаможка). Transport Predрасчёт + ADR-018 quote lifecycle ship with **leads** / `carrier_matching` — not tied to customs.
+
+**Pilot exception (2026-11-09):** Orientum keeps `import_cost` off via tenant settings override even if plan is enterprise, so Predрасчёт customs blocks stay hidden for the pilot.
 
 ## Consequences
 

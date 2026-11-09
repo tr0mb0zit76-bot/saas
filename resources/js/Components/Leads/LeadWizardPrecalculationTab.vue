@@ -34,7 +34,8 @@ let calculateTimer = null;
 const tnVedState = ref({});
 const tnVedTimers = {};
 
-// ADR-019: goods / TN VED / freight allocation only when Растаможка (import_cost) is on.
+// ADR-019: freight / goods / TN VED stay in «Растаможка». Lead Predрасчёт is transport-only
+// unless the tenant actually has import_cost (Enterprise module). Pilot Orientum must not.
 const canUseCustoms = computed(() => {
     const features = page.props.tenant?.features;
 

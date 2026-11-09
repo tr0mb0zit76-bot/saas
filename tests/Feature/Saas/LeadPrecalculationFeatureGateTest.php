@@ -64,10 +64,47 @@ class LeadPrecalculationFeatureGateTest extends SaasTestCase
         $this->assertSame(85000.0, (float) $response->json('computed.grand_total'));
     }
 
+    public function test_enterprise_import_cost_override_false_blocks_customs_paths(): void
+    {
+        $fixture = $this->seedStaffTenant('enterprise', [
+            'features' => ['import_cost' => false],
+        ]);
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+
+        $this->assertFalse($fixture['tenant']->fresh()->featureEnabled('import_cost'));
+        $this->assertNotContains('import_cost', $fixture['tenant']->fresh()->enabledFeatures());
+
+        $this->getJson(route('leads.precalculation.tn-ved.search', ['q' => '8429']))
+            ->assertForbidden();
+
+        $this->postJson(route('leads.precalculation.calculate'), [
+            'goods_lines' => [[
+                'id' => 'goods_1',
+                'tn_ved_code' => '8429.51',
+                'invoice_amount' => 1000,
+                'currency' => 'RUB',
+            ]],
+            'service_lines' => [],
+        ])->assertForbidden();
+    }
+
+    public function test_start_and_pro_plans_do_not_include_import_cost(): void
+    {
+        foreach (['start', 'pro'] as $plan) {
+            $fixture = $this->seedStaffTenant($plan);
+            $this->assertFalse(
+                $fixture['tenant']->featureEnabled('import_cost'),
+                "Plan {$plan} must not enable import_cost for ADR-019 pilot.",
+            );
+            $this->assertNotContains('import_cost', $fixture['tenant']->enabledFeatures());
+        }
+    }
+
     /**
+     * @param  array<string, mixed>  $settings
      * @return array{tenant: Tenant, staff: User}
      */
-    private function seedStaffTenant(string $plan): array
+    private function seedStaffTenant(string $plan, array $settings = []): array
     {
         TenantContext::bypass(true);
 
@@ -76,7 +113,10 @@ class LeadPrecalculationFeatureGateTest extends SaasTestCase
             'name' => 'Precalc '.$plan,
             'status' => 'active',
             'plan' => $plan,
-            'settings' => ['onboarding' => ['completed_at' => now()->toIso8601String()]],
+            'settings' => array_merge(
+                ['onboarding' => ['completed_at' => now()->toIso8601String()]],
+                $settings,
+            ),
         ]);
 
         $staffRole = Role::query()->firstOrCreate(

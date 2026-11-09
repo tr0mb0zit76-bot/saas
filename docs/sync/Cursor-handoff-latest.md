@@ -10,6 +10,19 @@
 
 **Код:** `CargoWeightSemantics` + metadata/ati flag; intake defaults total; `cargoLineTotalWeightKg` skips × places when total. Commit `4186a45`. Test: `tests/Unit/CargoWeightSemanticsTest.php` (14.4t+16 → 14400).
 
+## Lead «Предрасчёт» customs still visible — root cause + fix (2026-11-09)
+
+**Why still visible after `859463b`:**
+1. UI already gated on `tenant.features` incl. `import_cost`, but **`public/build` was stale** (Nov 8, pre-gate) — OSPanel served ungated freight / «Товары + таможня» / «Товарные строки».
+2. Prod Orientum was set to **enterprise + full feature catalog** (handoff 2026-11-08), so even a fresh build would keep customs blocks for that tenant.
+
+**Fix (no deploy):**
+- Migration `2026_11_09_211942_disable_import_cost_on_orientum_pilot`: strip `import_cost` from Start/Pro plan rows if present; Orientum `settings.features.import_cost = false` (map override; also drops from list allowlists).
+- Rebuilt local Vite assets so gated Predрасчёт ships without `npm run dev`.
+- Tests: enterprise + override false → 403 on TN VED / goods calculate; Start/Pro never enable `import_cost`.
+
+**Keep:** услуги / себестоимость / оферта клиенту.
+
 ## Lead «Предрасчёт» = транспорт, не растаможка — ADR-019 P0 (2026-11-09)
 
 **Канон:** [`docs/architecture/decisions/ADR-019-lead-precalculation-transport-quote.md`](../architecture/decisions/ADR-019-lead-precalculation-transport-quote.md) (amends ADR-018).
@@ -18,6 +31,7 @@
 - Cabinet intake: `syncRoutePoints` → `stage=leg_1` (+ wizard remap/seed); cargo `description` не копирует comment/«Основное»
 - Predрасчёт UI: hide goods/TN VED/freight unless `import_cost`; transport copy; grid + «Пересчитать» icon inline; «Подставить в оферту» → `quoted_price` draft (не `target_price`)
 - Gate: `leads.precalculation.tn-ved.search` + calculate-with-goods → `feature:import_cost`; transport-only calculate OK on Start
+- Pilot: Orientum `import_cost` forced off (see migration above)
 - Tests: `LeadPrecalculationFeatureGateTest`, intake asserts in `ClientLeadCarrierBidIsolationTest`, unit transport-only calculate
 
 **Deferred:** full legs-rate builder redesign; Lead→Растаможка deep-link; migrate/drop legacy `goods_lines`; privacy export of precalculation JSON.
