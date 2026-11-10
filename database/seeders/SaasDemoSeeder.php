@@ -7,6 +7,7 @@ use App\Models\Lead;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Saas\TenantProvisioner;
 use App\Support\RoleAccess;
 use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Schema;
  *   php artisan db:seed --class=SaasDemoSeeder
  *
  * Login: admin@saas.local / password  |  manager@saas.local / password
+ *
+ * Lab tenant `demo` stays on Enterprise so feature-gated modules (budgeting,
+ * management_accounting, …) survive migrate:fresh + re-seed without platform edits.
  */
 class SaasDemoSeeder extends Seeder
 {
@@ -28,6 +32,8 @@ class SaasDemoSeeder extends Seeder
     private const MANAGER_EMAIL = 'manager@saas.local';
 
     private const PASSWORD = 'password';
+
+    private const LAB_PLAN = 'enterprise';
 
     public function run(): void
     {
@@ -40,26 +46,25 @@ class SaasDemoSeeder extends Seeder
         TenantContext::bypass(true);
 
         if (User::query()->where('email', self::MANAGER_EMAIL)->exists()) {
+            $this->ensureLabDemoTenantEnterprise();
             $this->ensurePlatformLabAdmin();
             TenantContext::bypass(false);
-            $this->command?->warn('SaasDemoSeeder: demo bundle present, ensured platform admin.');
+            $this->command?->warn('SaasDemoSeeder: demo bundle present, ensured enterprise lab + platform admin.');
 
             return;
         }
 
         if (User::query()->where('email', self::ADMIN_EMAIL)->exists()) {
+            $this->ensureLabDemoTenantEnterprise();
             TenantContext::bypass(false);
-            $this->command?->warn('SaasDemoSeeder: demo users already exist, skipping.');
+            $this->command?->warn('SaasDemoSeeder: demo users already exist, ensured enterprise lab.');
 
             return;
         }
 
         $this->call(DatabaseSeeder::class);
 
-        $tenant = Tenant::query()->updateOrCreate(
-            ['slug' => 'demo'],
-            ['name' => 'Demo Logistics', 'status' => 'active', 'plan' => 'start'],
-        );
+        $tenant = $this->ensureLabDemoTenantEnterprise();
 
         DB::transaction(function () use ($tenant): void {
             $roles = $this->seedRoles($tenant);
@@ -76,16 +81,39 @@ class SaasDemoSeeder extends Seeder
         $this->command?->info('Contractors: '.Contractor::query()->count().' | Leads: '.Lead::query()->count());
     }
 
+    /**
+     * Keep the primary lab tenant on Enterprise so ADR-020 budgeting and other
+     * Enterprise gates are reviewable locally after every seed / migrate:fresh.
+     */
+    private function ensureLabDemoTenantEnterprise(): Tenant
+    {
+        $slug = (string) config('saas.default_tenant_slug', 'demo');
+
+        $tenant = Tenant::query()->updateOrCreate(
+            ['slug' => $slug],
+            [
+                'name' => 'Demo Logistics',
+                'status' => 'active',
+                'plan' => self::LAB_PLAN,
+            ],
+        );
+
+        if ($tenant->planKey() !== self::LAB_PLAN) {
+            $tenant->forceFill(['plan' => self::LAB_PLAN])->save();
+        }
+
+        app(TenantProvisioner::class)->syncSubscription($tenant);
+
+        return $tenant->fresh() ?? $tenant;
+    }
+
     private function ensurePlatformLabAdmin(): void
     {
         if (User::query()->where('email', self::ADMIN_EMAIL)->exists()) {
             return;
         }
 
-        $tenant = Tenant::query()->updateOrCreate(
-            ['slug' => (string) config('saas.default_tenant_slug', 'demo')],
-            ['name' => 'Demo Logistics', 'status' => 'active', 'plan' => 'start'],
-        );
+        $tenant = $this->ensureLabDemoTenantEnterprise();
 
         $role = Role::query()->firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'admin'],

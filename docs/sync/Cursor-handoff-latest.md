@@ -2,6 +2,16 @@
 
 **Обновлено:** 2026-11-10 · **Фаза:** Phase 4 + budgeting ADR-020 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Lab budgeting 403 — demo was Start (2026-11-10)
+
+**Симптом:** local `admin@saas.local` → `/budgeting` **403** («not available on your plan»).
+
+**Root cause:** tenant `#1` `demo` seeded as **Start**; `feature:budgeting` is Enterprise-only. RoleAccess OK for admin. Enterprise plan row already had `budgeting`. MySQL lab host `127.0.1.21:3306` up (blocker note about `127.0.0.1` stale).
+
+**Fix:** `SaasDemoSeeder` always re-asserts lab `demo` → `enterprise` + `syncSubscription` (including early-return re-seed paths). Start/demo-a/demo-b gating unchanged. Test: `BudgetingFeatureGateTest::test_saas_demo_seeder_puts_lab_demo_on_enterprise_with_budgeting`.
+
+**Verify:** http://demo.saas.local/budgeting (or http://saas.local/budgeting with default slug) as `admin@saas.local` / `password`. Re-seed: `php artisan db:seed --class=SaasDemoSeeder --force`. **No prod deploy.**
+
 ## Budgeting ADR-020 P0 — per_head FOT + взносы (2026-11-10)
 
 **Канон:** [`docs/architecture/decisions/ADR-020-budgeting-unit-economics.md`](../architecture/decisions/ADR-020-budgeting-unit-economics.md) (Accepted).

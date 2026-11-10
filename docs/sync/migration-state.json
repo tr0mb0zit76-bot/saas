@@ -191,7 +191,7 @@
     {
       "id": "lab-mysql-down",
       "severity": "local",
-      "note": "OSPanel MySQL unreachable on 127.0.0.1:3306 — repair-lab ensure-test-database + php artisan test tests/Feature/Saas fail until MySQL started"
+      "note": "Cleared 2026-11-10: lab .env uses DB_HOST=127.0.1.21:3306 (up). Do not probe 127.0.0.1 — that is not the lab bind."
     },
     {
       "id": "staging-host",

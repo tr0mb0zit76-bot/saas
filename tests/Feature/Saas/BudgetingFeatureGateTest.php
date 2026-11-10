@@ -49,6 +49,62 @@ class BudgetingFeatureGateTest extends SaasTestCase
         $this->get(route('budgeting.index'))->assertOk();
     }
 
+    public function test_saas_demo_seeder_puts_lab_demo_on_enterprise_with_budgeting(): void
+    {
+        TenantContext::bypass(true);
+
+        $demo = Tenant::query()->updateOrCreate(
+            ['slug' => 'demo'],
+            ['name' => 'Demo Logistics', 'status' => 'active', 'plan' => 'start'],
+        );
+
+        $adminRole = Role::query()->create([
+            'tenant_id' => $demo->id,
+            'name' => 'admin',
+            'display_name' => 'Admin',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('admin'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('admin'),
+        ]);
+
+        $managerRole = Role::query()->create([
+            'tenant_id' => $demo->id,
+            'name' => 'manager',
+            'display_name' => 'Manager',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('manager'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('manager'),
+        ]);
+
+        User::query()->create([
+            'tenant_id' => $demo->id,
+            'role_id' => $adminRole->id,
+            'name' => 'Demo Admin',
+            'email' => 'admin@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        User::query()->create([
+            'tenant_id' => $demo->id,
+            'role_id' => $managerRole->id,
+            'name' => 'Demo Manager',
+            'email' => 'manager@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        TenantContext::bypass(false);
+
+        $this->seed(\Database\Seeders\SaasDemoSeeder::class);
+
+        $demo = Tenant::query()->where('slug', 'demo')->firstOrFail();
+        $this->assertSame('enterprise', $demo->planKey());
+        $this->assertTrue($demo->featureEnabled('budgeting'));
+    }
+
     public function test_opex_update_and_destroy_are_cross_tenant_404(): void
     {
         $tenantA = $this->seedStaffTenant('enterprise', 'a');
