@@ -32,6 +32,7 @@ class UpdateBudgetScenarioRequest extends FormRequest
             'inputs.manager_count' => ['nullable', 'integer', 'min:1', 'max:100'],
             'inputs.margin_per_manager' => ['nullable', 'numeric', 'min:0'],
             'inputs.use_db_margin_per_manager' => ['nullable', 'boolean'],
+            'inputs.payroll_contributions_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 }

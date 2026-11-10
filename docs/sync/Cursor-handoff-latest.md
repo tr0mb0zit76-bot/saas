@@ -1,6 +1,14 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-09 · **Фаза:** Phase 4 + carrier matching P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-10 · **Фаза:** Phase 4 + budgeting ADR-020 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Budgeting ADR-020 P0 — per_head FOT + взносы (2026-11-10)
+
+**Канон:** [`docs/architecture/decisions/ADR-020-budgeting-unit-economics.md`](../architecture/decisions/ADR-020-budgeting-unit-economics.md) (Accepted).
+
+**Поведение Orientum 450k / N=3:** migration converts «Оклады менеджеров» lump → `amount_basis=per_head`, rate = round(450000/3)=150000 («₽/мес на 1 менеджера»); ramp cleared (весь горизонт). Взносы % — глобально в scenario (`payroll_contributions_percent`, default 30.2) к сумме per_head × N.
+
+**Код:** `BudgetPlannerService` (+ JS parity), `amount_basis`, snapshot `formula_version=adr020_p0_v1`, пик финансирования, milestone copy. Feature: `tests/Feature/Saas/BudgetingFeatureGateTest.php`. **No deploy.**
 
 ## Cargo «Общий вес» — no × мест blow-up (2026-11-09)
 

@@ -123,8 +123,9 @@ class BudgetTopDownPlannerServiceTest extends TestCase
             ['name' => 'Бонус', 'cost_type' => 'percent_of_margin', 'amount_monthly' => 0, 'percent_of_margin' => 10, 'ramp_months' => null],
         ];
 
-        $marginWithoutPercent = (new BudgetPlannerService)->marginForTargetNet(4, [$articles[0]], 0.0);
-        $marginWithPercent = (new BudgetPlannerService)->marginForTargetNet(4, $articles, 0.0);
+        $inputs = BudgetPlannerService::defaultInputs();
+        $marginWithoutPercent = (new BudgetPlannerService)->marginForTargetNet(4, [$articles[0]], 0.0, $inputs);
+        $marginWithPercent = (new BudgetPlannerService)->marginForTargetNet(4, $articles, 0.0, $inputs);
 
         $this->assertEqualsWithDelta(300_000, $marginWithoutPercent, 0.01);
         $this->assertEqualsWithDelta(333_333.33, $marginWithPercent, 1.0);
@@ -136,8 +137,90 @@ class BudgetTopDownPlannerServiceTest extends TestCase
         $inputs = BudgetPlannerService::defaultInputs();
 
         $this->assertGreaterThan(
-            $this->planner->monthlyOpex(4, $this->opexArticles),
-            $this->planner->monthlyOpex(2, $this->opexArticles),
+            $this->planner->monthlyOpex(4, $this->opexArticles, 0.0, $inputs),
+            $this->planner->monthlyOpex(2, $this->opexArticles, 0.0, $inputs),
+        );
+    }
+
+    #[Test]
+    public function per_head_salary_scales_with_manager_count_and_contributions(): void
+    {
+        $articles = [
+            [
+                'name' => 'Офис',
+                'cost_type' => 'fixed_monthly',
+                'amount_basis' => 'total',
+                'amount_monthly' => 100_000,
+                'ramp_months' => null,
+            ],
+            [
+                'name' => 'Оклады менеджеров',
+                'cost_type' => 'fixed_monthly',
+                'amount_basis' => 'per_head',
+                'amount_monthly' => 150_000, // Orientum 450k lump ÷ 3
+                'ramp_months' => null,
+            ],
+        ];
+
+        $inputsN3 = array_merge(BudgetPlannerService::defaultInputs(), [
+            'manager_count' => 3,
+            'payroll_contributions_percent' => 30.2,
+        ]);
+        $inputsN4 = array_merge($inputsN3, ['manager_count' => 4]);
+
+        $opex3 = $this->planner->monthlyFixedOpex(1, $articles, $inputsN3);
+        $opex4 = $this->planner->monthlyFixedOpex(1, $articles, $inputsN4);
+
+        // 100k + 150k×3 + 30.2%×450k = 100k + 450k + 135900 = 685900
+        $this->assertEqualsWithDelta(685_900.0, $opex3, 0.01);
+        // 100k + 150k×4 + 30.2%×600k = 100k + 600k + 181200 = 881200
+        $this->assertEqualsWithDelta(881_200.0, $opex4, 0.01);
+        $this->assertGreaterThan($opex3, $opex4);
+    }
+
+    #[Test]
+    public function lump_total_article_ignores_manager_count(): void
+    {
+        $articles = [[
+            'name' => 'Офис',
+            'cost_type' => 'fixed_monthly',
+            'amount_basis' => 'total',
+            'amount_monthly' => 100_000,
+            'ramp_months' => null,
+        ]];
+
+        $n1 = array_merge(BudgetPlannerService::defaultInputs(), [
+            'manager_count' => 1,
+            'payroll_contributions_percent' => 30.2,
+        ]);
+        $n5 = array_merge($n1, ['manager_count' => 5]);
+
+        $this->assertEqualsWithDelta(
+            $this->planner->monthlyFixedOpex(1, $articles, $n1),
+            $this->planner->monthlyFixedOpex(1, $articles, $n5),
+            0.01,
+        );
+    }
+
+    #[Test]
+    public function plan_summary_includes_formula_version_and_peak_funding(): void
+    {
+        $inputs = array_merge(BudgetPlannerService::defaultInputs(), [
+            'calculation_mode' => BudgetPlannerService::MODE_BOTTOM_UP,
+            'margin_per_manager' => 50_000,
+            'manager_count' => 3,
+            'owner_investment' => 100_000,
+            'payroll_contributions_percent' => 0,
+        ]);
+
+        $plan = $this->planner->buildPlan($inputs, $this->opexArticles);
+
+        $this->assertSame(BudgetPlannerService::FORMULA_VERSION, $plan['summary']['formula_version']);
+        $this->assertArrayHasKey('peak_funding', $plan['summary']);
+        $this->assertEqualsWithDelta(
+            max(0, -((float) $plan['summary']['min_cumulative'])),
+            (float) $plan['summary']['peak_funding'],
+            0.01,
         );
     }
 }

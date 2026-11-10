@@ -22,6 +22,7 @@ class BudgetPlanSnapshot extends Model
         'approved_at',
         'approved_by_user_id',
         'notes',
+        'formula_version',
     ];
 
     /**
