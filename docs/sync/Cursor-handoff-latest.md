@@ -1,6 +1,65 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-10 · **Фаза:** Phase 4 + budgeting ADR-020 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-14 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## ADR-021 + ADR-022 P0 landed (2026-11-14)
+
+**PO locks:** print verification + sales-book packs (ADR-021); connectors + **platform Ops UI** for bind (ADR-022 Q2 override, not artisan-only).
+
+### Orientum (class A) vs new external (class B)
+
+| | Orientum / AA cutover | New external tenant |
+| --- | --- | --- |
+| `settings.print.document_verification` | **true** (migration) | **false** (provision default) |
+| Sales-book packs | **full:** `crm-user-guide` + `admin-guide` + `sales-playbook` | **`crm-user-guide` only** (if `sales_book` on) |
+| 1C connector | clone AA template into Orientum `settings.integrations[]` (encrypted secrets) | none unless Enterprise + platform binds |
+
+### Platform UI
+
+`platform.*/tenants` → **Ops** → `/tenants/{id}/ops`:
+1. Toggle document verification
+2. Install content packs by slug
+3. Bind/view `one_c_bp` connector or «Клонировать шаблон AA»
+
+Requires `platform.admin`. Secrets never returned in Inertia props (`has_secrets` + keys only).
+
+### Tests
+
+- `tests/Feature/Saas/ContentPacksAndPrintVerificationTest.php`
+- `tests/Feature/Saas/TenantConnectorIsolationTest.php`
+- `tests/Feature/OrderDocumentVerificationPageTest.php` (fail-closed when setting off)
+
+**No prod deploy** unless asked. After pull: migrate `2026_11_14_150000_adr021_adr022_orientum_cutover`.
+
+## Showcase feature shots — real CRM UI (2026-11-14)
+
+**Было:** `ShowcaseFeatureShot` — CSS-моки (не сток). **Стало:** PNG из lab CRM в `public/showcase-shots/{variant}.png`, chrome/rail сохранены; `@error` → мок.
+
+**Съёмка:** `node scripts/_playwright/capture-showcase-feature-shots.mjs` (логин classic form POST из‑за 419 на Inertia XHR в Playwright; перед съёмкой `ensure-lab-shot-tables.php` поднимает stub `cities`/`addresses`/`cargo_leg`/`salary_coefficients` если их нет на SaaS lab). `SHOT_KEYS=orders,payments` — выборочно.
+
+**Verify:** http://saas.local/#features — в rail виден реальный грид лидов, не CSS-макет. `npm run build` после правок Vue.
+
+**No prod deploy.** PNG нужно закоммитить вместе с Vue, если катим на хост.
+
+## Lab repair — save toast + budgeting (2026-11-10)
+
+**Симптом:** toast «Не удалось сохранить данные… Lab: `pwsh -File scripts/repair-lab-after-pull.ps1 -Full`» (QueryException → user-facing 503/flash from `UserFacingDatabaseMessageResolver` + local hint in `bootstrap/app.php`). Earlier: `/budgeting` **403** on Start plan.
+
+**Что было сломано:** lab schema lag — missing ADR-020 migration `amount_basis` on `budget_opex_articles` (and related). Saves hit unknown column → DB error toast. Demo plan already fixed in seeder (`feadf87`) but needed re-seed after repair.
+
+**Repair:** `pwsh -File scripts/repair-lab-after-pull.ps1 -Full` OK.
+- MySQL `127.0.1.21:3306` / `saas_crm` up
+- Migrated `2026_11_10_130000_adr020_p0_budget_amount_basis_and_formula_version`
+- `npm run build` OK; landing/login/platform login 200
+- `php artisan db:seed --class=SaasDemoSeeder --force` → demo `plan=enterprise`, `budgeting=yes`, `admin@saas.local` present
+
+**Verify (HTTP session):**
+- Login `admin@saas.local` / `password` → dashboard 200
+- `GET http://saas.local/budgeting` → **200** (not 403)
+- `PATCH /budgeting/scenario` + `PATCH /budgeting/opex-articles/1` → **302** back to budgeting (no save toast)
+- Schema: `budget_opex_articles.amount_basis` present; opex #3 «Оклады менеджеров» = `per_head`
+
+**No prod deploy.** Staging host still human blocker.
 
 ## Lab budgeting 403 — demo was Start (2026-11-10)
 
@@ -10,7 +69,7 @@
 
 **Fix:** `SaasDemoSeeder` always re-asserts lab `demo` → `enterprise` + `syncSubscription` (including early-return re-seed paths). Start/demo-a/demo-b gating unchanged. Test: `BudgetingFeatureGateTest::test_saas_demo_seeder_puts_lab_demo_on_enterprise_with_budgeting`.
 
-**Verify:** http://demo.saas.local/budgeting (or http://saas.local/budgeting with default slug) as `admin@saas.local` / `password`. Re-seed: `php artisan db:seed --class=SaasDemoSeeder --force`. **No prod deploy.**
+**Verify:** http://saas.local/budgeting as `admin@saas.local` / `password` — **confirmed 200 after repair+reseed**. Re-seed: `php artisan db:seed --class=SaasDemoSeeder --force`. **No prod deploy.**
 
 ## Budgeting ADR-020 P0 — per_head FOT + взносы (2026-11-10)
 

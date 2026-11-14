@@ -41,6 +41,8 @@ Route::domain($platformDomain)->group(function (): void {
         Route::patch('/tenants/{tenant}', [PlatformTenantController::class, 'update'])->name('platform.tenants.update');
         Route::get('/tenants/{tenant}/features', [PlatformTenantController::class, 'features'])->name('platform.tenants.features');
         Route::patch('/tenants/{tenant}/features', [PlatformTenantController::class, 'updateFeatures'])->name('platform.tenants.features.update');
+        Route::get('/tenants/{tenant}/ops', [PlatformTenantController::class, 'ops'])->name('platform.tenants.ops');
+        Route::patch('/tenants/{tenant}/ops', [PlatformTenantController::class, 'updateOps'])->name('platform.tenants.ops.update');
         Route::post('/tenants/{tenant}/mark-paid', [PlatformTenantController::class, 'markPaid'])->name('platform.tenants.mark-paid');
         Route::get('/tenants/{tenant}/invoices/{invoice}/pdf', [PlatformTenantInvoiceController::class, 'pdf'])->name('platform.tenants.invoices.pdf');
         Route::get('/audit', [PlatformAuditLogController::class, 'index'])->name('platform.audit.index');

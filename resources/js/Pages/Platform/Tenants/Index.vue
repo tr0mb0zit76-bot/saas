@@ -103,6 +103,9 @@
                             <Link :href="route('platform.tenants.features', tenant.id)" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700">
                                 Модули
                             </Link>
+                            <Link :href="route('platform.tenants.ops', tenant.id)" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700">
+                                Ops
+                            </Link>
                             <button type="button" class="rounded-lg bg-sky-600 px-2 py-1 text-xs text-white" @click="markPaid(tenant.id)">
                                 Оплачено
                             </button>
