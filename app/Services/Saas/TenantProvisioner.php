@@ -5,12 +5,17 @@ namespace App\Services\Saas;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Services\ContentPacks\SalesBookContentPackInstaller;
 use App\Support\RoleAccess;
 use App\Support\TenantContext;
 use App\Support\TenantStorage;
 
 final class TenantProvisioner
 {
+    public function __construct(
+        private readonly SalesBookContentPackInstaller $salesBookPacks,
+    ) {}
+
     /**
      * @var list<array{name: string, display_name: string}>
      */
@@ -48,8 +53,35 @@ final class TenantProvisioner
         });
 
         $this->syncSubscription($tenant);
+        $this->applyClassBDefaults($tenant);
 
         return $tenant->fresh(['subscription']);
+    }
+
+    /**
+     * ADR-021 class B: verification off; only crm-user-guide when sales_book is on.
+     * Class A (Orientum) is handled by cutover migration / platform ops.
+     */
+    public function applyClassBDefaults(Tenant $tenant): void
+    {
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        if (! array_key_exists('document_verification', data_get($settings, 'print', []) ?: [])) {
+            data_set($settings, 'print.document_verification', false);
+            $tenant->forceFill(['settings' => $settings])->save();
+        }
+
+        $tenant->refresh();
+
+        if (! $tenant->featureEnabled('sales_book')) {
+            return;
+        }
+
+        $installed = data_get($tenant->settings, 'content_packs.sales_book', []);
+        if (is_array($installed) && $installed !== []) {
+            return;
+        }
+
+        $this->salesBookPacks->installMany($tenant, SalesBookContentPackInstaller::classBDefaultPacks());
     }
 
     /**

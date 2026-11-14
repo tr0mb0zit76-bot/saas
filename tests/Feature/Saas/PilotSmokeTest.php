@@ -104,7 +104,7 @@ class PilotSmokeTest extends SaasTestCase
 
         $pilotTenant = Tenant::query()->where('slug', $slug)->first();
         $this->assertNotNull($pilotTenant);
-        $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', $pilotTenant->id)->count());
+        $this->assertSame(9, Role::query()->withoutGlobalScopes()->where('tenant_id', $pilotTenant->id)->count());
 
         $this->assertDatabaseHas('tenant_audit_logs', [
             'tenant_id' => $pilotTenant->id,

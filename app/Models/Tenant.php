@@ -171,6 +171,20 @@ class Tenant extends Model
     }
 
     /**
+     * Behavior toggle under tenants.settings (never elevates plan features).
+     */
+    public function settingBool(string $dotPath, bool $default = false): bool
+    {
+        $value = data_get($this->settings, $dotPath);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOL);
+    }
+
+    /**
      * @return list<string>
      */
     public function enabledFeatures(): array

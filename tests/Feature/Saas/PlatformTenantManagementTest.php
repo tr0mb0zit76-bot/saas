@@ -113,7 +113,7 @@ class PlatformTenantManagementTest extends SaasTestCase
 
         TenantContext::bypass(true);
         $this->assertDatabaseHas('tenants', ['slug' => $slug, 'plan' => 'start', 'status' => 'trial']);
-        $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', Tenant::query()->where('slug', $slug)->value('id'))->count());
+        $this->assertSame(9, Role::query()->withoutGlobalScopes()->where('tenant_id', Tenant::query()->where('slug', $slug)->value('id'))->count());
         TenantContext::bypass(false);
     }
 
