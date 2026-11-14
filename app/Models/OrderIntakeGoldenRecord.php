@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\OrderIntakeGoldenRecordStatus;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderIntakeGoldenRecord extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */

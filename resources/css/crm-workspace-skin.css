@@ -1,6 +1,6 @@
 /**
- * Оболочка CRM: классический (zinc) и рабочая тема Sky (как «Сколько влезет»).
- * Активируется html[data-crm-workspace-skin="sky"] из настроек внешнего вида.
+ * Оболочка CRM: classic (zinc) и токенизированные темы (sky, traklo и др.).
+ * Активируется html[data-crm-workspace-skin] из настроек внешнего вида.
  */
 
 html.crm-layout-scroll-lock,
@@ -17,7 +17,7 @@ html.crm-layout-scroll-lock body > #app {
     flex-direction: column;
 }
 
-html[data-crm-workspace-skin='sky'] {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) {
         --crm-accent: 2 132 199;
         --crm-accent-soft: 224 242 254;
         --crm-surface: 255 255 255;
@@ -28,7 +28,7 @@ html[data-crm-workspace-skin='sky'] {
         --crm-shadow: 15 23 42;
     }
 
-html.dark[data-crm-workspace-skin='sky'] {
+html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) {
     --crm-accent: 56 189 248;
     --crm-accent-soft: 12 74 110;
     --crm-surface: 24 24 27;
@@ -37,6 +37,152 @@ html.dark[data-crm-workspace-skin='sky'] {
     --crm-text: 244 244 245;
     --crm-text-muted: 161 161 170;
     --crm-shadow: 0 0 0;
+}
+
+/* Traklo Pro showcase palette (overrides shared sky tokens). */
+html[data-crm-workspace-skin='traklo'] {
+    --crm-accent: 37 99 235;
+    --crm-accent-soft: 219 234 254;
+    --crm-surface: 255 255 255;
+    --crm-surface-muted: 248 250 252;
+    --crm-border: 226 232 240;
+    --crm-text: 15 23 42;
+    --crm-text-muted: 71 85 105;
+    --crm-shadow: 15 23 42;
+    --crm-accent-contrast: 255 255 255;
+}
+
+html.dark[data-crm-workspace-skin='traklo'] {
+    --crm-accent: 96 165 250;
+    --crm-accent-soft: 30 58 138;
+    --crm-surface: 11 18 32;
+    --crm-surface-muted: 7 11 20;
+    --crm-border: 51 65 85;
+    --crm-text: 241 245 249;
+    --crm-text-muted: 148 163 184;
+    --crm-shadow: 0 0 0;
+    --crm-accent-contrast: 7 11 20;
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .crm-btn-create,
+html.dark[data-crm-workspace-skin='traklo'] .crm-btn-primary,
+html.dark[data-crm-workspace-skin='traklo'] .crm-tab-btn--active-filled,
+html.dark[data-crm-workspace-skin='traklo'] .crm-segmented-btn--active {
+    color: rgb(255 255 255);
+}
+
+html[data-crm-workspace-skin='traklo'] .crm-layout-main {
+    background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgb(37 99 235 / 0.16), transparent 55%),
+        linear-gradient(180deg, rgb(var(--crm-surface-muted)) 0%, rgb(var(--crm-accent-soft) / 0.22) 100%);
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .crm-layout-main {
+    background:
+        radial-gradient(ellipse 70% 45% at 12% -8%, rgb(37 99 235 / 0.22), transparent 55%),
+        linear-gradient(180deg, rgb(var(--crm-surface-muted)) 0%, rgb(11 18 32) 100%);
+}
+
+html[data-crm-workspace-skin='traklo'] .orders-grid-theme {
+    --ag-header-foreground-color: rgb(15 23 42);
+}
+
+html.dark[data-crm-workspace-skin='traklo'] .orders-grid-theme {
+    --ag-header-foreground-color: rgb(var(--crm-text));
+}
+
+/* AG Grid alpine is light-only; under html.dark map tokens so filters/selects stay readable. */
+html.dark .orders-grid-theme {
+    --ag-background-color: rgb(var(--crm-surface));
+    --ag-header-background-color: rgb(var(--crm-accent-soft) / 0.35);
+    --ag-header-foreground-color: rgb(var(--crm-text));
+    --ag-foreground-color: rgb(var(--crm-text));
+    --ag-secondary-foreground-color: rgb(var(--crm-text-muted));
+    --ag-border-color: rgb(var(--crm-border));
+    --ag-row-hover-color: rgb(var(--crm-accent-soft) / 0.22);
+    --ag-selected-row-background-color: rgb(var(--crm-accent-soft) / 0.4);
+    --ag-odd-row-background-color: rgb(var(--crm-surface-muted));
+    --ag-control-panel-background-color: rgb(var(--crm-surface));
+    --ag-input-focus-border-color: rgb(var(--crm-accent));
+    --ag-range-selection-border-color: rgb(var(--crm-accent));
+    color-scheme: dark;
+}
+
+html.dark .orders-grid-theme .ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-wrapper.ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-select .ag-picker-field-wrapper,
+html.dark .orders-grid-theme .ag-input-field-input,
+html.dark .orders-grid-theme .ag-text-field-input,
+html.dark .orders-grid-theme input[class^='ag-'],
+html.dark .orders-grid-theme select[class^='ag-'] {
+    background-color: rgb(var(--crm-surface-muted)) !important;
+    color: rgb(var(--crm-text)) !important;
+    border-color: rgb(var(--crm-border)) !important;
+}
+
+html.dark .orders-grid-theme .ag-picker-field-display,
+html.dark .orders-grid-theme .ag-picker-field-icon {
+    color: rgb(var(--crm-text)) !important;
+}
+
+html[data-crm-workspace-skin='emerald'] {
+    --crm-accent: 5 150 105;
+    --crm-accent-soft: 209 250 229;
+}
+
+html.dark[data-crm-workspace-skin='emerald'] {
+    --crm-accent: 52 211 153;
+    --crm-accent-soft: 6 78 59;
+}
+
+html[data-crm-workspace-skin='violet'] {
+    --crm-accent: 124 58 237;
+    --crm-accent-soft: 237 233 254;
+}
+
+html.dark[data-crm-workspace-skin='violet'] {
+    --crm-accent: 167 139 250;
+    --crm-accent-soft: 76 29 149;
+}
+
+html[data-crm-workspace-skin='amber'] {
+    --crm-accent: 217 119 6;
+    --crm-accent-soft: 254 243 199;
+}
+
+html.dark[data-crm-workspace-skin='amber'] {
+    --crm-accent: 251 191 36;
+    --crm-accent-soft: 120 53 15;
+}
+
+html[data-crm-workspace-skin='rose'] {
+    --crm-accent: 225 29 72;
+    --crm-accent-soft: 255 228 230;
+}
+
+html.dark[data-crm-workspace-skin='rose'] {
+    --crm-accent: 251 113 133;
+    --crm-accent-soft: 136 19 55;
+}
+
+html[data-crm-workspace-skin='teal'] {
+    --crm-accent: 13 148 136;
+    --crm-accent-soft: 204 251 241;
+}
+
+html.dark[data-crm-workspace-skin='teal'] {
+    --crm-accent: 45 212 191;
+    --crm-accent-soft: 17 94 89;
+}
+
+html[data-crm-workspace-skin='indigo'] {
+    --crm-accent: 79 70 229;
+    --crm-accent-soft: 224 231 255;
+}
+
+html.dark[data-crm-workspace-skin='indigo'] {
+    --crm-accent: 129 140 248;
+    --crm-accent-soft: 49 46 129;
 }
 
 .crm-nav-link {
@@ -51,45 +197,45 @@ html.dark[data-crm-workspace-skin='sky'] {
 
     /* ——— Layout (CrmLayout) ——— */
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-root {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-root {
         background: rgb(var(--crm-surface-muted));
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-sidebar,
-    html[data-crm-workspace-skin='sky'] .crm-layout-header,
-    html[data-crm-workspace-skin='sky'] .crm-layout-footer {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-sidebar,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-header,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-footer {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface) / 0.96);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-icon-button {
         border-color: rgb(var(--crm-border));
         color: rgb(var(--crm-text-muted));
         background: rgb(var(--crm-surface));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-icon-button:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-layout-icon-button:hover {
         border-color: rgb(var(--crm-accent) / 0.35);
         color: rgb(var(--crm-accent));
         background: rgb(var(--crm-accent-soft) / 0.45);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-nav-link {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-nav-link:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-link--active {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-nav-link--active {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-nav-submenu-border {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-nav-submenu-border {
         border-color: rgb(var(--crm-border));
     }
 
@@ -109,13 +255,13 @@ html.dark[data-crm-workspace-skin='sky'] {
         @apply border-transparent bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-list-item--active {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-list-item--active {
         border-color: rgb(var(--crm-accent) / 0.4);
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-list-item--active-soft {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-list-item--active-soft {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
@@ -125,51 +271,51 @@ html.dark[data-crm-workspace-skin='sky'] {
         justify-content: center;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-create {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-create {
         border-color: rgb(var(--crm-accent) / 0.4);
         background: rgb(var(--crm-accent-soft));
-        color: rgb(12 74 110);
+        color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-create:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-create:hover {
         background: rgb(var(--crm-accent-soft) / 0.85);
         filter: brightness(0.98);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create {
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-create {
         border-color: rgb(var(--crm-accent) / 0.45);
         background: rgb(var(--crm-accent-soft) / 0.55);
         color: rgb(var(--crm-accent));
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-create:hover {
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-create:hover {
         background: rgb(var(--crm-accent-soft) / 0.75);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.35);
         background: rgb(var(--crm-accent));
         color: white;
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-tab-btn--active-filled {
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.5);
         background: rgb(var(--crm-accent));
-        color: rgb(12 74 110);
+        color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--inactive {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-tab-btn--inactive:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--inactive:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'][data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic'])[data-crm-tab-style='underline'] .crm-tab-btn--active-filled {
         border-color: transparent;
         border-bottom-color: rgb(var(--crm-accent));
         background: transparent;
@@ -254,25 +400,25 @@ html.dark[data-crm-workspace-skin='sky'] {
         @apply bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-page-title,
-    html[data-crm-workspace-skin='sky'] .crm-section-title {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-page-title,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-section-title {
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-page-lead,
-    html[data-crm-workspace-skin='sky'] .crm-page-eyebrow {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-page-lead,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-page-eyebrow {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-panel,
-    html[data-crm-workspace-skin='sky'] .crm-stat-card {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-panel,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-stat-card {
         border-color: rgb(var(--crm-border));
         border-radius: var(--crm-radius-xl);
         background: rgb(var(--crm-surface));
         box-shadow: 0 12px 36px rgb(var(--crm-shadow) / 0.09);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-layout-main {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']):not([data-crm-workspace-skin='traklo']) .crm-layout-main {
         background: linear-gradient(
             180deg,
             rgb(var(--crm-surface-muted)) 0%,
@@ -280,79 +426,79 @@ html.dark[data-crm-workspace-skin='sky'] {
         );
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-stat-card--rose {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-stat-card--rose {
         border-color: rgb(254 205 211 / 0.85);
         background: rgb(255 241 242 / 0.9);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-stat-card--rose {
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-stat-card--rose {
         border-color: rgb(136 19 55 / 0.55);
         background: rgb(76 5 25 / 0.35);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-module-card {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         box-shadow: 0 10px 30px rgb(var(--crm-shadow) / 0.06);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-module-card:hover {
         border-color: rgb(var(--crm-accent) / 0.45);
         box-shadow: 0 16px 40px rgb(var(--crm-shadow) / 0.1);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card__icon {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-module-card__icon {
         background: rgb(var(--crm-accent-soft));
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-module-card__cta {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-module-card__cta {
         color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-mobile-tile {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-mobile-tile {
         border-color: rgb(var(--crm-border));
         border-radius: var(--crm-radius-xl);
         background: rgb(var(--crm-surface));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-mobile-tile:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-mobile-tile:hover {
         border-color: rgb(var(--crm-accent) / 0.35);
         background: rgb(var(--crm-accent-soft) / 0.25);
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-segmented-btn--active {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn--active {
         background: rgb(var(--crm-accent));
         color: white;
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-segmented-btn--active {
-        color: rgb(12 74 110);
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn--active {
+        color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-neutral,
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-neutral,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-secondary-outline {
         border-color: rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-neutral:hover,
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary-outline:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-neutral:hover,
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-secondary-outline:hover {
         background: rgb(var(--crm-accent-soft) / 0.35);
         color: rgb(var(--crm-accent));
     }
@@ -508,7 +654,7 @@ html.dark[data-crm-workspace-skin='sky'] {
     }
 
     .crm-btn-secondary {
-        @apply rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50;
+        @apply inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50;
         @apply dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800;
     }
 
@@ -523,24 +669,24 @@ html.dark[data-crm-workspace-skin='sky'] {
 
     /* ——— Общие компоненты Sky ——— */
 
-    html[data-crm-workspace-skin='sky'] .crm-field {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-field {
         border-color: rgb(var(--crm-border));
         border-radius: calc(var(--crm-radius-md) * 0.9);
         background: rgb(var(--crm-surface));
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-field--fluid {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-field--fluid {
         border-radius: var(--crm-radius-md);
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-field:focus {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-field:focus {
         border-color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-label {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-label {
         margin-bottom: 0.375rem;
         display: block;
         font-size: 0.75rem;
@@ -548,20 +694,20 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-primary {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary {
         background-color: rgb(var(--crm-accent));
         color: white;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-primary:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary:hover {
         filter: brightness(0.95);
     }
 
-    html.dark[data-crm-workspace-skin='sky'] .crm-btn-primary {
-        color: rgb(12 74 110);
+    html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary {
+        color: rgb(var(--crm-accent));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-secondary {
         border-radius: var(--crm-radius-md);
         border: 1px solid rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
@@ -572,11 +718,11 @@ html.dark[data-crm-workspace-skin='sky'] {
         transition: background-color 0.15s ease;
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-btn-secondary:hover {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-secondary:hover {
         background: rgb(var(--crm-surface-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-chip {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-chip {
         display: flex;
         flex-direction: column;
         gap: 0.125rem;
@@ -588,12 +734,12 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-chip strong {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-chip strong {
         font-size: 0.75rem;
         color: rgb(var(--crm-text));
     }
 
-    html[data-crm-workspace-skin='sky'] .crm-pill {
+    html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-pill {
         border-radius: 999px;
         border: 1px solid rgb(var(--crm-border));
         background: rgb(var(--crm-surface));
@@ -603,7 +749,7 @@ html.dark[data-crm-workspace-skin='sky'] {
         color: rgb(var(--crm-text-muted));
     }
 
-html[data-crm-workspace-skin='sky'] .crm-pill--active {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-pill--active {
     border-color: rgb(var(--crm-accent) / 0.35);
     background: rgb(var(--crm-accent-soft));
     color: rgb(var(--crm-accent));
@@ -628,21 +774,21 @@ html[data-crm-workspace-skin='sky'] .crm-pill--active {
     @apply min-h-0 flex-1 overflow-y-auto px-5 py-5;
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell {
     border-color: rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-header {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-header {
     border-color: rgb(var(--crm-border));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-body {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-body {
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-grid-panel {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-grid-panel {
     border-color: rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
@@ -732,13 +878,13 @@ html[data-crm-workspace-skin='sky'] .crm-grid-panel {
     accent-color: rgb(24 24 27);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-modal-backdrop {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-backdrop {
     background: rgb(15 23 42 / 0.45);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-modal-panel,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell {
     border: 1px solid rgb(var(--crm-border));
     border-radius: var(--crm-radius-xl);
     background: rgb(var(--crm-surface));
@@ -746,61 +892,61 @@ html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell {
     box-shadow: 0 24px 48px rgb(var(--crm-shadow) / 0.12);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='date'],
-html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='datetime-local'],
-html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='time'],
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='date'],
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='datetime-local'],
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='time'],
-html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field,
-html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field--fluid,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field--fluid {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel input[type='date'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel input[type='datetime-local'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel input[type='time'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input[type='date'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input[type='datetime-local'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input[type='time'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel .crm-field,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel .crm-field--fluid,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell .crm-field,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell .crm-field--fluid {
     border-color: rgb(var(--crm-border));
     border-radius: calc(var(--crm-radius-md) * 0.9);
     background: rgb(var(--crm-surface));
     color: rgb(var(--crm-text));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='date']:focus,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='date']:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-panel .crm-field:focus,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell .crm-field:focus {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel input[type='date']:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input[type='date']:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel .crm-field:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell .crm-field:focus {
     border-color: rgb(var(--crm-accent));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-checkbox,
-html[data-crm-workspace-skin='sky'] .crm-modal-panel input[type='checkbox'],
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input[type='checkbox'] {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-checkbox,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-panel input[type='checkbox'],
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input[type='checkbox'] {
     accent-color: rgb(var(--crm-accent));
     border-color: rgb(var(--crm-border));
 }
 
 /* Поля мастера / модалки без явного crm-field (legacy-классы Tailwind) */
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell select,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell textarea,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell select,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell textarea,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell select,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell textarea,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox) {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell select,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell textarea,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell select,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell textarea,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox),
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell select,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell textarea,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox) {
     border-color: rgb(var(--crm-border)) !important;
     border-radius: var(--crm-radius-control, calc(var(--crm-radius-md) * 0.9)) !important;
     background: rgb(var(--crm-surface)) !important;
     color: rgb(var(--crm-text)) !important;
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell select:focus,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell textarea:focus,
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell select:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell textarea:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell select:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell textarea:focus,
-html[data-crm-workspace-skin='sky'] .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell select:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell textarea:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell select:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell textarea:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-entity-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell select:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell textarea:focus,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-modal-form-shell input:not([type='checkbox']):not([type='color']):not([type='file']):not(.crm-checkbox):focus {
     border-color: rgb(var(--crm-accent)) !important;
     outline: none;
 }
@@ -811,22 +957,22 @@ html[data-crm-radius='sharp'] .crm-field-display {
     border-radius: 0 !important;
 }
 
-html[data-crm-workspace-skin='sky'] .crm-grid-panel .crm-btn-neutral,
-html[data-crm-workspace-skin='sky'] .crm-grid-panel .crm-field {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-grid-panel .crm-btn-neutral,
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-grid-panel .crm-field {
     border-radius: calc(var(--crm-radius-md) * 0.9);
 }
 
-html[data-crm-workspace-skin='sky'] .crm-sidebar {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-sidebar {
     border-color: rgb(var(--crm-border));
     background: rgb(var(--crm-surface));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-sidebar .crm-sidebar-logo {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-sidebar .crm-sidebar-logo {
     background: rgb(var(--crm-accent));
     color: rgb(var(--crm-accent-contrast, 255 255 255));
 }
 
-html[data-crm-workspace-skin='sky'] .crm-wizard-shell {
+html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-wizard-shell {
     border-radius: var(--crm-radius-xl);
 }
 
@@ -834,4 +980,168 @@ html[data-crm-radius='sharp'] .crm-modal-panel,
 html[data-crm-radius='sharp'] .crm-wizard-shell,
 html[data-crm-radius='sharp'] .crm-modal-entity-shell {
     border-radius: 0;
+}
+
+/* ——— Иконки меню (data-crm-nav-icons на <html>) ——— */
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon {
+    display: inline-flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--dashboard,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--dashboard {
+    @apply text-zinc-600 dark:text-zinc-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--dashboard {
+    @apply bg-zinc-100 dark:bg-zinc-800;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--favorites,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--favorites {
+    @apply text-amber-700 dark:text-amber-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--favorites {
+    @apply bg-amber-100 dark:bg-amber-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--leads,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--leads {
+    @apply text-emerald-700 dark:text-emerald-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--leads {
+    @apply bg-emerald-100 dark:bg-emerald-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--orders,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--orders {
+    @apply text-sky-700 dark:text-sky-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--orders {
+    @apply bg-sky-100 dark:bg-sky-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--load-board,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--load-board {
+    @apply text-orange-700 dark:text-orange-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--load-board {
+    @apply bg-orange-100 dark:bg-orange-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--contractors,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--contractors {
+    @apply text-violet-700 dark:text-violet-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--contractors {
+    @apply bg-violet-100 dark:bg-violet-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--fleet,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--fleet {
+    @apply text-amber-800 dark:text-amber-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--fleet {
+    @apply bg-amber-100 dark:bg-amber-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--own-fleet,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--own-fleet {
+    @apply text-cyan-700 dark:text-cyan-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--own-fleet {
+    @apply bg-cyan-100 dark:bg-cyan-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--documents,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--documents {
+    @apply text-indigo-700 dark:text-indigo-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--documents {
+    @apply bg-indigo-100 dark:bg-indigo-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--claims,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--claims {
+    @apply text-rose-700 dark:text-rose-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--claims {
+    @apply bg-rose-100 dark:bg-rose-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--mail,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--mail {
+    @apply text-blue-700 dark:text-blue-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--mail {
+    @apply bg-blue-100 dark:bg-blue-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--finance,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--finance {
+    @apply text-yellow-700 dark:text-yellow-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--finance {
+    @apply bg-yellow-100 dark:bg-yellow-950/40;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--planning,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--planning {
+    @apply text-purple-700 dark:text-purple-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--planning {
+    @apply bg-purple-100 dark:bg-purple-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--sales-assistant,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--sales-assistant {
+    @apply text-fuchsia-700 dark:text-fuchsia-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--sales-assistant {
+    @apply bg-fuchsia-100 dark:bg-fuchsia-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--reports,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--reports {
+    @apply text-violet-700 dark:text-violet-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--reports {
+    @apply bg-violet-100 dark:bg-violet-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--modules,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--modules {
+    @apply text-teal-700 dark:text-teal-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--modules {
+    @apply bg-teal-100 dark:bg-teal-950/50;
+}
+
+html[data-crm-nav-icons='semantic'] .crm-nav-icon--settings,
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--settings {
+    @apply text-zinc-600 dark:text-zinc-300;
+}
+
+html[data-crm-nav-icons='tinted'] .crm-nav-icon--settings {
+    @apply bg-zinc-100 dark:bg-zinc-800;
 }

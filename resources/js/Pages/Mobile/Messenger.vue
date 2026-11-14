@@ -1,5 +1,5 @@
 <template>
-    <div class="relative flex h-[100dvh] min-h-screen flex-col bg-zinc-950 text-zinc-50">
+    <div class="traklo-mobile-shell relative flex h-[100dvh] min-h-screen flex-col bg-zinc-950 text-zinc-50">
         <template v-if="screen === 'thread'">
             <div class="relative flex min-h-0 flex-1 flex-col">
             <header class="flex shrink-0 items-center gap-3 border-b border-white/10 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
@@ -190,6 +190,7 @@
                     >
                         <Users class="h-5 w-5" />
                     </button>
+                    <ThemeToggle class="!h-11 !w-11 shrink-0 !rounded-2xl" />
                 </div>
             </header>
 
@@ -614,6 +615,62 @@
                     </template>
                 </section>
 
+                <section v-else-if="activeTab === 'cargo_requests'" class="space-y-4 p-4">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between gap-3 rounded-3xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 text-left active:bg-sky-500/15"
+                        @click="openCargoRequestForm"
+                    >
+                        <span>
+                            <span class="block text-sm font-semibold text-zinc-50">Новый просчёт</span>
+                            <span class="mt-0.5 block text-xs text-zinc-400">Опишите маршрут и груз — экспедитор подготовит расчёт</span>
+                        </span>
+                        <Plus class="h-5 w-5 shrink-0 text-sky-200" />
+                    </button>
+
+                    <div v-if="cargoRequestsLoading" class="py-8 text-center text-sm text-zinc-500">Загрузка просчётов…</div>
+                    <template v-else>
+                        <button
+                            v-for="lead in filteredCargoRequests"
+                            :key="`cargo-request-${lead.id}`"
+                            type="button"
+                            class="w-full rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-left active:bg-white/[0.06]"
+                            @click="openCargoRequestEdit(lead)"
+                        >
+                            <div class="flex items-start gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">Просчёт</span>
+                                        <span class="truncate text-[10px] text-zinc-400">{{ lead.status_label || lead.status || '—' }}</span>
+                                    </div>
+                                    <div class="mt-1 text-sm font-semibold text-zinc-50">{{ lead.number }} · {{ lead.title || 'Просчёт перевозки' }}</div>
+                                    <div v-if="lead.loading_location || lead.unloading_location" class="mt-2 text-xs text-sky-100">
+                                        {{ lead.loading_location || '—' }} → {{ lead.unloading_location || '—' }}
+                                    </div>
+                                    <div v-if="lead.cargo?.name" class="mt-1 truncate text-xs text-zinc-500">{{ lead.cargo.name }}</div>
+                                    <div v-if="cargoRequestSummary(lead)" class="mt-1 text-xs text-zinc-500">{{ cargoRequestSummary(lead) }}</div>
+                                    <div v-if="lead.quote_status_label" class="mt-1 text-xs text-zinc-400">{{ lead.quote_status_label }}</div>
+                                    <div
+                                        v-if="lead.quoted_price != null && ['sent', 'agreed'].includes(lead.quote_status)"
+                                        class="mt-1 text-sm font-semibold tabular-nums text-emerald-300"
+                                    >
+                                        {{ formatCargoQuote(lead) }}
+                                    </div>
+                                    <div v-if="lead.planned_shipping_date || lead.loading_date" class="mt-1 text-xs text-zinc-500">
+                                        Дата погрузки: {{ formatShortDate(lead.planned_shipping_date || lead.loading_date) }}
+                                    </div>
+                                    <div class="mt-2 text-[11px] font-medium text-sky-300">Изменить</div>
+                                </div>
+                                <span class="shrink-0 text-[10px] text-zinc-500">{{ formatShortDate(lead.created_at) }}</span>
+                            </div>
+                            <p v-if="lead.notice" class="mt-3 text-[11px] leading-4 text-zinc-500">{{ lead.notice }}</p>
+                        </button>
+                        <div v-if="filteredCargoRequests.length === 0" class="rounded-3xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-zinc-500">
+                            {{ search.trim() ? 'Ничего не найдено.' : 'Просчётов пока нет. Создайте первый.' }}
+                        </div>
+                    </template>
+                </section>
+
                 <section v-else-if="activeTab === 'leads'" class="space-y-4 p-4">
                     <button
                         v-if="canUseLeadIntake"
@@ -836,6 +893,258 @@
                 </button>
             </form>
         </div>
+        <div
+            v-if="showCargoRequestForm"
+            class="absolute inset-0 z-40 flex flex-col justify-end bg-black/60"
+            @click.self="closeCargoRequestForm"
+        >
+            <form
+                class="max-h-[90dvh] overflow-y-auto rounded-t-3xl border border-white/10 bg-zinc-900 p-4"
+                @submit.prevent="submitCargoRequest"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-base font-semibold text-zinc-50">
+                            {{ cargoRequestEditingId ? 'Редактировать просчёт' : 'Новый просчёт' }}
+                        </div>
+                        <div class="mt-1 text-xs leading-5 text-zinc-400">
+                            {{ cargoRequestEditingId
+                                ? 'Обновите маршрут или параметры груза — экспедитор увидит изменения.'
+                                : 'Заполните поля или распознайте текст/скан — затем отправьте экспедитору.' }}
+                        </div>
+                    </div>
+                    <button type="button" class="rounded-full p-2 text-zinc-400 active:bg-white/10" @click="closeCargoRequestForm">
+                        <X class="h-4 w-4" />
+                    </button>
+                </div>
+
+                <div class="mt-4 space-y-3 rounded-3xl border border-white/10 bg-zinc-950/60 p-3">
+                    <div class="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Распознать</div>
+                    <textarea
+                        v-model="cargoRequestParseText"
+                        rows="3"
+                        class="w-full resize-none rounded-2xl border border-white/10 bg-zinc-950 px-4 py-3 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                        placeholder="Вставьте текст заявки: откуда → куда, груз, вес, места…"
+                    />
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="rounded-2xl bg-white/10 px-3 py-2 text-xs font-semibold text-zinc-100 disabled:opacity-50"
+                            :disabled="cargoRequestParsing || cargoRequestParseText.trim().length < 10"
+                            @click="parseCargoRequestFromText"
+                        >
+                            {{ cargoRequestParsing ? 'Распознаём…' : 'Из текста' }}
+                        </button>
+                        <label class="rounded-2xl border border-white/10 px-3 py-2 text-xs font-semibold text-sky-100 active:bg-white/10">
+                            Фото / PDF / DOCX
+                            <input
+                                type="file"
+                                class="hidden"
+                                accept=".pdf,.docx,.jpg,.jpeg,.png,.webp,image/*"
+                                :disabled="cargoRequestParsing"
+                                @change="parseCargoRequestFromFile"
+                            />
+                        </label>
+                    </div>
+                    <p v-if="cargoRequestParseWarnings.length" class="text-[11px] leading-4 text-amber-200">
+                        {{ cargoRequestParseWarnings.join(' ') }}
+                    </p>
+                </div>
+
+                <div class="mt-4 space-y-2.5">
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Откуда</span>
+                            <input
+                                v-model="cargoRequestForm.loading_location"
+                                type="text"
+                                required
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Погрузка"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Куда</span>
+                            <input
+                                v-model="cargoRequestForm.unloading_location"
+                                type="text"
+                                required
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Выгрузка"
+                            />
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-[1.2fr_0.9fr_0.9fr] gap-2">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Груз</span>
+                            <input
+                                v-model="cargoRequestForm.cargo_name"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Наименование"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Погрузка</span>
+                            <input
+                                v-model="cargoRequestForm.loading_date"
+                                type="date"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Выгрузка</span>
+                            <input
+                                v-model="cargoRequestForm.unloading_date"
+                                type="date"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                    </div>
+
+                    <div class="overflow-x-auto pb-0.5">
+                    <div class="grid min-w-[22rem] grid-cols-[0.9fr_0.7fr_auto_0.55fr_0.55fr_0.55fr_0.65fr] gap-1.5">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">ТС</span>
+                            <input
+                                v-model="cargoRequestForm.transport_type"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="Тент"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Общий вес</span>
+                            <input
+                                v-model="cargoRequestForm.weight_value"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-2 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Ед.</span>
+                            <select
+                                v-model="cargoRequestForm.weight_unit"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            >
+                                <option value="t">т</option>
+                                <option value="kg">кг</option>
+                            </select>
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Д</span>
+                            <input v-model="cargoRequestForm.length_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Ш</span>
+                            <input v-model="cargoRequestForm.width_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">В</span>
+                            <input v-model="cargoRequestForm.height_m" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">м³</span>
+                            <input v-model="cargoRequestForm.volume_m3" type="number" min="0" step="0.01" class="w-full rounded-xl border border-white/10 bg-zinc-950 px-1.5 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500" />
+                        </label>
+                    </div>
+                    </div>
+
+                    <div class="grid grid-cols-[0.7fr_1fr] gap-2 sm:grid-cols-[0.7fr_1fr_auto]">
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Мест</span>
+                            <input
+                                v-model="cargoRequestForm.package_count"
+                                type="number"
+                                min="0"
+                                step="1"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Упаковка</span>
+                            <input
+                                v-model="cargoRequestForm.package_type"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                                placeholder="паллеты"
+                            />
+                        </label>
+                        <div class="col-span-2 flex flex-wrap items-end gap-1.5 pb-0.5 sm:col-span-1">
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.dangerous_goods" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Опасный
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.needs_temperature" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Темп.
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.is_fragile" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Хрупкий
+                            </label>
+                            <label class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-950 px-2.5 py-2 text-[11px] text-zinc-100">
+                                <input v-model="cargoRequestForm.is_oversized" type="checkbox" class="h-3.5 w-3.5 rounded border-white/20 bg-zinc-900 text-sky-500" />
+                                Негабарит
+                            </label>
+                        </div>
+                    </div>
+
+                    <div v-if="cargoRequestForm.dangerous_goods || cargoRequestForm.needs_temperature" class="grid grid-cols-3 gap-2">
+                        <label v-if="cargoRequestForm.dangerous_goods" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Класс ADR</span>
+                            <input
+                                v-model="cargoRequestForm.dangerous_class"
+                                type="text"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                                placeholder="3"
+                            />
+                        </label>
+                        <label v-if="cargoRequestForm.needs_temperature" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">t° мин</span>
+                            <input
+                                v-model="cargoRequestForm.temp_min"
+                                type="number"
+                                step="0.1"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                        <label v-if="cargoRequestForm.needs_temperature" class="block min-w-0">
+                            <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">t° макс</span>
+                            <input
+                                v-model="cargoRequestForm.temp_max"
+                                type="number"
+                                step="0.1"
+                                class="w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-sky-500"
+                            />
+                        </label>
+                    </div>
+
+                    <label class="block">
+                        <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Описание / комментарий</span>
+                        <textarea
+                            v-model="cargoRequestForm.comment"
+                            rows="2"
+                            class="w-full resize-none rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none placeholder:text-zinc-500 focus:border-sky-500"
+                            placeholder="Описание груза, условия, контакты на месте…"
+                        />
+                    </label>
+                </div>
+                <p v-if="cargoRequestError" class="mt-2 text-xs text-rose-300">{{ cargoRequestError }}</p>
+                <button
+                    type="submit"
+                    class="mt-3 w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                    :disabled="cargoRequestCreating || cargoRequestParsing || !cargoRequestForm.loading_location.trim() || !cargoRequestForm.unloading_location.trim()"
+                >
+                    {{ cargoRequestCreating
+                        ? (cargoRequestEditingId ? 'Сохраняем…' : 'Отправляем…')
+                        : (cargoRequestEditingId ? 'Сохранить изменения' : 'Отправить на просчёт') }}
+                </button>
+            </form>
+        </div>
         <MobileAppUpdateBanner />
     </div>
 </template>
@@ -844,11 +1153,12 @@
 import axios from 'axios';
 import { computed, defineComponent, h, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { ArrowLeft, CheckSquare, FileText, Inbox, MessageCircle, Package, Phone, Plus, Search, Send, Upload, Users, X } from 'lucide-vue-next';
+import { ArrowLeft, CheckSquare, ClipboardList, FileText, Inbox, MessageCircle, Package, Phone, Plus, Search, Send, Upload, Users, X } from 'lucide-vue-next';
 import { useMessenger } from '@/composables/useMessenger.js';
 import { useMessengerPolling } from '@/composables/useMessengerPolling.js';
 import { useMobileShell } from '@/composables/useMobileShell.js';
 import { usePullToRefresh } from '@/composables/usePullToRefresh.js';
+import ThemeToggle from '@/Components/Layout/ThemeToggle.vue';
 import MobileAppUpdateBanner from '@/Components/Mobile/MobileAppUpdateBanner.vue';
 import MobileCrmLinkPreview from '@/Components/Mobile/MobileCrmLinkPreview.vue';
 import MobileDocumentUploadWizard from '@/Components/Mobile/MobileDocumentUploadWizard.vue';
@@ -881,6 +1191,18 @@ const AvatarBubble = defineComponent({
 const page = usePage();
 const currentUserId = computed(() => page.props.auth?.user?.id ?? null);
 const isExternalUser = computed(() => Boolean(page.props.auth?.user?.is_external));
+const isExternalCustomer = computed(() => (
+    isExternalUser.value && page.props.auth?.user?.external_party === 'customer'
+));
+const canUseCargoRequests = computed(() => {
+    if (!isExternalCustomer.value) {
+        return false;
+    }
+
+    const features = page.props.tenant?.features;
+
+    return Array.isArray(features) && features.includes('carrier_matching');
+});
 const canUseLeadIntake = computed(() => {
     if (isExternalUser.value) {
         return false;
@@ -905,6 +1227,39 @@ const showEntityPicker = ref(false);
 const showUploadWizard = ref(false);
 const showSharePicker = ref(false);
 const showMessageLeadIntake = ref(false);
+const showCargoRequestForm = ref(false);
+const cargoRequestEditingId = ref(null);
+const cargoRequestCreating = ref(false);
+const cargoRequestParsing = ref(false);
+const cargoRequestError = ref('');
+const cargoRequestParseText = ref('');
+const cargoRequestParseWarnings = ref([]);
+const emptyCargoRequestForm = () => ({
+    loading_location: '',
+    unloading_location: '',
+    loading_date: '',
+    unloading_date: '',
+    transport_type: '',
+    cargo_name: '',
+    weight_value: '',
+    weight_unit: 't',
+    volume_m3: '',
+    length_m: '',
+    width_m: '',
+    height_m: '',
+    package_count: '',
+    package_type: '',
+    dangerous_goods: false,
+    dangerous_class: '',
+    needs_temperature: false,
+    temp_min: '',
+    temp_max: '',
+    is_fragile: false,
+    is_oversized: false,
+    comment: '',
+});
+const cargoRequestBoolKeys = ['dangerous_goods', 'needs_temperature', 'is_fragile', 'is_oversized'];
+const cargoRequestForm = ref(emptyCargoRequestForm());
 const pendingShare = ref(null);
 const highlightTarget = ref(null);
 const showDetailSheet = ref(false);
@@ -943,6 +1298,7 @@ const { pullReady, refreshing: pullRefreshing, onTouchStart, onTouchMove, onTouc
 
 const allTabs = [
     { key: 'chats', label: 'Чаты', icon: MessageCircle },
+    { key: 'cargo_requests', label: 'Просчёты', icon: ClipboardList, externalCustomerOnly: true },
     { key: 'leads', label: 'Лиды', icon: Inbox, requiresLeads: true },
     { key: 'documents', label: 'Документы', icon: FileText },
     { key: 'orders', label: 'Заказы', icon: Package },
@@ -951,10 +1307,16 @@ const allTabs = [
 
 const visibleTabs = computed(() => {
     if (isExternalUser.value) {
-        return allTabs.filter((tab) => ['chats', 'orders', 'documents'].includes(tab.key));
+        return allTabs.filter((tab) => {
+            if (tab.key === 'cargo_requests') {
+                return canUseCargoRequests.value;
+            }
+
+            return ['chats', 'orders', 'documents'].includes(tab.key);
+        });
     }
 
-    return allTabs.filter((tab) => !tab.requiresLeads || canUseLeadIntake.value);
+    return allTabs.filter((tab) => !tab.externalCustomerOnly && (!tab.requiresLeads || canUseLeadIntake.value));
 });
 
 const messenger = useMessenger({ scrollTarget: messagesPanel });
@@ -993,6 +1355,7 @@ const {
     documentContractorOrders,
     orderDocumentChecklist,
     trakloLeads,
+    cargoRequests,
     overdueTaskCount,
     tasksLoading,
     ordersLoading,
@@ -1001,6 +1364,7 @@ const {
     documentContractorOrdersLoading,
     orderDocumentChecklistLoading,
     trakloLeadsLoading,
+    cargoRequestsLoading,
     shellError,
     loadTab,
     loadDocuments,
@@ -1009,6 +1373,10 @@ const {
     loadOrderDocumentChecklist,
     loadOrders,
     loadTrakloLeads,
+    loadCargoRequests,
+    createCargoRequest,
+    updateCargoRequest,
+    parseCargoRequest,
     loadOrderSummary,
     loadLeadSummary,
     loadContractorSummary,
@@ -1311,6 +1679,266 @@ function closeMessageLeadIntake() {
 
     showMessageLeadIntake.value = false;
     messageLeadError.value = '';
+}
+
+function resetCargoRequestForm() {
+    cargoRequestEditingId.value = null;
+    cargoRequestForm.value = emptyCargoRequestForm();
+    cargoRequestParseText.value = '';
+    cargoRequestParseWarnings.value = [];
+}
+
+function openCargoRequestForm() {
+    cargoRequestError.value = '';
+    resetCargoRequestForm();
+    showCargoRequestForm.value = true;
+}
+
+function openCargoRequestEdit(lead) {
+    if (!lead?.id) {
+        return;
+    }
+
+    cargoRequestError.value = '';
+    cargoRequestParseText.value = '';
+    cargoRequestParseWarnings.value = [];
+    cargoRequestEditingId.value = Number(lead.id);
+
+    const cargo = lead.cargo ?? {};
+    const next = emptyCargoRequestForm();
+    next.loading_location = lead.loading_location ?? '';
+    next.unloading_location = lead.unloading_location ?? '';
+    next.loading_date = lead.loading_date || lead.planned_shipping_date || '';
+    next.unloading_date = lead.unloading_date || '';
+    next.transport_type = lead.transport_type ?? '';
+    next.cargo_name = cargo.name || lead.cargo_name || '';
+    next.weight_value = cargo.weight_value ?? cargo.weight_kg ?? '';
+    next.weight_unit = cargo.weight_unit === 'kg' ? 'kg' : 't';
+    next.volume_m3 = cargo.volume_m3 ?? '';
+    next.length_m = cargo.length_m ?? cargo.length_value ?? '';
+    next.width_m = cargo.width_m ?? cargo.width_value ?? '';
+    next.height_m = cargo.height_m ?? cargo.height_value ?? '';
+    next.package_count = cargo.package_count ?? '';
+    next.package_type = cargo.package_type ?? '';
+    next.dangerous_goods = Boolean(cargo.dangerous_goods);
+    next.dangerous_class = cargo.dangerous_class ?? '';
+    next.needs_temperature = Boolean(cargo.needs_temperature);
+    next.temp_min = cargo.temp_min ?? '';
+    next.temp_max = cargo.temp_max ?? '';
+    next.is_fragile = Boolean(cargo.is_fragile);
+    next.is_oversized = Boolean(cargo.is_oversized);
+    next.comment = lead.comment || cargo.description || '';
+    cargoRequestForm.value = next;
+    showCargoRequestForm.value = true;
+}
+
+function closeCargoRequestForm() {
+    if (cargoRequestCreating.value || cargoRequestParsing.value) {
+        return;
+    }
+
+    showCargoRequestForm.value = false;
+    cargoRequestError.value = '';
+    cargoRequestEditingId.value = null;
+}
+
+function optionalNumber(value) {
+    const raw = String(value ?? '').trim();
+    if (raw === '' || Number.isNaN(Number(raw))) {
+        return null;
+    }
+
+    return Number(raw);
+}
+
+function applyCargoRequestDraft(draft) {
+    if (!draft || typeof draft !== 'object') {
+        return;
+    }
+
+    const next = { ...cargoRequestForm.value };
+    for (const key of Object.keys(emptyCargoRequestForm())) {
+        if (!(key in draft) || draft[key] === null || draft[key] === undefined) {
+            continue;
+        }
+
+        if (cargoRequestBoolKeys.includes(key)) {
+            next[key] = Boolean(draft[key]);
+            continue;
+        }
+
+        const value = String(draft[key] ?? '').trim();
+        if (value !== '') {
+            next[key] = value;
+        }
+    }
+    cargoRequestForm.value = next;
+}
+
+function cargoRequestSummary(lead) {
+    const cargo = lead?.cargo ?? null;
+    if (!cargo) {
+        return '';
+    }
+
+    const parts = [];
+    if (cargo.weight_value != null || cargo.weight_kg != null) {
+        const unit = cargo.weight_unit === 'kg' ? 'кг' : 'т';
+        const value = cargo.weight_value ?? cargo.weight_kg;
+        parts.push(`${value} ${unit}`);
+    }
+    if (cargo.package_count) {
+        parts.push(`${cargo.package_count} мест`);
+    }
+    const dims = [cargo.length_m, cargo.width_m, cargo.height_m].filter((v) => v != null && v !== '');
+    if (dims.length === 3) {
+        parts.push(`${dims.join('×')} м`);
+    }
+    if (cargo.volume_m3) {
+        parts.push(`${cargo.volume_m3} м³`);
+    }
+
+    return parts.join(' · ');
+}
+
+function formatCargoQuote(lead) {
+    const amount = Number(lead?.quoted_price);
+    if (!Number.isFinite(amount)) {
+        return '';
+    }
+
+    const formatted = new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    }).format(amount);
+
+    return `${formatted} ${lead?.quoted_currency || 'RUB'}`;
+}
+
+async function runCargoRequestParse(payload) {
+    cargoRequestParsing.value = true;
+    cargoRequestError.value = '';
+    cargoRequestParseWarnings.value = [];
+
+    try {
+        const data = await parseCargoRequest(payload);
+        applyCargoRequestDraft(data?.draft ?? null);
+        cargoRequestParseWarnings.value = Array.isArray(data?.warnings) ? data.warnings : [];
+        if (data?.parser === 'heuristic') {
+            cargoRequestParseWarnings.value = [
+                ...cargoRequestParseWarnings.value,
+                'Распознано эвристиками — проверьте поля.',
+            ];
+        }
+    } catch (exception) {
+        const errors = exception.response?.data?.errors;
+        const firstError = errors ? Object.values(errors).flat()[0] : null;
+        cargoRequestError.value = firstError
+            || exception.response?.data?.message
+            || 'Не удалось распознать заявку.';
+    } finally {
+        cargoRequestParsing.value = false;
+    }
+}
+
+async function parseCargoRequestFromText() {
+    const text = cargoRequestParseText.value.trim();
+    if (text.length < 10) {
+        cargoRequestError.value = 'Вставьте текст заявки (минимум 10 символов).';
+
+        return;
+    }
+
+    await runCargoRequestParse({ message: text });
+}
+
+async function parseCargoRequestFromFile(event) {
+    const file = event?.target?.files?.[0] ?? null;
+    if (event?.target) {
+        event.target.value = '';
+    }
+
+    if (!file) {
+        return;
+    }
+
+    await runCargoRequestParse({ file });
+}
+
+async function submitCargoRequest() {
+    const loading = cargoRequestForm.value.loading_location.trim();
+    const unloading = cargoRequestForm.value.unloading_location.trim();
+
+    if (loading === '' || unloading === '') {
+        cargoRequestError.value = 'Укажите пункты погрузки и выгрузки.';
+
+        return;
+    }
+
+    cargoRequestCreating.value = true;
+    cargoRequestError.value = '';
+
+    try {
+        const weightRaw = String(cargoRequestForm.value.weight_value ?? '').trim();
+        const packageCount = optionalNumber(cargoRequestForm.value.package_count);
+        const payload = {
+            loading_location: loading,
+            unloading_location: unloading,
+            loading_date: cargoRequestForm.value.loading_date || null,
+            unloading_date: cargoRequestForm.value.unloading_date || null,
+            transport_type: cargoRequestForm.value.transport_type.trim() || null,
+            cargo_name: cargoRequestForm.value.cargo_name.trim() || null,
+            comment: cargoRequestForm.value.comment.trim() || null,
+            cargo: {
+                name: cargoRequestForm.value.cargo_name.trim() || 'Груз',
+                weight_unit: cargoRequestForm.value.weight_unit === 'kg' ? 'kg' : 't',
+                // Описание груза не заполняем из comment («Суть сделки») — только поля груза.
+                description: null,
+                package_type: cargoRequestForm.value.package_type.trim() || null,
+                package_count: packageCount !== null ? Math.trunc(packageCount) : null,
+                volume_m3: optionalNumber(cargoRequestForm.value.volume_m3),
+                length_m: optionalNumber(cargoRequestForm.value.length_m),
+                width_m: optionalNumber(cargoRequestForm.value.width_m),
+                height_m: optionalNumber(cargoRequestForm.value.height_m),
+                dangerous_goods: Boolean(cargoRequestForm.value.dangerous_goods),
+                dangerous_class: cargoRequestForm.value.dangerous_goods
+                    ? (cargoRequestForm.value.dangerous_class.trim() || null)
+                    : null,
+                needs_temperature: Boolean(cargoRequestForm.value.needs_temperature),
+                temp_min: cargoRequestForm.value.needs_temperature
+                    ? optionalNumber(cargoRequestForm.value.temp_min)
+                    : null,
+                temp_max: cargoRequestForm.value.needs_temperature
+                    ? optionalNumber(cargoRequestForm.value.temp_max)
+                    : null,
+                is_fragile: Boolean(cargoRequestForm.value.is_fragile),
+                is_oversized: Boolean(cargoRequestForm.value.is_oversized),
+            },
+        };
+
+        if (weightRaw !== '') {
+            payload.cargo.weight_value = Number(weightRaw);
+            payload.cargo.weight_is_total = true;
+        }
+
+        if (cargoRequestEditingId.value) {
+            await updateCargoRequest(cargoRequestEditingId.value, payload);
+        } else {
+            await createCargoRequest(payload);
+        }
+
+        showCargoRequestForm.value = false;
+        resetCargoRequestForm();
+        await loadCargoRequests();
+    } catch (exception) {
+        const errors = exception.response?.data?.errors;
+        const firstError = errors ? Object.values(errors).flat()[0] : null;
+        cargoRequestError.value = firstError
+            || exception.response?.data?.message
+            || (cargoRequestEditingId.value ? 'Не удалось сохранить просчёт.' : 'Не удалось отправить просчёт.');
+    } finally {
+        cargoRequestCreating.value = false;
+    }
 }
 
 async function submitMessageLeadIntake() {
@@ -1768,6 +2396,24 @@ const filteredOrders = computed(() => {
 
     return orders.value.filter((order) =>
         `${order.order_number ?? ''} ${order.customer_name ?? ''} ${order.carrier_name ?? ''}`.toLowerCase().includes(needle),
+    );
+});
+
+const filteredCargoRequests = computed(() => {
+    const needle = search.value.trim().toLowerCase();
+    if (needle === '') {
+        return cargoRequests.value;
+    }
+
+    return cargoRequests.value.filter((lead) =>
+        [
+            lead.number,
+            lead.title,
+            lead.status_label,
+            lead.loading_location,
+            lead.unloading_location,
+            lead.cargo?.name,
+        ].join(' ').toLowerCase().includes(needle),
     );
 });
 

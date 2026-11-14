@@ -95,6 +95,23 @@ class PublicLandingPageTest extends TestCase
         }
     }
 
+    public function test_traklo_pro_landing_uses_relative_login_on_single_host_lab(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'app.crm_domain' => 'saas.local',
+            'app.showcase_hosts' => ['saas.local'],
+        ]);
+
+        $this->get('http://saas.local/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('crmLoginUrl', '/login')
+                ->where('publicSite.crm_login_url', '/login')
+            );
+    }
+
     public function test_authenticated_user_is_redirected_from_root_to_dashboard(): void
     {
         $user = new User;

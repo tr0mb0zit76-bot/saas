@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateFleetDriverRequest;
 use App\Models\FleetDriver;
 use App\Models\FleetDriverDocument;
 use App\Support\InlineStoredFileResponse;
+use App\Support\TenantStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,12 +58,13 @@ class FleetDriverController extends Controller
     {
         abort_unless(Schema::hasTable('fleet_driver_documents'), 404);
         $file = $request->file('file');
-        $path = $file->store('fleet/drivers/documents', 'public');
+        $relative = 'fleet/drivers/'.$fleetDriver->id.'/'.$file->hashName();
+        TenantStorage::put($relative, (string) file_get_contents($file->getRealPath()));
 
         $fleetDriver->documents()->create([
             'document_type' => $request->string('document_type')->toString(),
-            'disk' => 'public',
-            'path' => $path,
+            'disk' => TenantStorage::diskName(),
+            'path' => TenantStorage::path($relative),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getClientMimeType(),
             'size_bytes' => $file->getSize(),

@@ -6,12 +6,32 @@
  */
 declare(strict_types=1);
 
-$host = $argv[1] ?? '127.0.1.21';
+$host = $argv[1] ?? '';
 $user = $argv[2] ?? 'root';
 $password = $argv[3] ?? '';
 $database = $argv[4] ?? 'saas_crm';
 
-$hosts = array_values(array_unique([$host, '127.0.1.21', '127.0.0.1', 'localhost']));
+function ospanel_bind_hosts(): array
+{
+    $hosts = [];
+    foreach (glob('C:/OSPanel/modules/MySQL-*/my.ini') ?: [] as $ini) {
+        $content = @file_get_contents($ini);
+        if ($content === false) {
+            continue;
+        }
+        if (preg_match('/^\s*bind_address\s*=\s*(\S+)/mi', $content, $matches)) {
+            $hosts[] = trim($matches[1], "\"'");
+        }
+    }
+
+    return $hosts;
+}
+
+$hosts = array_values(array_unique(array_filter(array_merge(
+    $host !== '' ? [$host] : [],
+    ospanel_bind_hosts(),
+    ['127.0.1.21', '127.0.0.1', 'localhost']
+))));
 
 foreach ($hosts as $tryHost) {
     try {

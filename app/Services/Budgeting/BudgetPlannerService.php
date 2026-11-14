@@ -13,6 +13,9 @@ final class BudgetPlannerService
 
     public const MODE_BOTTOM_UP = 'bottom_up';
 
+    /** ADR-020 P0 formula stamp for plan snapshots. */
+    public const FORMULA_VERSION = 'adr020_p0_v1';
+
     /**
      * @return array<string, mixed>
      */
@@ -29,6 +32,8 @@ final class BudgetPlannerService
             'manager_count' => 3,
             'margin_per_manager' => null,
             'use_db_margin_per_manager' => false,
+            // Hint only: МСП ~15%, общий режим ~30%. Not tax advice.
+            'payroll_contributions_percent' => 30.2,
         ];
     }
 
@@ -67,6 +72,8 @@ final class BudgetPlannerService
             'manager_count' => max(1, min(100, (int) ($raw['manager_count'] ?? $defaults['manager_count']))),
             'margin_per_manager' => $marginPerManager,
             'use_db_margin_per_manager' => (bool) ($raw['use_db_margin_per_manager'] ?? false),
+            'payroll_contributions_percent' => max(0, min(100, (float) ($raw['payroll_contributions_percent'] ?? $defaults['payroll_contributions_percent']))),
+            'formula_version' => self::FORMULA_VERSION,
         ];
     }
 
@@ -81,11 +88,18 @@ final class BudgetPlannerService
     }
 
     /**
+     * Fixed OPEX for a month: total lines as-is; per_head = rate × manager_count;
+     * плюс взносы % к сумме per_head ФОТ.
+     *
      * @param  list<array<string, mixed>>  $opexArticles
+     * @param  array<string, mixed>  $inputs
      */
-    public function monthlyFixedOpex(int $month, array $opexArticles): float
+    public function monthlyFixedOpex(int $month, array $opexArticles, array $inputs = []): float
     {
+        $managerCount = max(1, (int) ($inputs['manager_count'] ?? 1));
+        $contribPct = max(0, (float) ($inputs['payroll_contributions_percent'] ?? 0));
         $total = 0.0;
+        $perHeadBase = 0.0;
 
         foreach ($opexArticles as $article) {
             if (! $this->articleAppliesToMonth($month, $article)) {
@@ -96,7 +110,20 @@ final class BudgetPlannerService
                 continue;
             }
 
-            $total += (float) ($article['amount_monthly'] ?? 0);
+            $amount = (float) ($article['amount_monthly'] ?? 0);
+            $basis = $article['amount_basis'] ?? 'total';
+
+            if ($basis === 'per_head') {
+                $scaled = $amount * $managerCount;
+                $perHeadBase += $scaled;
+                $total += $scaled;
+            } else {
+                $total += $amount;
+            }
+        }
+
+        if ($contribPct > 0 && $perHeadBase > 0) {
+            $total += $perHeadBase * ($contribPct / 100);
         }
 
         return $total;
@@ -128,10 +155,11 @@ final class BudgetPlannerService
 
     /**
      * @param  list<array<string, mixed>>  $opexArticles
+     * @param  array<string, mixed>  $inputs
      */
-    public function monthlyOpex(int $month, array $opexArticles, float $margin = 0.0): float
+    public function monthlyOpex(int $month, array $opexArticles, float $margin = 0.0, array $inputs = []): float
     {
-        $fixed = $this->monthlyFixedOpex($month, $opexArticles);
+        $fixed = $this->monthlyFixedOpex($month, $opexArticles, $inputs);
         $percentPart = $margin * $this->monthlyPercentRate($month, $opexArticles);
 
         return $fixed + $percentPart;
@@ -141,10 +169,11 @@ final class BudgetPlannerService
      * Маржа компании, при которой чистый поток = targetNet (с учётом % от маржи).
      *
      * @param  list<array<string, mixed>>  $opexArticles
+     * @param  array<string, mixed>  $inputs
      */
-    public function marginForTargetNet(int $month, array $opexArticles, float $targetNet): float
+    public function marginForTargetNet(int $month, array $opexArticles, float $targetNet, array $inputs = []): float
     {
-        $fixed = $this->monthlyFixedOpex($month, $opexArticles);
+        $fixed = $this->monthlyFixedOpex($month, $opexArticles, $inputs);
         $rate = $this->monthlyPercentRate($month, $opexArticles);
 
         if ($rate >= 0.99) {
@@ -190,7 +219,7 @@ final class BudgetPlannerService
 
         for ($month = 1; $month <= $horizon; $month++) {
             $margin = $companyMargin;
-            $opex = $this->monthlyOpex($month, $opexArticles, $margin);
+            $opex = $this->monthlyOpex($month, $opexArticles, $margin, $inputs);
             $net = $margin - $opex;
             $cumulative += $net;
             $minCumulative = min($minCumulative, $cumulative);
@@ -203,13 +232,15 @@ final class BudgetPlannerService
                 $dividendsMonth = $month;
             }
 
+            $opexFixed = $this->monthlyFixedOpex($month, $opexArticles, $inputs);
+
             $months[] = [
                 'month' => $month,
                 'margin' => round($margin, 2),
                 'margin_per_manager' => round($marginPerManager, 2),
                 'opex' => round($opex, 2),
-                'opex_fixed' => round($this->monthlyFixedOpex($month, $opexArticles), 2),
-                'opex_percent' => round($opex - $this->monthlyFixedOpex($month, $opexArticles), 2),
+                'opex_fixed' => round($opexFixed, 2),
+                'opex_percent' => round($opex - $opexFixed, 2),
                 'net' => round($net, 2),
                 'cumulative' => round($cumulative, 2),
             ];
@@ -218,7 +249,7 @@ final class BudgetPlannerService
         $managerPlan = $this->managerPlanFromMonths($months, $managerCount, null, $dividendsMonth);
         $cashMonth = $managerPlan['breakeven_month_cash'];
         $beMonth = $cashMonth ?? $breakevenOperating ?? (int) $inputs['breakeven_month'];
-        $marginRequiredAtBe = $this->marginForTargetNet($beMonth, $opexArticles, 0.0);
+        $marginRequiredAtBe = $this->marginForTargetNet($beMonth, $opexArticles, 0.0, $inputs);
         $cashEstimated = $cashMonth === null ? $this->estimateCashBreakevenMonth($months) : null;
 
         return [
@@ -227,6 +258,7 @@ final class BudgetPlannerService
             'manager_plan' => $managerPlan,
             'summary' => [
                 'calculation_mode' => self::MODE_BOTTOM_UP,
+                'formula_version' => self::FORMULA_VERSION,
                 'margin_per_manager_used' => round($marginPerManager, 2),
                 'company_margin_monthly' => round($companyMargin, 2),
                 'breakeven_month_operating' => $managerPlan['breakeven_month_operating'] ?? $breakevenOperating,
@@ -241,8 +273,10 @@ final class BudgetPlannerService
                 'target_dividends_amount' => (float) $inputs['target_dividends_amount'],
                 'owner_investment' => (float) $inputs['owner_investment'],
                 'min_cumulative' => round($minCumulative, 2),
+                'peak_funding' => round(max(0, -$minCumulative), 2),
                 'cumulative_at_horizon' => round($cumulative, 2),
                 'manager_count' => $managerCount,
+                'payroll_contributions_percent' => (float) $inputs['payroll_contributions_percent'],
                 'breakeven_month' => $cashMonth,
             ],
         ];
@@ -261,11 +295,12 @@ final class BudgetPlannerService
         $targetMonth = (int) $inputs['target_dividends_month'];
         $managerCount = (int) $inputs['manager_count'];
 
-        $marginAtOperating = $this->marginForTargetNet($operatingMonth, $opexArticles, 0.0);
+        $marginAtOperating = $this->marginForTargetNet($operatingMonth, $opexArticles, 0.0, $inputs);
         $marginAtTarget = $this->marginForTargetNet(
             $targetMonth,
             $opexArticles,
             (float) $inputs['target_dividends_amount'],
+            $inputs,
         );
         $marginAtCash = $this->resolveMarginAtCashZero(
             $inputs,
@@ -293,18 +328,20 @@ final class BudgetPlannerService
         for ($month = 1; $month <= $horizon; $month++) {
             $margin = $this->marginAtMonthWithKnots($month, $rampKnots);
 
-            $opex = $this->monthlyOpex($month, $opexArticles, $margin);
+            $opex = $this->monthlyOpex($month, $opexArticles, $margin, $inputs);
             $net = $margin - $opex;
             $cumulative += $net;
             $minCumulative = min($minCumulative, $cumulative);
+
+            $opexFixed = $this->monthlyFixedOpex($month, $opexArticles, $inputs);
 
             $months[] = [
                 'month' => $month,
                 'margin' => round($margin, 2),
                 'margin_per_manager' => round($margin / $managerCount, 2),
                 'opex' => round($opex, 2),
-                'opex_fixed' => round($this->monthlyFixedOpex($month, $opexArticles), 2),
-                'opex_percent' => round($opex - $this->monthlyFixedOpex($month, $opexArticles), 2),
+                'opex_fixed' => round($opexFixed, 2),
+                'opex_percent' => round($opex - $opexFixed, 2),
                 'net' => round($net, 2),
                 'cumulative' => round($cumulative, 2),
             ];
@@ -321,6 +358,7 @@ final class BudgetPlannerService
             'manager_plan' => $managerPlan,
             'summary' => [
                 'calculation_mode' => self::MODE_TOP_DOWN,
+                'formula_version' => self::FORMULA_VERSION,
                 'required_margin_breakeven' => round($marginAtOperating, 2),
                 'required_margin_cash_zero' => round($marginAtCash, 2),
                 'required_margin_target' => round($marginAtTarget, 2),
@@ -336,8 +374,10 @@ final class BudgetPlannerService
                 'dividends_feasible_month' => $targetMonth,
                 'owner_investment' => (float) $inputs['owner_investment'],
                 'min_cumulative' => round($minCumulative, 2),
+                'peak_funding' => round(max(0, -$minCumulative), 2),
                 'cumulative_at_horizon' => round($cumulative, 2),
                 'manager_count' => $managerCount,
+                'payroll_contributions_percent' => (float) $inputs['payroll_contributions_percent'],
                 'breakeven_month' => $managerPlan['breakeven_month_cash'],
                 'target_dividends_month' => $targetMonth,
                 'target_dividends_amount' => (float) $inputs['target_dividends_amount'],
@@ -527,7 +567,7 @@ final class BudgetPlannerService
 
         for ($month = 1; $month <= $throughMonth; $month++) {
             $margin = $this->marginAtMonthWithKnots($month, $knots);
-            $cumulative += $margin - $this->monthlyOpex($month, $opexArticles, $margin);
+            $cumulative += $margin - $this->monthlyOpex($month, $opexArticles, $margin, $inputs);
         }
 
         return $cumulative;
@@ -548,7 +588,7 @@ final class BudgetPlannerService
     ): float {
         $floor = max(
             $marginAtOperating,
-            $this->marginForTargetNet($cashZeroMonth, $opexArticles, 0.0),
+            $this->marginForTargetNet($cashZeroMonth, $opexArticles, 0.0, $inputs),
         );
 
         if ($cashZeroMonth <= $operatingMonth) {
@@ -559,7 +599,7 @@ final class BudgetPlannerService
         $high = max(
             $marginAtTarget,
             $floor * 2,
-            $this->marginForTargetNet($cashZeroMonth, $opexArticles, (float) $inputs['target_dividends_amount']),
+            $this->marginForTargetNet($cashZeroMonth, $opexArticles, (float) $inputs['target_dividends_amount'], $inputs),
         );
 
         for ($i = 0; $i < 64; $i++) {

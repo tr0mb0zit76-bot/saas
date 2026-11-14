@@ -41,7 +41,64 @@
             >
                 Базовые условия для договоров-заявок
             </button>
+            <button
+                type="button"
+                :class="pageTab === 'aliases' ? crmPillActive : crmPill"
+                @click="switchPageTab('aliases')"
+            >
+                Свои плейсхолдеры
+            </button>
         </div>
+
+        <template v-if="pageTab === 'aliases'">
+            <section :class="`${crmPanel} p-4 space-y-4`">
+                <p class="text-sm text-zinc-600 dark:text-zinc-300">
+                    Добавьте короткое имя макроса для DOCX и выберите сопоставление из справочника платформы.
+                    Произвольные пути данных недоступны — только список ниже.
+                </p>
+                <div class="space-y-3">
+                    <div
+                        v-for="(row, index) in aliasForm"
+                        :key="index"
+                        class="grid gap-3 md:grid-cols-[1fr_2fr_auto] md:items-end"
+                    >
+                        <label class="block text-sm">
+                            <span class="mb-1 block text-zinc-500">Макрос в DOCX</span>
+                            <input
+                                v-model="aliasForm[index].macro"
+                                type="text"
+                                :class="crmFieldFluid"
+                                placeholder="nomer_klienta"
+                            >
+                        </label>
+                        <label class="block text-sm">
+                            <span class="mb-1 block text-zinc-500">Сопоставление</span>
+                            <select v-model="aliasForm[index].path" :class="crmFieldFluid">
+                                <option value="">Выберите поле…</option>
+                                <option
+                                    v-for="opt in catalogPathOptions"
+                                    :key="opt.value"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }} ({{ opt.value }})
+                                </option>
+                            </select>
+                        </label>
+                        <button type="button" :class="crmBtnNeutral" @click="aliasForm.splice(index, 1)">
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" :class="crmBtnNeutral" @click="aliasForm.push({ macro: '', path: '' })">
+                        Добавить плейсхолдер
+                    </button>
+                    <button type="button" :class="crmBtnPrimary" :disabled="aliasSaving" @click="saveAliases">
+                        {{ aliasSaving ? 'Сохранение…' : 'Сохранить' }}
+                    </button>
+                </div>
+            </section>
+        </template>
 
         <template v-if="pageTab === 'templates'">
         <div
@@ -898,6 +955,7 @@ import { shouldHideFromVariableMapping } from '@/support/printFormClonePlacehold
 import {
     crmBtnCreate,
     crmBtnNeutral,
+    crmBtnPrimary,
     crmFieldFluid,
     crmModalFormShell,
     crmModalPanel,
@@ -970,6 +1028,14 @@ const props = defineProps({
             legacy_aliases: [],
             special_macros: [],
         }),
+    },
+    tenantPlaceholderAliases: {
+        type: Array,
+        default: () => [],
+    },
+    catalogPathOptions: {
+        type: Array,
+        default: () => [],
     },
     documentPreview: {
         type: Object,
@@ -1053,7 +1119,32 @@ function mapBasicTermsRows(rows) {
     }));
 }
 
-const pageTab = computed(() => (props.pageTab === 'basic-terms' ? 'basic-terms' : 'templates'));
+const pageTab = computed(() => {
+    if (props.pageTab === 'basic-terms') return 'basic-terms';
+    if (props.pageTab === 'aliases') return 'aliases';
+    return 'templates';
+});
+
+const aliasForm = ref(
+    (props.tenantPlaceholderAliases ?? []).map((row) => ({
+        macro: String(row?.macro ?? ''),
+        path: String(row?.path ?? ''),
+    })),
+);
+const aliasSaving = ref(false);
+
+function saveAliases() {
+    aliasSaving.value = true;
+    router.put(route('settings.templates.placeholder-aliases.update'), {
+        aliases: aliasForm.value,
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            aliasSaving.value = false;
+        },
+    });
+}
+
 const basicTermsParty = ref(props.basicTermsEditor.activeParty ?? 'customer');
 const basicTermsContractorId = ref(props.basicTermsEditor.activeContractorId ?? null);
 
@@ -1102,9 +1193,13 @@ function switchPageTab(tab) {
         return;
     }
 
+    const query = tab === 'basic-terms'
+        ? basicTermsQueryParams()
+        : (tab === 'aliases' ? { tab: 'aliases' } : {});
+
     router.get(
         route('settings.templates.index'),
-        tab === 'basic-terms' ? basicTermsQueryParams() : {},
+        query,
         { preserveState: true, preserveScroll: true },
     );
 }

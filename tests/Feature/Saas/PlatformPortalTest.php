@@ -79,6 +79,41 @@ class PlatformPortalTest extends SaasTestCase
         ])->assertRedirect(route('platform.dashboard'));
 
         $this->assertAuthenticatedAs($this->platformAdmin);
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
+    public function test_authenticated_platform_admin_is_redirected_from_login_to_platform_home(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/login'))
+            ->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
+    public function test_platform_dashboard_alias_does_not_404(): void
+    {
+        $this->actingAs($this->platformAdmin)
+            ->get($this->platformUrl('/dashboard'))
+            ->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+    }
+
+    public function test_platform_admin_without_tenant_can_use_dashboard_after_login(): void
+    {
+        TenantContext::bypass(true);
+        $this->platformAdmin->forceFill(['tenant_id' => null, 'role_id' => null])->save();
+        TenantContext::bypass(false);
+
+        $this->post($this->platformUrl('/login'), [
+            'email' => 'platform-admin@saas.local',
+            'password' => 'password',
+        ])->assertRedirect(route('platform.dashboard'));
+
+        $this->get($this->platformUrl('/'))->assertOk();
+        $this->assertAuthenticatedAs($this->platformAdmin);
     }
 
     public function test_non_platform_email_cannot_log_in_via_platform_portal(): void
@@ -87,6 +122,46 @@ class PlatformPortalTest extends SaasTestCase
             'email' => 'someone@saas.local',
             'password' => 'password',
         ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    public function test_authenticated_non_platform_user_is_logged_out_to_login_not_403(): void
+    {
+        TenantContext::bypass(true);
+
+        $tenant = Tenant::query()->create([
+            'slug' => 'crm-session-'.uniqid(),
+            'name' => 'CRM Session Tenant',
+            'status' => 'active',
+            'plan' => 'start',
+        ]);
+
+        $role = Role::query()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'admin',
+            'display_name' => 'Admin',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('admin'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('admin'),
+        ]);
+
+        $crmUser = User::query()->create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => 'CRM User',
+            'email' => 'crm-user-'.uniqid().'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        TenantContext::bypass(false);
+
+        $this->actingAs($crmUser)
+            ->get($this->platformUrl('/'))
+            ->assertRedirect(PlatformHost::url('/login'))
+            ->assertSessionHasErrors('email');
 
         $this->assertGuest();
     }

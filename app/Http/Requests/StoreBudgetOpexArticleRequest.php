@@ -28,6 +28,10 @@ class StoreBudgetOpexArticleRequest extends FormRequest
                 BudgetOpexArticle::COST_FIXED_MONTHLY,
                 BudgetOpexArticle::COST_PERCENT_OF_MARGIN,
             ])],
+            'amount_basis' => ['nullable', 'string', Rule::in([
+                BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
+                BudgetOpexArticle::AMOUNT_BASIS_PER_HEAD,
+            ])],
             'amount_monthly' => [
                 Rule::requiredIf($costType === BudgetOpexArticle::COST_FIXED_MONTHLY),
                 'nullable',
@@ -43,5 +47,12 @@ class StoreBudgetOpexArticleRequest extends FormRequest
             ],
             'ramp_months' => ['nullable', 'integer', 'min:1', 'max:36'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('amount_basis')) {
+            $this->merge(['amount_basis' => BudgetOpexArticle::AMOUNT_BASIS_TOTAL]);
+        }
     }
 }

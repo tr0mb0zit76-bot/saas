@@ -12,16 +12,28 @@ class SubscriptionPlanSeeder extends Seeder
         $sort = 0;
 
         foreach (config('saas-plans.plans', []) as $key => $plan) {
-            SubscriptionPlan::query()->updateOrCreate(
-                ['key' => (string) $key],
-                [
+            $key = (string) $key;
+            $existing = SubscriptionPlan::query()->where('key', $key)->first();
+
+            // Preserve platform-admin checkbox edits in DB; only seed features/limits on create.
+            if ($existing !== null) {
+                $existing->update([
                     'label' => (string) ($plan['label'] ?? $key),
-                    'features' => array_values((array) ($plan['features'] ?? [])),
-                    'limits' => (array) ($plan['limits'] ?? []),
                     'is_active' => true,
                     'sort_order' => $sort++,
-                ],
-            );
+                ]);
+
+                continue;
+            }
+
+            SubscriptionPlan::query()->create([
+                'key' => $key,
+                'label' => (string) ($plan['label'] ?? $key),
+                'features' => array_values((array) ($plan['features'] ?? [])),
+                'limits' => (array) ($plan['limits'] ?? []),
+                'is_active' => true,
+                'sort_order' => $sort++,
+            ]);
         }
 
         $this->command?->info('SubscriptionPlanSeeder OK');

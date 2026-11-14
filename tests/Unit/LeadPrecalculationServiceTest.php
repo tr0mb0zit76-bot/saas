@@ -95,6 +95,30 @@ class LeadPrecalculationServiceTest extends TestCase
         $this->assertSame(50_000, $result['computed']['freight_allocation'][1]['freight_to_border'] ?? null);
     }
 
+    public function test_transport_only_calculate_without_goods(): void
+    {
+        $service = app(LeadPrecalculationService::class);
+
+        $result = $service->calculate([
+            'goods_lines' => [],
+            'service_lines' => [
+                [
+                    'id' => 'service_1',
+                    'kind' => 'logistics',
+                    'title' => 'Логистика · Плечо 1',
+                    'stage' => 'leg_1',
+                    'amount' => 120_000,
+                    'currency' => 'RUB',
+                ],
+            ],
+        ]);
+
+        $this->assertSame(0.0, (float) ($result['computed']['goods_total'] ?? -1));
+        $this->assertSame(120_000.0, (float) ($result['computed']['services_total'] ?? 0));
+        $this->assertSame(120_000.0, (float) ($result['computed']['grand_total'] ?? 0));
+        $this->assertSame([], $result['computed']['goods_lines'] ?? null);
+    }
+
     public function test_builds_service_lines_from_performers(): void
     {
         $service = app(LeadPrecalculationService::class);

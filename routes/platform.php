@@ -29,6 +29,10 @@ Route::domain($platformDomain)->group(function (): void {
             ->name('platform.logout');
 
         Route::get('/', [PlatformDashboardController::class, 'index'])->name('platform.dashboard');
+        // Safety net: CRM Ziggy/bookmarks use /dashboard; keep operators on the portal.
+        Route::get('/dashboard', function () {
+            return redirect()->route('platform.dashboard');
+        })->name('platform.dashboard.alias');
         Route::get('/plans', [PlatformPlansController::class, 'index'])->name('platform.plans.index');
         Route::get('/plans/{planKey}/features', [PlatformPlansController::class, 'edit'])->name('platform.plans.edit');
         Route::patch('/plans/{planKey}/features', [PlatformPlansController::class, 'updateFeatures'])->name('platform.plans.features.update');
@@ -37,6 +41,8 @@ Route::domain($platformDomain)->group(function (): void {
         Route::patch('/tenants/{tenant}', [PlatformTenantController::class, 'update'])->name('platform.tenants.update');
         Route::get('/tenants/{tenant}/features', [PlatformTenantController::class, 'features'])->name('platform.tenants.features');
         Route::patch('/tenants/{tenant}/features', [PlatformTenantController::class, 'updateFeatures'])->name('platform.tenants.features.update');
+        Route::get('/tenants/{tenant}/ops', [PlatformTenantController::class, 'ops'])->name('platform.tenants.ops');
+        Route::patch('/tenants/{tenant}/ops', [PlatformTenantController::class, 'updateOps'])->name('platform.tenants.ops.update');
         Route::post('/tenants/{tenant}/mark-paid', [PlatformTenantController::class, 'markPaid'])->name('platform.tenants.mark-paid');
         Route::get('/tenants/{tenant}/invoices/{invoice}/pdf', [PlatformTenantInvoiceController::class, 'pdf'])->name('platform.tenants.invoices.pdf');
         Route::get('/audit', [PlatformAuditLogController::class, 'index'])->name('platform.audit.index');

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BudgetScenario extends Model
 {
+    use BelongsToTenant;
+
     public const PLAN_TYPE_COMPANY = 'company';
 
     public const PLAN_TYPE_SALES_PAYROLL = 'sales_payroll';

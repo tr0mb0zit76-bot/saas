@@ -37,7 +37,12 @@ class McpAccessGate
 
         $devUserId = config('mcp.dev_user_id');
 
-        if ($devUserId !== null && $devUserId !== '') {
+        // MCP_DEV_USER_ID is a local/stdio convenience only — never honor outside lab.
+        if (
+            $devUserId !== null
+            && $devUserId !== ''
+            && app()->environment(['local', 'testing'])
+        ) {
             $devUser = User::query()->whereKey((int) $devUserId)->first();
 
             if ($devUser instanceof User && $devUser->is_active) {

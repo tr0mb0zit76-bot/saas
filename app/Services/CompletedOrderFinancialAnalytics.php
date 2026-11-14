@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Support\OrderViewAuthorization;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -70,6 +71,7 @@ class CompletedOrderFinancialAnalytics
 
         $query = DB::table('orders')
             ->where('orders.manager_id', $managerId);
+        $this->applyTenant($query);
         $this->applyCompletedOrderScope($query);
         $query->whereRaw("{$dateCol} between ? and ?", [$fromDate, $toDate]);
 
@@ -141,6 +143,7 @@ class CompletedOrderFinancialAnalytics
         $monthExpr = $this->monthBucketSql();
 
         $query = DB::table('orders');
+        $this->applyTenant($query);
         $this->applyCompletedOrderScope($query);
         $query->whereRaw("{$dateCol} between ? and ?", [$fromDate, $toDate]);
 
@@ -212,6 +215,7 @@ class CompletedOrderFinancialAnalytics
 
         $query = DB::table('orders')
             ->whereNotNull('orders.manager_id');
+        $this->applyTenant($query);
         $this->applyCompletedOrderScope($query);
         $query->whereRaw("{$dateCol} between ? and ?", [$fromDate, $toDate]);
 
@@ -272,9 +276,15 @@ class CompletedOrderFinancialAnalytics
         return implode(' + ', $parts);
     }
 
-    /**
-     * @param  Builder  $query
-     */
+    private function applyTenant(Builder $query): void
+    {
+        if (! Schema::hasColumn('orders', 'tenant_id')) {
+            return;
+        }
+
+        TenantContext::restrict($query, 'orders.tenant_id');
+    }
+
     private function applyCompletedOrderScope($query): void
     {
         if (Schema::hasColumn('orders', 'manual_status')) {

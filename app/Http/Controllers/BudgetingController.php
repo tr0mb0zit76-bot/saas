@@ -129,6 +129,7 @@ class BudgetingController extends Controller
     {
         $opexArticle->update(collect($request->validated())->only([
             'cost_type',
+            'amount_basis',
             'amount_monthly',
             'percent_of_margin',
             'ramp_months',
@@ -185,6 +186,7 @@ class BudgetingController extends Controller
             'management_expense_category_id' => $article->management_expense_category_id,
             'category_code' => $article->managementExpenseCategory?->code,
             'cost_type' => $article->cost_type ?? BudgetOpexArticle::COST_FIXED_MONTHLY,
+            'amount_basis' => $article->amount_basis ?? BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
             'amount_monthly' => (float) $article->amount_monthly,
             'percent_of_margin' => $article->percent_of_margin !== null ? (float) $article->percent_of_margin : null,
             'ramp_months' => $article->ramp_months,
@@ -197,10 +199,39 @@ class BudgetingController extends Controller
      */
     private function seedOpexArticlesFromLegacyInputs(array $legacyInputs): void
     {
+        $managerCount = max(1, (int) ($legacyInputs['manager_count'] ?? 3));
+        // Legacy manager_payroll_monthly was a company lump (Orientum 450k for N=3); store per-head rate.
+        $legacyPayrollLump = (float) ($legacyInputs['manager_payroll_monthly'] ?? 75_000);
+        $payrollRate = round($legacyPayrollLump / $managerCount, 2);
+
         $defaults = [
-            ['name' => 'Офис', 'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY, 'amount_monthly' => (float) ($legacyInputs['office_monthly'] ?? 100_000), 'percent_of_margin' => null, 'ramp_months' => null, 'sort_order' => 10],
-            ['name' => 'Бухгалтерия', 'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY, 'amount_monthly' => (float) ($legacyInputs['accounting_monthly'] ?? 200_000), 'percent_of_margin' => null, 'ramp_months' => null, 'sort_order' => 20],
-            ['name' => 'Оклады менеджеров', 'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY, 'amount_monthly' => (float) ($legacyInputs['manager_payroll_monthly'] ?? 75_000), 'percent_of_margin' => null, 'ramp_months' => (int) ($legacyInputs['manager_payroll_months'] ?? 3), 'sort_order' => 30],
+            [
+                'name' => 'Офис',
+                'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY,
+                'amount_basis' => BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
+                'amount_monthly' => (float) ($legacyInputs['office_monthly'] ?? 100_000),
+                'percent_of_margin' => null,
+                'ramp_months' => null,
+                'sort_order' => 10,
+            ],
+            [
+                'name' => 'Бухгалтерия',
+                'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY,
+                'amount_basis' => BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
+                'amount_monthly' => (float) ($legacyInputs['accounting_monthly'] ?? 200_000),
+                'percent_of_margin' => null,
+                'ramp_months' => null,
+                'sort_order' => 20,
+            ],
+            [
+                'name' => 'Оклады менеджеров',
+                'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY,
+                'amount_basis' => BudgetOpexArticle::AMOUNT_BASIS_PER_HEAD,
+                'amount_monthly' => $payrollRate,
+                'percent_of_margin' => null,
+                'ramp_months' => null, // весь горизонт
+                'sort_order' => 30,
+            ],
         ];
 
         foreach ($defaults as $row) {

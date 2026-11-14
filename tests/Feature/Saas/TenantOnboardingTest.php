@@ -77,7 +77,7 @@ class TenantOnboardingTest extends SaasTestCase
 
         $tenant = Tenant::query()->where('slug', $slug)->first();
         $this->assertNotNull($tenant);
-        $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
+        $this->assertSame(9, Role::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->count());
 
         $owner = User::query()->withoutGlobalScopes()
             ->where('tenant_id', $tenant->id)

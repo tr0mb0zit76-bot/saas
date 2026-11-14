@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\SalesPlaySessionOutcome;
 use App\Enums\SalesTrainerDialogQuality;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SalesScriptPlaySession extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'sales_script_play_sessions';
 
     protected $fillable = [

@@ -23,7 +23,13 @@
             <div class="flex flex-wrap items-center gap-2">
                 <button v-if="canUseLoadBoard" type="button" :class="`${crmBtnSecondary} inline-flex items-center gap-2 !px-4 !py-2`" :disabled="!selectedLeadId" @click="openLoadBoardFromLead"><Package class="h-4 w-4" />На биржу</button>
                 <button v-if="canUseHowMuchFits" type="button" :class="`${crmBtnSecondary} inline-flex items-center gap-2 !px-4 !py-2`" :disabled="!selectedLeadId" @click="openHowMuchFitsFromLead"><Truck class="h-4 w-4" />Сколько влезет?</button>
-                <button type="button" :class="crmBtnPrimary" :disabled="!selectedLeadId || !form.counterparty_id" @click="convertLead"><ArrowRightLeft class="h-4 w-4" />Конвертировать в заказ</button>
+                <button
+                    type="button"
+                    :class="crmBtnPrimary"
+                    :disabled="!selectedLeadId || !form.counterparty_id || !canConvertLead"
+                    :title="canConvertLead ? '' : 'Сначала согласуйте цену оферты с клиентом'"
+                    @click="convertLead"
+                ><ArrowRightLeft class="h-4 w-4" />Конвертировать в заказ</button>
                 <button type="button" :class="crmBtnCreate" @click="submit"><Save class="h-4 w-4" />Сохранить</button>
             </div>
         </div>
@@ -326,6 +332,11 @@
                 v-model:calculated-cost="form.calculated_cost"
                 v-model:customer-payment-form="form.customer_payment_form"
                 v-model:carrier-payment-form="form.carrier_payment_form"
+                v-model:quoted-price="form.quoted_price"
+                v-model:quoted-currency="form.quoted_currency"
+                v-model:quote-status="form.quote_status"
+                :lead-id="selectedLeadId"
+                :can-manage-client-quote="canManageClientQuote"
                 :currency-options="currencyOptions"
                 :payment-form-options="paymentFormOptions"
                 :expected-margin="form.expected_margin"
@@ -480,7 +491,11 @@ import {
 } from '@/support/contractorPartyAutofill.js';
 import { warnIfDocumentExceedsBudget } from '@/support/documentUploadClientCheck.js';
 import { normalizeLeadCargoItems } from '@/support/leadWizardCargo.js';
-import { defaultLeadRoutePoints, normalizeLeadRoutePoints } from '@/support/leadWizardRoute.js';
+import {
+    defaultLeadRoutePoints,
+    normalizeLeadRoutePoints,
+    seedLeadRoutePointsFromLocations,
+} from '@/support/leadWizardRoute.js';
 import {
     isContractSigningLeadWizard,
     leadWizardVisibleTabKeys,
@@ -631,6 +646,9 @@ function blankForm() {
         planned_shipping_date: '',
         target_price: null,
         target_currency: 'RUB',
+        quoted_price: null,
+        quoted_currency: 'RUB',
+        quote_status: 'none',
         customer_payment_form: '',
         carrier_payment_form: '',
         calculated_cost: null,
@@ -672,7 +690,11 @@ function leadToForm(lead) {
         close_outcome_primary_flag: lead.close_outcome_primary_flag ?? '',
         close_outcome_note: lead.lost_reason ?? '',
         route_points: syncLeadRoutePointsFromPerformers(
-            normalizeLeadRoutePoints(lead.route_points),
+            seedLeadRoutePointsFromLocations(
+                normalizeLeadRoutePoints(lead.route_points),
+                lead.loading_location,
+                lead.unloading_location,
+            ),
             normalizeLeadPerformers(lead.performers),
         ),
         performers: normalizeLeadPerformers(lead.performers),
@@ -705,6 +727,12 @@ const canUseHowMuchFits = computed(() => {
     return Boolean(role.is_admin) || role.name === 'admin' || areas.includes('modules_how_much_fits') || areas.includes('modules');
 });
 
+const canManageClientQuote = computed(() => {
+    const features = page.props.tenant?.features;
+
+    return Array.isArray(features) && features.includes('carrier_matching');
+});
+
 watch(
     () => page.props.flash?.lead_follow_up,
     (value) => {
@@ -718,6 +746,19 @@ watch(
 const initialLeadPayload = computed(() => props.selectedLead ?? props.leadTemplate ?? null);
 
 const form = useForm(leadToForm(initialLeadPayload.value));
+
+const canConvertLead = computed(() => {
+    const status = form.quote_status || 'none';
+    if (status === 'agreed') {
+        return true;
+    }
+
+    const source = String(form.source || '');
+    const isCustomerRequest = source === 'traklo_customer_request'
+        || source.startsWith('traklo_customer_request · ');
+
+    return status === 'none' && !isCustomerRequest;
+});
 const advanceStageId = ref('');
 const processStageForm = useForm({
     stage_id: null,
@@ -1291,8 +1332,15 @@ function markStatusTouchedByUser() {
 }
 
 function applyPrecalculationFinance(payload) {
-    if (payload?.target_price !== undefined && payload?.target_price !== null) {
-        form.target_price = payload.target_price;
+    // ADR-019 / ADR-018: Predрасчёт drafts quoted_price — never overwrite target_price (client orientation).
+    if (payload?.quoted_price !== undefined && payload?.quoted_price !== null) {
+        form.quoted_price = payload.quoted_price;
+        if (!form.quoted_currency) {
+            form.quoted_currency = 'RUB';
+        }
+        if (!form.quote_status || form.quote_status === 'none') {
+            form.quote_status = 'draft';
+        }
     }
 
     if (payload?.calculated_cost !== undefined && payload?.calculated_cost !== null) {

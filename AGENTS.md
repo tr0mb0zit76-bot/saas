@@ -21,6 +21,9 @@ saas.local/
 ├── .cursor/
 │   ├── agents/saas-architect.md              # архитектура, ADR
 │   ├── agents/saas-migration-orchestrator.md # переезд v5→saas (автономно)
+│   ├── agents/saas-security.md               # изоляция, сессия, доступ
+│   ├── agents/saas-qa.md                     # приёмка, тесты изоляции
+│   ├── agents/saas-privacy.md                # персональные данные, 152-ФЗ
 │   └── rules/                                # правила Cursor
 ├── docs/
 │   ├── sync/                      # канон → Yandex Disk Exchange/saas
@@ -106,7 +109,10 @@ saas.local/
 | Агент | Когда |
 | --- | --- |
 | **`saas-migration-orchestrator`** | Bootstrap, БД, migrate, seed, smoke, tenancy, handoff — **без участия человека** |
-| **`saas-architect`** | ADR, тарифы, scope MVP, audit remediation strategy |
+| **`saas-architect`** | ADR, тарифы, scope MVP, audit remediation strategy. На ревью зовёт команду ниже |
+| **`saas-security`** | Изоляция, сессия, IDOR, файлы, MCP, секреты. Вердикт, не внедрение |
+| **`saas-qa`** | Приёмка: какой тест покраснеет, если дыра вернётся |
+| **`saas-privacy`** | Персональные данные, 152-ФЗ, оферта, экспорт и удаление |
 
 ## Команды
 

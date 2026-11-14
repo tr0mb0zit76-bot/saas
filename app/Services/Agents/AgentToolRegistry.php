@@ -50,6 +50,7 @@ class AgentToolRegistry
     public function __construct(
         private readonly McpAccessGate $access,
         private readonly AiToolAuditLogger $audit,
+        private readonly AgentWriteConfirmationService $writeConfirmation,
         private readonly OrderMcpService $orders,
         private readonly ContractorMcpService $contractors,
         private readonly FleetMcpService $fleet,
@@ -83,9 +84,33 @@ class AgentToolRegistry
         $tools = [];
 
         foreach ($this->definitions() as $definition) {
-            if (($definition->canUse)($user)) {
-                $tools[] = $definition->openAiDefinition();
+            if (! ($definition->canUse)($user)) {
+                continue;
             }
+
+            $tool = $definition->openAiDefinition();
+
+            if ($this->requiresWriteConfirmation($definition->name)) {
+                $params = $tool['function']['parameters'];
+                $properties = $params['properties'] ?? [];
+                if (is_object($properties)) {
+                    $properties = (array) $properties;
+                }
+                $properties['dry_run'] = [
+                    'type' => 'boolean',
+                    'description' => 'true — preview + confirm_token без записи.',
+                ];
+                $properties['confirm_token'] = [
+                    'type' => 'string',
+                    'description' => 'Токен из dry_run (обязателен для записи).',
+                ];
+                $params['properties'] = $properties;
+                $tool['function']['parameters'] = $params;
+                $tool['function']['description'] = rtrim((string) $tool['function']['description'])
+                    .' Сначала dry_run (или вызов без confirm_token) → confirm_token, затем повтор с confirm_token.';
+            }
+
+            $tools[] = $tool;
         }
 
         return $tools;
@@ -107,7 +132,15 @@ class AgentToolRegistry
             }
 
             try {
-                $result = ($definition->invoke)($user, $arguments);
+                $gate = $this->gateConfirmedWrite($user, $name, $arguments);
+                if ($gate !== null) {
+                    $this->audit->log($user, $name, $arguments, true, null, AiInteractionFeature::CommandBar);
+
+                    return $gate;
+                }
+
+                $invokeArgs = $this->argumentsWithoutConfirmationMeta($arguments);
+                $result = ($definition->invoke)($user, $invokeArgs);
                 $this->audit->log($user, $name, $arguments, true, null, AiInteractionFeature::CommandBar);
 
                 return $result;
@@ -1426,5 +1459,66 @@ class AgentToolRegistry
     private function canDrivers(User $user): bool
     {
         return RoleAccess::canAccessVisibilityArea($user, 'drivers');
+    }
+
+    /**
+     * Fail-closed gate for high-risk writes (H4): missing confirm_token → dry_run preview.
+     * apply_order_wizard_draft keeps its own dry_run path inside OrderIntakeMcpService.
+     *
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>|null
+     */
+    private function gateConfirmedWrite(User $user, string $name, array $arguments): ?array
+    {
+        if (! $this->requiresWriteConfirmation($name)) {
+            return null;
+        }
+
+        $confirmArgs = $this->argumentsWithoutConfirmationMeta($arguments);
+        $confirmToken = isset($arguments['confirm_token']) ? trim((string) $arguments['confirm_token']) : '';
+        $dryRun = (bool) ($arguments['dry_run'] ?? false) || $confirmToken === '';
+
+        if ($dryRun) {
+            $preview = [
+                'tool' => $name,
+                'arguments' => $confirmArgs,
+            ];
+            $token = $this->writeConfirmation->issue($user, $name, $confirmArgs, $preview);
+
+            return [
+                'dry_run' => true,
+                'preview' => $preview,
+                'confirm_token' => $token,
+                'confirm_ttl_seconds' => 900,
+                'note' => 'Повторите вызов '.$name.' с теми же аргументами и confirm_token без dry_run.',
+            ];
+        }
+
+        $this->writeConfirmation->consume($user, $name, $confirmToken, $confirmArgs);
+
+        return null;
+    }
+
+    private function requiresWriteConfirmation(string $name): bool
+    {
+        if (! (bool) config('ai.command_bar.require_write_confirmation', true)) {
+            return false;
+        }
+
+        /** @var list<string> $tools */
+        $tools = config('ai.command_bar.confirmed_write_tools', []);
+
+        return in_array($name, $tools, true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    private function argumentsWithoutConfirmationMeta(array $arguments): array
+    {
+        unset($arguments['dry_run'], $arguments['confirm_token']);
+
+        return $arguments;
     }
 }

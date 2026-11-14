@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesScriptPlaySessionFieldValue extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'sales_script_play_session_field_values';
 
     protected $fillable = [

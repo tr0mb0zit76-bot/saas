@@ -7,7 +7,10 @@ use App\Models\ManagementBankAccount;
 use App\Models\ManagementExpenseCategory;
 use App\Models\ManagementStatementLine;
 use App\Models\Order;
+use App\Models\Tenant;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Console\Kernel;
+use Tighten\Ziggy\BladeRouteGenerator;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -32,6 +35,21 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->withoutVite();
+        BladeRouteGenerator::$generated = false;
+
+        $slug = (string) config('saas.default_tenant_slug', 'demo');
+        $tenant = Tenant::query()->where('slug', $slug)->first();
+
+        if ($tenant === null) {
+            return;
+        }
+
+        // v5-era tests open modules that are enterprise-only. SaaS tests set their own plan.
+        if (! $this instanceof SaasTestCase && $tenant->planKey() !== 'enterprise') {
+            $tenant->forceFill(['plan' => 'enterprise'])->save();
+        }
+
+        TenantContext::set($tenant);
     }
 
     /**

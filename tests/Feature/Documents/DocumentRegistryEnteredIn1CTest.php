@@ -3,22 +3,39 @@
 namespace Tests\Feature\Documents;
 
 use App\Models\Order;
+use App\Models\Role;
+use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use Tests\TestCase;
+use App\Support\TenantContext;
+use Illuminate\Support\Facades\Hash;
+use Tests\SaasTestCase;
 
-class DocumentRegistryEnteredIn1CTest extends TestCase
+class DocumentRegistryEnteredIn1CTest extends SaasTestCase
 {
+    public function test_entered_in_1c_is_forbidden_without_integrations_feature(): void
+    {
+        [$user, $tenant] = $this->makeTenantUser('start');
+
+        $order = $this->createOrderFor($user, $tenant, ['order_number' => 'DOC-1C-BLOCKED']);
+
+        config(['saas.default_tenant_slug' => $tenant->slug]);
+
+        $this->actingAs($user)
+            ->patchJson(route('documents.orders.entered-in-1c', $order), [
+                'entered_in_1c' => 'да',
+            ])
+            ->assertForbidden();
+    }
+
     public function test_manager_can_mark_order_as_entered_in_1c(): void
     {
-        $manager = $this->makeUser(['documents', 'orders'], ['documents' => 'own', 'orders' => 'own']);
+        [$user, $tenant] = $this->makeTenantUser('enterprise');
 
-        $order = Order::factory()->create([
-            'manager_id' => $manager->id,
-            'order_number' => 'DOC-1C-1',
-        ]);
+        $order = $this->createOrderFor($user, $tenant, ['order_number' => 'DOC-1C-1']);
 
-        $this->actingAs($manager)
+        config(['saas.default_tenant_slug' => $tenant->slug]);
+
+        $this->actingAs($user)
             ->patchJson(route('documents.orders.entered-in-1c', $order), [
                 'entered_in_1c' => 'да',
             ])
@@ -28,20 +45,21 @@ class DocumentRegistryEnteredIn1CTest extends TestCase
         $order->refresh();
 
         $this->assertNotNull($order->accounting_handoff_at);
-        $this->assertSame($manager->id, $order->accounting_handoff_by);
+        $this->assertSame($user->id, $order->accounting_handoff_by);
     }
 
     public function test_manager_can_clear_entered_in_1c_flag(): void
     {
-        $manager = $this->makeUser(['documents', 'orders'], ['documents' => 'own', 'orders' => 'own']);
+        [$user, $tenant] = $this->makeTenantUser('enterprise');
 
-        $order = Order::factory()->create([
-            'manager_id' => $manager->id,
+        $order = $this->createOrderFor($user, $tenant, [
             'accounting_handoff_at' => now(),
-            'accounting_handoff_by' => $manager->id,
+            'accounting_handoff_by' => $user->id,
         ]);
 
-        $this->actingAs($manager)
+        config(['saas.default_tenant_slug' => $tenant->slug]);
+
+        $this->actingAs($user)
             ->patchJson(route('documents.orders.entered-in-1c', $order), [
                 'entered_in_1c' => 'нет',
             ])
@@ -56,13 +74,12 @@ class DocumentRegistryEnteredIn1CTest extends TestCase
 
     public function test_foreign_manager_cannot_update_entered_in_1c(): void
     {
-        $manager = $this->makeUser(['documents', 'orders'], ['documents' => 'own', 'orders' => 'own']);
-        $otherManager = $this->makeUser(['documents', 'orders'], ['documents' => 'own', 'orders' => 'own']);
+        [$manager, $tenant] = $this->makeTenantUser('enterprise');
+        [$otherManager] = $this->makeTenantUser('enterprise', $tenant);
 
-        $order = Order::factory()->create([
-            'manager_id' => $otherManager->id,
-            'order_number' => 'DOC-1C-FOREIGN',
-        ]);
+        $order = $this->createOrderFor($otherManager, $tenant, ['order_number' => 'DOC-1C-FOREIGN']);
+
+        config(['saas.default_tenant_slug' => $tenant->slug]);
 
         $this->actingAs($manager)
             ->patchJson(route('documents.orders.entered-in-1c', $order), [
@@ -71,17 +88,18 @@ class DocumentRegistryEnteredIn1CTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_documents_index_includes_entered_in_1c_column(): void
+    public function test_documents_index_includes_entered_in_1c_payload(): void
     {
-        $manager = $this->makeUser(['documents', 'orders'], ['documents' => 'own', 'orders' => 'own']);
+        [$user, $tenant] = $this->makeTenantUser('enterprise');
 
-        $order = Order::factory()->create([
-            'manager_id' => $manager->id,
+        $order = $this->createOrderFor($user, $tenant, [
             'accounting_handoff_at' => now(),
-            'accounting_handoff_by' => $manager->id,
+            'accounting_handoff_by' => $user->id,
         ]);
 
-        $this->actingAs($manager)
+        config(['saas.default_tenant_slug' => $tenant->slug]);
+
+        $this->actingAs($user)
             ->get(route('documents.index'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -92,28 +110,55 @@ class DocumentRegistryEnteredIn1CTest extends TestCase
     }
 
     /**
-     * @param  list<string>  $areas
-     * @param  array<string, string>  $scopes
+     * @return array{0: User, 1: Tenant}
      */
-    private function makeUser(array $areas, array $scopes = []): User
+    private function makeTenantUser(string $plan, ?Tenant $tenant = null): array
     {
-        $roleId = DB::table('roles')->where('name', 'manager')->value('id');
+        TenantContext::bypass(true);
 
-        if ($roleId === null) {
-            $roleId = DB::table('roles')->insertGetId([
-                'name' => 'manager',
+        $tenant ??= Tenant::query()->create([
+            'slug' => 'doc1c-'.uniqid(),
+            'name' => 'Doc 1C Tenant',
+            'status' => 'active',
+            'plan' => $plan,
+            'settings' => ['onboarding' => ['completed_at' => now()->toIso8601String()]],
+        ]);
+
+        $role = Role::query()->firstOrCreate(
+            ['name' => 'manager', 'tenant_id' => $tenant->id],
+            [
                 'display_name' => 'Manager',
-                'permissions' => json_encode([], JSON_THROW_ON_ERROR),
-                'visibility_areas' => json_encode($areas, JSON_THROW_ON_ERROR),
-                'visibility_scopes' => json_encode($scopes, JSON_THROW_ON_ERROR),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+                'permissions' => [],
+                'visibility_areas' => ['documents', 'orders'],
+                'visibility_scopes' => ['documents' => 'own', 'orders' => 'own'],
+            ],
+        );
 
-        return User::factory()->create([
-            'role_id' => $roleId,
+        $user = User::query()->create([
+            'tenant_id' => $tenant->id,
+            'role_id' => $role->id,
+            'name' => 'Manager',
+            'email' => 'mgr-'.uniqid().'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
             'is_active' => true,
         ]);
+
+        TenantContext::bypass(false);
+
+        return [$user, $tenant];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createOrderFor(User $user, Tenant $tenant, array $attributes = []): Order
+    {
+        return TenantContext::runAs($tenant, function () use ($user, $attributes): Order {
+            return Order::factory()->create(array_merge([
+                'tenant_id' => $user->tenant_id,
+                'manager_id' => $user->id,
+            ], $attributes));
+        });
     }
 }

@@ -13,15 +13,28 @@ class IdentifyTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
+        TenantContext::clear();
+
         if (PlatformHost::matchesRequest($request)) {
+            // Auth retrieves User by id under TenantScope; without bypass the
+            // session user (esp. tenant_id null) never loads and login "fails".
             TenantContext::bypass(true);
 
             return $next($request);
         }
 
         $slug = $request->header('X-Tenant-Slug')
-            ?? $this->resolveSubdomain($request->getHost())
-            ?? config('saas.default_tenant_slug');
+            ?? $this->resolveSubdomain($request->getHost());
+
+        if ($slug === null || $slug === '') {
+            // Lab apex (localhost / saas.local) may fall back to SAAS_DEFAULT_TENANT_SLUG.
+            // Production apex/www must not silently resolve to demo.
+            if (app()->environment('production')) {
+                abort(404, 'Tenant not found or inactive.');
+            }
+
+            $slug = config('saas.default_tenant_slug');
+        }
 
         $tenant = Tenant::query()
             ->where('slug', $slug)

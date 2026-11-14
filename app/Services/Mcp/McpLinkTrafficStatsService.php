@@ -4,6 +4,7 @@ namespace App\Services\Mcp;
 
 use App\Support\AiInteractionEventType;
 use App\Support\McpToolDomainRegistry;
+use App\Support\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -36,7 +37,9 @@ final class McpLinkTrafficStatsService
         $since = now()->subDays($days);
 
         $rows = DB::table('ai_interaction_events')
-            ->select('tool_name', 'ok', DB::raw('COUNT(*) as calls'))
+            ->select('tool_name', 'ok', DB::raw('COUNT(*) as calls'));
+        TenantContext::restrict($rows, 'ai_interaction_events.tenant_id');
+        $rows = $rows
             ->where('event_type', AiInteractionEventType::ToolInvoked->value)
             ->whereNotNull('tool_name')
             ->where('created_at', '>=', $since)

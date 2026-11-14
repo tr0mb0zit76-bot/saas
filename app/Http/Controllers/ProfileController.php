@@ -111,7 +111,7 @@ class ProfileController extends Controller
         );
         $user->save();
 
-        return Redirect::back();
+        return Redirect::back(303);
     }
 
     /**

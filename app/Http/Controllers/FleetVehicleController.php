@@ -9,6 +9,7 @@ use App\Models\FleetVehicle;
 use App\Models\FleetVehicleDocument;
 use App\Services\Fleet\FleetVehicleRegistry;
 use App\Support\InlineStoredFileResponse;
+use App\Support\TenantStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,12 +79,13 @@ class FleetVehicleController extends Controller
     {
         abort_unless(Schema::hasTable('fleet_vehicle_documents'), 404);
         $file = $request->file('file');
-        $path = $file->store('fleet/vehicles/documents', 'public');
+        $relative = 'fleet/vehicles/'.$fleetVehicle->id.'/'.$file->hashName();
+        TenantStorage::put($relative, (string) file_get_contents($file->getRealPath()));
 
         $fleetVehicle->documents()->create([
             'document_type' => $request->string('document_type')->toString(),
-            'disk' => 'public',
-            'path' => $path,
+            'disk' => TenantStorage::diskName(),
+            'path' => TenantStorage::path($relative),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getClientMimeType(),
             'size_bytes' => $file->getSize(),

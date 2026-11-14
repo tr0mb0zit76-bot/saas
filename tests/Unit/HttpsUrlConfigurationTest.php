@@ -82,6 +82,28 @@ class HttpsUrlConfigurationTest extends TestCase
         $this->assertSame('http://crm.example.test/login', url('/login'));
     }
 
+    public function test_lab_http_app_url_keeps_http_urls_when_forwarded_proto_is_https(): void
+    {
+        config(['app.url' => 'http://saas.local']);
+
+        $request = Request::create(
+            'http://saas.local/dashboard',
+            'GET',
+            [],
+            [],
+            [],
+            ['HTTP_X_FORWARDED_PROTO' => 'https', 'HTTPS' => 'off'],
+        );
+        $this->app->instance('request', $request);
+
+        $provider = new AppServiceProvider($this->app);
+        $method = new \ReflectionMethod($provider, 'configureGeneratedUrls');
+        $method->setAccessible(true);
+        $method->invoke($provider, $request);
+
+        $this->assertSame('http://saas.local/profile/ui-preferences', route('profile.ui-preferences'));
+    }
+
     public function test_lab_http_app_url_disables_secure_session_cookies_even_with_forwarded_https(): void
     {
         config(['app.url' => 'http://saas.local']);

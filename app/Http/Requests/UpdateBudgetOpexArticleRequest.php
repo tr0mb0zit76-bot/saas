@@ -27,6 +27,10 @@ class UpdateBudgetOpexArticleRequest extends FormRequest
                 BudgetOpexArticle::COST_FIXED_MONTHLY,
                 BudgetOpexArticle::COST_PERCENT_OF_MARGIN,
             ])],
+            'amount_basis' => ['nullable', 'string', Rule::in([
+                BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
+                BudgetOpexArticle::AMOUNT_BASIS_PER_HEAD,
+            ])],
             'amount_monthly' => [
                 Rule::requiredIf($costType === BudgetOpexArticle::COST_FIXED_MONTHLY),
                 'nullable',

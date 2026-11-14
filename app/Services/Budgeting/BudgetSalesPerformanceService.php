@@ -4,6 +4,7 @@ namespace App\Services\Budgeting;
 
 use App\Models\BudgetSalesTarget;
 use App\Services\CompletedOrderFinancialAnalytics;
+use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -65,7 +66,9 @@ class BudgetSalesPerformanceService
         $toDate = $end->toDateString();
 
         $query = DB::table('orders')
-            ->whereIn($ownerColumn, $userIds)
+            ->whereIn($ownerColumn, $userIds);
+        TenantContext::restrict($query, 'orders.tenant_id');
+        $query
             ->whereIn('orders.status', ['closed', 'completed']);
         $query->whereRaw("{$dateCol} between ? and ?", [$fromDate, $toDate]);
 
@@ -115,7 +118,9 @@ class BudgetSalesPerformanceService
         }
 
         $query = DB::table('leads')
-            ->whereIn('responsible_id', $userIds)
+            ->whereIn('responsible_id', $userIds);
+        TenantContext::restrict($query, 'leads.tenant_id');
+        $query
             ->where('status', 'won')
             ->whereBetween('updated_at', [
                 $start->startOfDay()->toDateTimeString(),

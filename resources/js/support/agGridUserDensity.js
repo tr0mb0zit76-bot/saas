@@ -94,6 +94,7 @@ export function schedulePersistAgGridDensityToProfile(densityKey) {
         router.patch(
             '/profile/ui-preferences',
             {
+                workspace_skin: appearance.workspace_skin,
                 button_radius: appearance.button_radius,
                 primary_accent: appearance.primary_accent,
                 tab_style: appearance.tab_style,

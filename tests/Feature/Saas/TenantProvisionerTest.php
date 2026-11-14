@@ -36,15 +36,16 @@ class TenantProvisionerTest extends SaasTestCase
         TenantContext::bypass(false);
 
         TenantContext::set($tenantA);
-        $this->assertSame(7, Role::query()->count());
+        // 7 staff defaults + 2 Traklo external roles
+        $this->assertSame(9, Role::query()->count());
         $this->assertTrue(Role::query()->where('name', 'admin')->exists());
 
         TenantContext::set($tenantB);
-        $this->assertSame(7, Role::query()->count());
+        $this->assertSame(9, Role::query()->count());
 
         TenantContext::bypass(true);
         $this->assertSame(
-            14,
+            18,
             Role::query()->withoutGlobalScopes()->whereIn('tenant_id', [$tenantA->id, $tenantB->id])->count(),
         );
         TenantContext::bypass(false);

@@ -6,9 +6,12 @@ use App\Models\Lead;
 use App\Models\LeadOffer;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\CarrierMatching\CarrierMatchingService;
+use App\Support\LeadCargoItemPayloadNormalizer;
 use App\Support\LeadPerformerPayloadNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class LeadConversionService
 {
@@ -25,6 +28,12 @@ class LeadConversionService
 
             if ($existingOrder !== null) {
                 return $existingOrder;
+            }
+
+            if (! CarrierMatchingService::quoteAllowsOrderConversion($lead)) {
+                throw ValidationException::withMessages([
+                    'quote_status' => 'Конвертация в заказ доступна только после согласования цены с клиентом.',
+                ]);
             }
 
             $performers = $this->orderPerformersFromLead($lead);
@@ -48,18 +57,25 @@ class LeadConversionService
                     'contact_person' => $point->contact_person,
                     'contact_phone' => $point->contact_phone,
                 ])->values()->all(),
-                'cargo_items' => $lead->cargoItems->map(fn ($cargo): array => [
-                    'name' => $cargo->name,
-                    'description' => $cargo->description,
-                    'weight_kg' => $cargo->weight_kg,
-                    'volume_m3' => $cargo->volume_m3,
-                    'package_type' => $cargo->package_type,
-                    'package_count' => $cargo->package_count,
-                    'dangerous_goods' => (bool) $cargo->dangerous_goods,
-                    'dangerous_class' => $cargo->dangerous_class,
-                    'hs_code' => $cargo->hs_code,
-                    'cargo_type' => $cargo->cargo_type,
-                ])->values()->all(),
+                'cargo_items' => $lead->cargoItems->map(function ($cargo): array {
+                    $row = LeadCargoItemPayloadNormalizer::toFrontend($cargo);
+
+                    return [
+                        'name' => $row['name'],
+                        'description' => $row['description'],
+                        'weight_value' => $row['weight_value'],
+                        'weight_kg' => $row['weight_kg'],
+                        'weight_unit' => $row['weight_unit'],
+                        'weight_is_total' => $row['weight_is_total'],
+                        'volume_m3' => $row['volume_m3'],
+                        'package_type' => $row['package_type'],
+                        'package_count' => $row['package_count'],
+                        'dangerous_goods' => $row['dangerous_goods'],
+                        'dangerous_class' => $row['dangerous_class'],
+                        'hs_code' => $row['hs_code'],
+                        'cargo_type' => $row['cargo_type'],
+                    ];
+                })->values()->all(),
                 'financial_term' => $this->buildFinancialTermFromLead($lead),
                 'documents' => [],
             ];
@@ -173,13 +189,18 @@ class LeadConversionService
             ];
         }
 
-        if ($lead->target_price === null && $contractorsCosts === []) {
+        $clientPrice = $lead->quoted_price ?? $lead->target_price;
+        $clientCurrency = $lead->quoted_price !== null
+            ? ((string) ($lead->quoted_currency ?: $currency))
+            : $currency;
+
+        if ($clientPrice === null && $contractorsCosts === []) {
             return null;
         }
 
         return [
-            'client_price' => $lead->target_price,
-            'client_currency' => $currency,
+            'client_price' => $clientPrice,
+            'client_currency' => $clientCurrency,
             'client_payment_form' => $lead->customer_payment_form,
             'client_payment_schedule' => [],
             'contractors_costs' => $contractorsCosts,

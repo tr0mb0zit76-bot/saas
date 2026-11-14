@@ -425,7 +425,7 @@ class OrderDocumentWorkflowController extends Controller
         }
 
         $storageDriver = $this->resolveDraftStorageDriver($orderDocument);
-        if ($storageDriver === DocumentStorageService::DRIVER_NEXTCLOUD) {
+        if (str_starts_with($storageDriver, 'tenant')) {
             $contents = $this->documentStorage->get($orderDocument->file_path, $storageDriver);
 
             return $this->draftResponseBuilder->fromStoredDocxContent(
@@ -454,7 +454,7 @@ class OrderDocumentWorkflowController extends Controller
         abort_if(blank($orderDocument->generated_pdf_path), 404);
 
         $storageDriver = $this->resolveFinalPdfStorageDriver($orderDocument);
-        if ($storageDriver === DocumentStorageService::DRIVER_NEXTCLOUD) {
+        if (str_starts_with($storageDriver, 'tenant')) {
             $contents = $this->documentStorage->get($orderDocument->generated_pdf_path, $storageDriver);
 
             return response()->streamDownload(
@@ -551,18 +551,14 @@ class OrderDocumentWorkflowController extends Controller
     {
         $driver = data_get($orderDocument->metadata, 'storage_driver', DocumentStorageService::DRIVER_LOCAL);
 
-        return $driver === DocumentStorageService::DRIVER_NEXTCLOUD
-            ? DocumentStorageService::DRIVER_NEXTCLOUD
-            : DocumentStorageService::DRIVER_LOCAL;
+        return $this->documentStorage->resolveStoredDriver(is_string($driver) ? $driver : null);
     }
 
     private function resolveFinalPdfStorageDriver(OrderDocument $orderDocument): string
     {
         $driver = data_get($orderDocument->metadata, 'generated_pdf_storage_driver', DocumentStorageService::DRIVER_LOCAL);
 
-        return $driver === DocumentStorageService::DRIVER_NEXTCLOUD
-            ? DocumentStorageService::DRIVER_NEXTCLOUD
-            : DocumentStorageService::DRIVER_LOCAL;
+        return $this->documentStorage->resolveStoredDriver(is_string($driver) ? $driver : null);
     }
 
     private function resolveCachedPdfPreviewResponse(
