@@ -1,6 +1,14 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-14 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-18 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Tenant welcome mail — admin guide (2026-11-18)
+
+**Path:** platform/demo provision → `TenantOnboardingService::sendWelcomeInvite` → `TenantWelcomeMail`.
+
+**Guide included:** short admin checklist in body + attachment `tenant-admin-guide.md` from platform file `docs/sync/tenant-admin-crm-launch.md` (no tenant PII; not the in-tenant `admin-guide` pack — class B still gets only `crm-user-guide` in sales book).
+
+**Test:** `tests/Unit/Mail/TenantWelcomeMailTest.php` (no DB). **No deploy.**
 
 ## ADR-021 + ADR-022 P0 landed (2026-11-14)
 
