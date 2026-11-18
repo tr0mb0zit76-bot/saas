@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Support\InertiaAppSurface;
 use App\Support\PlatformHost;
 use App\Support\TenantContext;
 use Closure;
@@ -27,6 +28,14 @@ class IdentifyTenant
             ?? $this->resolveSubdomain($request->getHost());
 
         if ($slug === null || $slug === '') {
+            // Marketing витрина on apex/www (and dedicated SHOWCASE_DOMAIN) has no tenant.
+            // CRM paths on the same host stay fail-closed below.
+            if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Showcase) {
+                TenantContext::bypass(true);
+
+                return $next($request);
+            }
+
             // Lab apex (localhost / saas.local) may fall back to SAAS_DEFAULT_TENANT_SLUG.
             // Production apex/www must not silently resolve to demo.
             if (app()->environment('production')) {

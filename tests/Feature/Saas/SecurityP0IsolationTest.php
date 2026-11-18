@@ -47,13 +47,29 @@ class SecurityP0IsolationTest extends SaasTestCase
 
         TenantContext::bypass(false);
 
-        config(['saas.default_tenant_slug' => $demo->slug]);
-        config(['app.platform_domain' => 'platform.traklo.pro']);
+        $apex = (string) (config('app.showcase_hosts')[0] ?? 'saas.local');
+
+        config([
+            'saas.default_tenant_slug' => $demo->slug,
+            'app.platform_domain' => 'platform.'.$apex,
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+        ]);
 
         $previous = $this->app->make('env');
         $this->app->instance('env', 'production');
 
         try {
+            // Soft-gate marketing landing must render without a tenant slug.
+            $this->get('http://'.$apex.'/')
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->component('Public/TrakloLanding')
+                    ->where('comingSoon', true));
+
+            // CRM on apex stays fail-closed (no silent demo tenant).
+            $this->get('http://'.$apex.'/login')->assertNotFound();
+            $this->get('http://www.'.$apex.'/login')->assertNotFound();
             $this->get('http://traklo.pro/login')->assertNotFound();
             $this->get('http://www.traklo.pro/login')->assertNotFound();
         } finally {
