@@ -6,6 +6,10 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     canLogin: Boolean,
+    comingSoon: {
+        type: Boolean,
+        default: true,
+    },
     texts: {
         type: Object,
         default: () => ({}),
@@ -29,12 +33,49 @@ const props = defineProps({
 });
 
 const page = usePage();
+const waitlistMailto = 'mailto:hello@traklo.pro';
 
 const t = (key, fallback = '') => {
     const value = props.texts[key] ?? page.props.publicSite?.texts?.[key];
 
     return typeof value === 'string' && value.trim() !== '' ? value : fallback;
 };
+
+const heroEyebrow = computed(() => (
+    props.comingSoon
+        ? t('coming_soon_eyebrow', 'Пока не открыто для всех')
+        : t('hero_eyebrow')
+));
+
+const heroNote = computed(() => (
+    props.comingSoon
+        ? t('coming_soon_note', 'Общий доступ ещё не открыт · пилоты по запросу')
+        : t('hero_note')
+));
+
+const primaryCtaHref = computed(() => {
+    if (props.comingSoon) {
+        return waitlistMailto;
+    }
+
+    return props.demoSignupUrl || '#pricing';
+});
+
+const primaryCtaLabel = computed(() => (
+    props.comingSoon
+        ? t('coming_soon_cta', 'Написать нам')
+        : t('hero_cta_primary', props.demoSignupUrl ? 'Получить демо-доступ' : 'Запросить пилот')
+));
+
+const navTrialHref = computed(() => (
+    props.comingSoon ? waitlistMailto : (props.demoSignupUrl || '#pricing')
+));
+
+const navTrialLabel = computed(() => (
+    props.comingSoon
+        ? t('coming_soon_nav', 'Написать нам')
+        : t('nav_trial', props.demoSignupUrl ? 'Демо-доступ' : 'Запросить пилот')
+));
 
 const featureFallbackTitles = {
     leads: 'Лиды и воронка',
@@ -323,22 +364,29 @@ onUnmounted(() => {
                         {{ t('nav_login', 'Вход') }}
                     </a>
                     <a
-                        v-if="demoSignupUrl"
-                        :href="demoSignupUrl"
+                        :href="navTrialHref"
                         class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
                     >
-                        {{ t('nav_trial', 'Демо-доступ') }}
-                    </a>
-                    <a
-                        v-else
-                        href="#pricing"
-                        class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
-                    >
-                        {{ t('nav_trial', 'Запросить пилот') }}
+                        {{ navTrialLabel }}
                     </a>
                 </div>
             </div>
         </header>
+
+        <div
+            v-if="comingSoon"
+            class="border-b border-blue-500/20 bg-blue-500/[0.08]"
+            role="status"
+        >
+            <div class="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 sm:px-6 sm:flex-row sm:items-baseline sm:gap-4">
+                <p class="text-sm font-semibold text-blue-200">
+                    {{ t('coming_soon_banner', 'Мы работаем над созданием Traklo Pro') }}
+                </p>
+                <p class="text-sm leading-6 text-slate-400">
+                    {{ t('coming_soon_text') }}
+                </p>
+            </div>
+        </div>
 
         <main>
             <!-- Hero: brand + one CTA group + product visual -->
@@ -355,7 +403,7 @@ onUnmounted(() => {
                 <div class="relative mx-auto grid max-w-6xl gap-12 px-4 pb-28 pt-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pb-36 lg:pt-24">
                     <div class="space-y-6">
                         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-blue-300/90">
-                            {{ t('hero_eyebrow') }}
+                            {{ heroEyebrow }}
                         </p>
                         <h1 class="traklo-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
                             {{ t('hero_title') }}
@@ -367,18 +415,10 @@ onUnmounted(() => {
                         </div>
                         <div class="flex flex-wrap gap-3">
                             <a
-                                v-if="demoSignupUrl"
-                                :href="demoSignupUrl"
-                                class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white hover:bg-blue-500"
-                            >
-                                {{ t('hero_cta_primary', 'Получить демо-доступ') }}
-                            </a>
-                            <a
-                                v-else
-                                href="#pricing"
+                                :href="primaryCtaHref"
                                 class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 hover:bg-blue-500"
                             >
-                                {{ t('hero_cta_primary') }}
+                                {{ primaryCtaLabel }}
                             </a>
                             <a
                                 v-if="canLogin !== false"
@@ -389,7 +429,7 @@ onUnmounted(() => {
                             </a>
                         </div>
                         <p class="text-sm text-slate-500">
-                            {{ t('hero_note') }}
+                            {{ heroNote }}
                         </p>
                     </div>
 

@@ -250,11 +250,15 @@ class PublicSiteController extends Controller
         }
         $crmScheme = request()->isSecure() ? 'https' : 'http';
 
+        $comingSoon = (bool) config('showcase.coming_soon', true);
+
         return [
             'canLogin' => \Route::has('login'),
+            'comingSoon' => $comingSoon,
             'texts' => $texts,
             'crmLoginUrl' => $crmLoginUrl,
-            'demoSignupUrl' => config('saas.demo_signup_enabled', false)
+            // Soft gate: marketing never advertises self-serve signup while closed.
+            'demoSignupUrl' => (! $comingSoon && config('saas.demo_signup_enabled', false))
                 ? sprintf('%s://%s/demo/signup', $crmScheme, $crmHost)
                 : null,
             'plans' => $plans,

@@ -2,13 +2,32 @@
 
 **Обновлено:** 2026-11-18 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Витрина coming soon (2026-11-18)
+
+Soft gate on apex Traklo Pro landing (`Public/TrakloLanding`, `SHOWCASE_MODE=traklo_pro`).
+
+- Config: `SHOWCASE_COMING_SOON` → `config('showcase.coming_soon')` (default **true**)
+- Banner + hero/nav CTAs → mailto `hello@traklo.pro`; `demoSignupUrl` suppressed on marketing
+- Does **not** touch `platform.*` or tenant CRM hosts / `/demo/signup` routes
+- Flip open later: `SHOWCASE_COMING_SOON=false` (+ rebuild if Vue cache matters)
+- Tests: `tests/Feature/PublicLandingPageTest.php`
+- **No prod deploy** unless asked
+
+## Prod SMTP welcome mail (2026-11-18)
+
+**Deployed HEAD:** `fadf11f` (admin guide in welcome). `deploy-prod.ps1` without maintenance.
+
+**Prod `.env` (secrets not in git):** `MAIL_MAILER=smtp`, host `mail.hosting.reg.ru`, port `465`, `MAIL_SCHEME=smtps` (Laravel 13; `MAIL_ENCRYPTION` unused), username/from `noreply@traklo.pro`, from name `Traklo Pro`, password set. Prior prod had empty `MAIL_USERNAME` / `MAIL_MAILER=log` — used PO mailbox.
+
+**Smoke:** cached config mailer/host/port/scheme confirmed; `Mail::raw` to `noreply@traklo.pro` → **auth ok / send ok**.
+
 ## Tenant welcome mail — admin guide (2026-11-18)
 
 **Path:** platform/demo provision → `TenantOnboardingService::sendWelcomeInvite` → `TenantWelcomeMail`.
 
 **Guide included:** short admin checklist in body + attachment `tenant-admin-guide.md` from platform file `docs/sync/tenant-admin-crm-launch.md` (no tenant PII; not the in-tenant `admin-guide` pack — class B still gets only `crm-user-guide` in sales book).
 
-**Test:** `tests/Unit/Mail/TenantWelcomeMailTest.php` (no DB). **No deploy.**
+**Test:** `tests/Unit/Mail/TenantWelcomeMailTest.php` (no DB). **On prod** at `fadf11f` + SMTP above.
 
 ## ADR-021 + ADR-022 P0 landed (2026-11-14)
 

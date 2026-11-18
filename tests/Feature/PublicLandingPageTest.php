@@ -46,6 +46,42 @@ class PublicLandingPageTest extends TestCase
             );
     }
 
+    public function test_traklo_pro_landing_soft_gates_when_coming_soon(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'saas.demo_signup_enabled' => true,
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('comingSoon', true)
+                ->where('demoSignupUrl', null)
+                ->where('texts.coming_soon_banner', 'Мы работаем над созданием Traklo Pro')
+            );
+    }
+
+    public function test_traklo_pro_landing_exposes_demo_signup_when_open(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+            'saas.demo_signup_enabled' => true,
+            'app.crm_domain' => 'crm.test',
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('comingSoon', false)
+                ->where('demoSignupUrl', 'http://crm.test/demo/signup')
+            );
+    }
+
     public function test_guest_can_open_public_secondary_pages(): void
     {
         $this->get($this->showcaseUrl('/about'))
