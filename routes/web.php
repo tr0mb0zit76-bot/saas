@@ -102,7 +102,10 @@ if ($sameShowcaseAndCrmHost) {
 
         Route::domain($showcaseDomain)->group(function () use ($namePublicRoutes) {
             $home = Route::get('/', function () {
-                if (auth()->check()) {
+                $user = auth()->user();
+                // Tenant CRM users go to cabinet; tenantless sessions (shared cookie /
+                // platform admin) stay on the marketing landing — never raw 403.
+                if ($user instanceof \App\Models\User && filled($user->tenant_id)) {
                     return redirect('/dashboard');
                 }
 

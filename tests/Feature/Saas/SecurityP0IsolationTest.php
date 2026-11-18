@@ -67,14 +67,53 @@ class SecurityP0IsolationTest extends SaasTestCase
                     ->component('Public/TrakloLanding')
                     ->where('comingSoon', true));
 
-            // CRM on apex stays fail-closed (no silent demo tenant).
-            $this->get('http://'.$apex.'/login')->assertNotFound();
-            $this->get('http://www.'.$apex.'/login')->assertNotFound();
-            $this->get('http://traklo.pro/login')->assertNotFound();
-            $this->get('http://www.traklo.pro/login')->assertNotFound();
+            // Apex /login must not 404 — send guests to platform (CRM stays fail-closed, no demo tenant).
+            $platformLogin = 'http://platform.'.$apex.'/login';
+            $this->get('http://'.$apex.'/login')->assertRedirect($platformLogin);
+            $this->get('http://www.'.$apex.'/login')->assertRedirect($platformLogin);
+
+            config(['app.showcase_hosts' => ['traklo.pro', 'www.traklo.pro']]);
+            $this->get('http://traklo.pro/login')->assertRedirect('http://platform.'.$apex.'/login');
+            $this->get('http://www.traklo.pro/login')->assertRedirect('http://platform.'.$apex.'/login');
+
+            // Unknown CRM subdomain stays fail-closed.
+            $this->get('http://unknown-tenant.'.$apex.'/login')->assertNotFound();
         } finally {
             $this->app->instance('env', $previous);
         }
+    }
+
+    public function test_authenticated_tenantless_user_on_apex_sees_landing_not_403(): void
+    {
+        TenantContext::bypass(true);
+
+        $user = User::query()->create([
+            'tenant_id' => null,
+            'role_id' => null,
+            'name' => 'Tenantless',
+            'email' => 'tenantless-'.uniqid().'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        TenantContext::bypass(false);
+
+        $apex = (string) (config('app.showcase_hosts')[0] ?? 'saas.local');
+
+        config([
+            'app.platform_domain' => 'platform.'.$apex,
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'app.same_showcase_and_crm_host' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get('http://'.$apex.'/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('comingSoon', true));
     }
 
     public function test_customer_cargo_parse_stays_heuristic_and_skips_external_llm(): void

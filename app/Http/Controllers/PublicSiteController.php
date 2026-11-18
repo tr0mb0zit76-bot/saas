@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PlatformHost;
 use App\Support\SaasFeatureCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,17 +68,19 @@ class PublicSiteController extends Controller
 
     protected function resolveCrmLoginUrl(): string
     {
+        // Single-host lab: CRM login lives on the same origin.
+        // Production apex must not advertise CRM /login (fail-closed → platform).
+        if (config('app.same_showcase_and_crm_host') && ! app()->isProduction()) {
+            return '/login';
+        }
+
+        if (PlatformHost::domain() !== '') {
+            return PlatformHost::url('/login');
+        }
+
         $crmHost = strtolower(trim((string) config('app.crm_domain')));
         if ($crmHost === '') {
             $crmHost = strtolower(trim((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost')));
-        }
-
-        /** @var list<string> $showcaseHosts */
-        $showcaseHosts = config('app.showcase_hosts', []);
-        $showcaseHost = strtolower(trim((string) ($showcaseHosts[0] ?? '')));
-
-        if ($showcaseHost !== '' && $showcaseHost === $crmHost) {
-            return '/login';
         }
 
         if (strtolower(trim((string) request()->getHost())) === $crmHost) {

@@ -2,6 +2,26 @@
 
 **Обновлено:** 2026-11-18 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## ADR-023 Accepted — workbook UX + thin cash (2026-11-18)
+
+**Plan only** until PO says go. Architect + CFO re-check on cash.
+
+- Canon: [`ADR-023`](../architecture/decisions/ADR-023-workbook-planning-control-shell.md) (**Accepted**)
+- PO locks: name «Бюджетирование»; live plan-fact + warning (freeze = official); soft-map **required** for pilot; KPI = Excel *simplicity/flexibility* not numeric match; **thin ДДС before external Enterprise**
+- «Безналичные статьи» = bank statement / cashless settlement → fact (not non-monetary)
+- UA model: statement auto + manual + «сколько сейчас» + retro + light predictive
+- Rephase: **P0** includes thin cash (statement balance, not schedule DSO/DPO); P2 = DSO/DPO from payment schedules
+- CFO: margin−OPEX stays «план маржи», never «касса»
+- Ask PO: утверждаем и кодим P0? (optional: opening balance = statement and/or manual override)
+
+## Prod hotfix — apex `/login` 404 + tenantless 403 (2026-11-18)
+
+**Root causes:** (1) production apex CRM `/login` fail-closed via `IdentifyTenant` → raw 404 while showcase «Вход» pointed at `/login`; (2) `SetTenantFromAuthenticatedUser` aborted 403 for authenticated users with `tenant_id=null` (shared `.traklo.pro` cookie / platform session) even on marketing apex.
+
+**Fix:** apex auth entrypoints redirect to `platform.*/login` (no default tenant); showcase CTA → platform login (lab same-host still `/login`); tenantless on Showcase surface sees landing; same-host `/` only redirects to cabinet when `tenant_id` is set. Unknown CRM subdomains stay 404 (C3).
+
+**Tests:** `PublicLandingPageTest` (coming soon 200, `/login` redirect, CTA); `SecurityP0IsolationTest` (apex login→platform, tenantless landing not 403, unknown subdomain 404).
+
 ## Витрина coming soon (2026-11-18)
 
 Soft gate on apex Traklo Pro landing (`Public/TrakloLanding`, `SHOWCASE_MODE=traklo_pro`).
@@ -11,7 +31,7 @@ Soft gate on apex Traklo Pro landing (`Public/TrakloLanding`, `SHOWCASE_MODE=tra
 - Does **not** touch `platform.*` or tenant CRM hosts / `/demo/signup` routes
 - Flip open later: `SHOWCASE_COMING_SOON=false` (+ rebuild if Vue cache matters)
 - Tests: `tests/Feature/PublicLandingPageTest.php`
-- **No prod deploy** unless asked
+- Soft-gate land: `e44ea33`. Apex `/login` fixed in hotfix above (no longer intentional 404).
 
 ## Prod SMTP welcome mail (2026-11-18)
 
