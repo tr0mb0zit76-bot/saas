@@ -4,7 +4,8 @@
             <div class="space-y-1">
                 <h1 :class="crmPageTitle">Бюджетирование</h1>
                 <p :class="crmPageLead">
-                    Задаёте цели <strong class="font-medium">или</strong> маржу менеджера — график показывает оба ответа сразу.
+                    План выхода в ноль / калькулятор найма: цели <strong class="font-medium">или</strong> маржа менеджера.
+                    Не кассовый бюджет и не налоги — без DSO/DPO, НДС и взносов сверх заданного %.
                 </p>
             </div>
             <div :class="crmSegmented">
@@ -38,7 +39,7 @@
                         </Link>
                     </div>
                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        Названия статей — в «Управленческом учёте». Здесь только план: фикс ₽/мес, % маржи или «первые N мес.».
+                        План OPEX: фикс на всех, ставка на 1 менеджера × N, или % маржи. «Действует N мес.» — иначе весь горизонт.
                     </p>
                     <div class="mt-3 space-y-2">
                         <div
@@ -60,9 +61,25 @@
                                     <option value="percent_of_margin">% от маржи</option>
                                 </select>
                             </label>
+                            <label
+                                v-if="article.cost_type !== 'percent_of_margin'"
+                                class="mt-2 block space-y-0.5"
+                            >
+                                <span class="text-[10px] uppercase text-zinc-500">База</span>
+                                <select
+                                    v-model="article.amount_basis"
+                                    class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                                    @change="persistOpexArticle(article)"
+                                >
+                                    <option value="total">На всех (lump)</option>
+                                    <option value="per_head">На 1 менеджера × N</option>
+                                </select>
+                            </label>
                             <div class="mt-2 grid grid-cols-2 gap-2">
                                 <label v-if="article.cost_type !== 'percent_of_margin'" class="space-y-0.5">
-                                    <span class="text-[10px] uppercase text-zinc-500">₽/мес</span>
+                                    <span class="text-[10px] uppercase text-zinc-500">
+                                        {{ article.amount_basis === 'per_head' ? '₽/мес на 1 менеджера' : '₽/мес на всех' }}
+                                    </span>
                                     <input
                                         v-model.number="article.amount_monthly"
                                         type="number"
@@ -85,13 +102,13 @@
                                     >
                                 </label>
                                 <label class="space-y-0.5">
-                                    <span class="text-[10px] uppercase text-zinc-500">Первые N мес.</span>
+                                    <span class="text-[10px] uppercase text-zinc-500">Действует N мес.</span>
                                     <input
                                         v-model.number="article.ramp_months"
                                         type="number"
                                         min="1"
                                         max="36"
-                                        placeholder="всегда"
+                                        placeholder="весь горизонт"
                                         class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
                                         @change="persistOpexArticle(article)"
                                     >
@@ -203,6 +220,20 @@
                                 max="100"
                                 class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-600 dark:bg-zinc-950"
                             >
+                        </label>
+                        <label class="block space-y-1">
+                            <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Взносы % к ФОТ (per_head)</span>
+                            <input
+                                v-model.number="localInputs.payroll_contributions_percent"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm tabular-nums dark:border-zinc-600 dark:bg-zinc-950"
+                            >
+                            <p class="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+                                К сумме ставок × N. Подсказка: МСП ~15%, общий режим ~30%. Не налоговый расчёт.
+                            </p>
                         </label>
                         <label class="block space-y-1">
                             <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Вливание собственника, ₽</span>
@@ -342,8 +373,10 @@
                         <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-50">План маржи на одного менеджера</h2>
                         <p class="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
                             План на каждого из {{ plan.manager_plan.manager_count }} менеджеров.
-                            <strong class="font-medium">Безубыточность</strong> — накопленный остаток (с вливанием) ≥ 0;
-                            <strong class="font-medium">ноль за месяц</strong> — поток за месяц ≥ 0, касса может быть ещё в минусе.
+                            <strong class="font-medium">Ноль месяца</strong> — поток ≥ 0;
+                            <strong class="font-medium">окупаемость</strong> — накопленный остаток ≥ 0;
+                            <strong class="font-medium">цель</strong> — дивиденды/резерв.
+                            Модель = маржа − OPEX, не касса и не налоги.
                         </p>
                     </div>
                     <div class="overflow-x-auto">
@@ -384,10 +417,10 @@
                                         {{ formatMoney(row.cumulative) }}
                                     </td>
                                     <td class="px-4 py-2.5 text-xs text-zinc-500">
-                                        <span v-if="row.tags.includes('cash_be')" class="rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">Безубыточность</span>
-                                        <span v-if="row.tags.includes('operating_be')" class="ml-1 rounded bg-amber-100 px-2 py-0.5 text-amber-900 dark:bg-amber-950 dark:text-amber-200">Ноль за месяц</span>
-                                        <span v-if="row.tags.includes('plan_milestone')" class="ml-1 rounded bg-sky-100 px-2 py-0.5 text-sky-900 dark:bg-sky-950 dark:text-sky-200">План: покрытие OPEX</span>
-                                        <span v-if="row.tags.includes('target')" class="ml-1 rounded bg-violet-100 px-2 py-0.5 text-violet-900 dark:bg-violet-950 dark:text-violet-200">Цель / дивиденды</span>
+                                        <span v-if="row.tags.includes('cash_be')" class="rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">Окупаемость</span>
+                                        <span v-if="row.tags.includes('operating_be')" class="ml-1 rounded bg-amber-100 px-2 py-0.5 text-amber-900 dark:bg-amber-950 dark:text-amber-200">Ноль месяца</span>
+                                        <span v-if="row.tags.includes('plan_milestone')" class="ml-1 rounded bg-sky-100 px-2 py-0.5 text-sky-900 dark:bg-sky-950 dark:text-sky-200">План: ноль месяца</span>
+                                        <span v-if="row.tags.includes('target')" class="ml-1 rounded bg-violet-100 px-2 py-0.5 text-violet-900 dark:bg-violet-950 dark:text-violet-200">Цель</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -969,6 +1002,7 @@ function formatInitiativeBudget(initiative) {
 const localInputs = reactive(normalizeBudgetInputs(props.inputs));
 const localOpexArticles = reactive(props.opex_articles.map((a) => ({
     cost_type: a.cost_type ?? 'fixed_monthly',
+    amount_basis: a.amount_basis ?? 'total',
     ...a,
 })));
 
@@ -983,6 +1017,7 @@ watch(
     (next) => {
         localOpexArticles.splice(0, localOpexArticles.length, ...next.map((a) => ({
             cost_type: a.cost_type ?? 'fixed_monthly',
+            amount_basis: a.amount_basis ?? 'total',
             ...a,
         })));
     },
@@ -1074,11 +1109,11 @@ const timelineMarkers = computed(() => {
     return markers;
 });
 
-const marginAtPlanMonth = computed(() => marginForTargetNet(localInputs.breakeven_month, localOpexArticles, 0));
+const marginAtPlanMonth = computed(() => marginForTargetNet(localInputs.breakeven_month, localOpexArticles, 0, localInputs));
 
 const marginAtCashZeroMonth = computed(() => (
     planFromGoals.value.summary.required_margin_cash_zero
-    ?? marginForTargetNet(localInputs.cash_zero_month, localOpexArticles, 0)
+    ?? marginForTargetNet(localInputs.cash_zero_month, localOpexArticles, 0, localInputs)
 ));
 
 const percentRateAtPlanMonth = computed(() => monthlyPercentRate(localInputs.breakeven_month, localOpexArticles));
@@ -1143,6 +1178,9 @@ function persistOpexArticle(article) {
 
     const payload = {
         cost_type: article.cost_type || 'fixed_monthly',
+        amount_basis: article.cost_type === 'percent_of_margin'
+            ? 'total'
+            : (article.amount_basis === 'per_head' ? 'per_head' : 'total'),
         amount_monthly: article.cost_type === 'percent_of_margin' ? 0 : (Number(article.amount_monthly) || 0),
         percent_of_margin: article.cost_type === 'percent_of_margin'
             ? (Number(article.percent_of_margin) || 0)
@@ -1300,13 +1338,13 @@ const summaryCards = computed(() => {
         cards.push(
             {
                 key: 'be-cash',
-                label: 'Безубыточность',
+                label: 'Окупаемость',
                 value: cashBeValue,
                 hint: cashBeHint,
             },
             {
                 key: 'be-op',
-                label: 'Ноль за месяц',
+                label: 'Ноль месяца',
                 value: s.breakeven_month_operating ? `Месяц ${s.breakeven_month_operating}` : '—',
                 hint: 'Поток за месяц ≥ 0',
             },
@@ -1321,19 +1359,19 @@ const summaryCards = computed(() => {
         cards.push(
             {
                 key: 'be-cash',
-                label: 'Безубыточность',
+                label: 'Окупаемость',
                 value: cashBeValue,
                 hint: cashBeHint,
             },
             {
                 key: 'be-op',
-                label: 'Ноль за месяц',
+                label: 'Ноль месяца',
                 value: s.breakeven_month_operating ? `Месяц ${s.breakeven_month_operating}` : '—',
                 hint: 'Первый месяц: поток ≥ 0',
             },
             {
                 key: 'plan-ms',
-                label: 'Ноль за месяц (план)',
+                label: 'Ноль месяца (план)',
                 value: s.plan_milestone_month ? `Месяц ${s.plan_milestone_month}` : '—',
                 hint: 'Поток за месяц ≥ 0',
             },
@@ -1342,18 +1380,24 @@ const summaryCards = computed(() => {
 
     cards.push(
         {
+            key: 'peak',
+            label: 'Пик финансирования',
+            value: formatMoney(s.peak_funding ?? Math.max(0, -(s.min_cumulative || 0))),
+            hint: 'Макс. потребность в деньгах модели (не касса)',
+        },
+        {
             key: 'x',
             label: 'X — цель на менеджера',
             value: formatMoney(s.manager_target_x),
             hint: localInputs.calculation_mode === MODE_BOTTOM_UP
                 ? 'Заданная / из CRM маржа'
-                : `К месяцу ${localInputs.target_dividends_month} (дивиденды)`,
+                : `К месяцу ${localInputs.target_dividends_month} (цель)`,
         },
         {
             key: 'y',
             label: 'Y — нижний порог',
             value: formatMoney(s.manager_floor_y),
-            hint: 'При кассовой безубыточности',
+            hint: 'При окупаемости (накопленный ≥ 0)',
         },
     );
 

@@ -2,7 +2,12 @@
     <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto lg:min-h-0">
         <div>
             <h1 class="text-2xl font-semibold">Арендаторы</h1>
-            <p class="mt-1 text-sm text-zinc-500">Создание, тариф, статус и биллинг арендаторов Traklo Pro.</p>
+            <p class="mt-1 text-sm text-zinc-500">
+                Создание, тариф, статус и биллинг арендаторов Traklo Pro.
+                Базовый набор модулей тарифа — в
+                <Link :href="route('platform.plans.index')" class="text-sky-700 hover:underline dark:text-sky-300">Тарифы и модули</Link>;
+                кнопка «Модули» у строки — переопределение для клиента.
+            </p>
         </div>
 
         <div class="flex justify-end">
@@ -97,6 +102,9 @@
                             </button>
                             <Link :href="route('platform.tenants.features', tenant.id)" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700">
                                 Модули
+                            </Link>
+                            <Link :href="route('platform.tenants.ops', tenant.id)" class="rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-700">
+                                Ops
                             </Link>
                             <button type="button" class="rounded-lg bg-sky-600 px-2 py-1 text-xs text-white" @click="markPaid(tenant.id)">
                                 Оплачено

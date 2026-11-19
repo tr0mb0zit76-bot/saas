@@ -43,6 +43,11 @@ final class LeadSource
             return null;
         }
 
+        // Traklo cabinet requests store source as traklo_customer_request[ · contact]; UI treats them as inbound.
+        if ($value === 'traklo_customer_request' || str_starts_with($value, 'traklo_customer_request · ')) {
+            return self::SOURCES['inbound'];
+        }
+
         return self::SOURCES[$value] ?? $value;
     }
 }

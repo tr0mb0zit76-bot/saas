@@ -14,6 +14,8 @@ class LoadBoardOfferSource
 
     public const MESSENGER = 'messenger';
 
+    public const TRAKLO_CARRIER = 'traklo_carrier';
+
     /**
      * @return array<string, string>
      */
@@ -25,6 +27,7 @@ class LoadBoardOfferSource
             self::PHONE => 'Звонок',
             self::EMAIL => 'Почта',
             self::MESSENGER => 'Мессенджер',
+            self::TRAKLO_CARRIER => 'Кабинет перевозчика',
         ];
     }
 

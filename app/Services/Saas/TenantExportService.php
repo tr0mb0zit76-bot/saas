@@ -3,9 +3,11 @@
 namespace App\Services\Saas;
 
 use App\Models\Tenant;
-use App\Models\TenantUsageLog;
 use App\Support\TenantContext;
+use App\Support\TenantStorage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use ZipArchive;
 
 final class TenantExportService
@@ -23,6 +25,7 @@ final class TenantExportService
         File::ensureDirectoryExists($exportDir);
 
         TenantContext::runAs($tenant, function () use ($tenant, $exportDir): void {
+            TenantContext::bypass(false);
             $snapshot = [
                 'tenant' => [
                     'id' => $tenant->id,
@@ -45,17 +48,66 @@ final class TenantExportService
                 $exportDir.'/manifest.json',
                 json_encode($snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             );
+
+            foreach ([
+                'users',
+                'contractors',
+                'contractor_contacts',
+                'fleet_drivers',
+                'orders',
+                'mail_messages',
+                'ai_interaction_events',
+            ] as $table) {
+                $this->dumpTable($table, $tenant->id, $exportDir);
+            }
         });
+
+        $storagePrefix = 'tenants/'.$tenant->id;
+        if (TenantStorage::disk()->exists($storagePrefix)) {
+            foreach (TenantStorage::disk()->allFiles($storagePrefix) as $file) {
+                $contents = TenantStorage::disk()->get($file);
+                if ($contents === null) {
+                    continue;
+                }
+                $relative = 'files/'.ltrim(substr($file, strlen($storagePrefix)), '/');
+                $target = $exportDir.'/'.$relative;
+                File::ensureDirectoryExists(dirname($target));
+                File::put($target, $contents);
+            }
+        }
 
         $zipPath = $exportDir.'.zip';
 
         $zip = new ZipArchive;
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        $zip->addFile($exportDir.'/manifest.json', 'manifest.json');
+        $files = File::allFiles($exportDir);
+        foreach ($files as $file) {
+            $zip->addFile($file->getPathname(), $file->getRelativePathname());
+        }
         $zip->close();
 
         File::deleteDirectory($exportDir);
 
         return $zipPath;
+    }
+
+    private function dumpTable(string $table, int $tenantId, string $exportDir): void
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'tenant_id')) {
+            return;
+        }
+
+        $hidden = ['password', 'remember_token', 'mail_imap_secret'];
+        $columns = array_values(array_filter(
+            Schema::getColumnListing($table),
+            fn (string $column): bool => ! in_array($column, $hidden, true),
+        ));
+
+        $rows = DB::table($table)->where('tenant_id', $tenantId)->get($columns);
+
+        File::put(
+            $exportDir.'/'.$table.'.json',
+            json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+        );
     }
 }

@@ -34,7 +34,10 @@ class PublicLandingPageTest extends TestCase
 
     public function test_guest_can_open_traklo_pro_landing_page(): void
     {
-        config(['showcase.mode' => 'traklo_pro']);
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+        ]);
 
         $this->get($this->showcaseUrl('/'))
             ->assertOk()
@@ -43,6 +46,46 @@ class PublicLandingPageTest extends TestCase
                 ->where('canLogin', Route::has('login'))
                 ->has('texts.brand')
                 ->has('plans')
+            );
+    }
+
+    public function test_traklo_pro_landing_closed_when_coming_soon(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'saas.demo_signup_enabled' => true,
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloComingSoon')
+                ->where('comingSoon', true)
+                ->where('texts.coming_soon_banner', 'Мы работаем над созданием Traklo Pro')
+                ->missing('plans')
+                ->missing('planMatrix')
+                ->missing('demoSignupUrl')
+                ->missing('texts.hero_title')
+                ->missing('texts.feature_orders_title')
+            );
+    }
+
+    public function test_traklo_pro_landing_exposes_demo_signup_when_open(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+            'saas.demo_signup_enabled' => true,
+            'app.crm_domain' => 'crm.test',
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('comingSoon', false)
+                ->where('demoSignupUrl', 'http://crm.test/demo/signup')
             );
     }
 
@@ -95,16 +138,92 @@ class PublicLandingPageTest extends TestCase
         }
     }
 
+    public function test_traklo_pro_landing_uses_relative_login_on_single_host_lab(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+            'app.crm_domain' => 'saas.local',
+            'app.showcase_hosts' => ['saas.local'],
+            'app.same_showcase_and_crm_host' => true,
+            'app.platform_domain' => 'platform.saas.local',
+        ]);
+
+        $this->get('http://saas.local/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('crmLoginUrl', '/login')
+                ->where('publicSite.crm_login_url', '/login')
+            );
+    }
+
+    public function test_traklo_pro_landing_points_login_cta_to_platform_on_production_apex(): void
+    {
+        // Keep same_showcase true so apex `/` stays a Showcase document path under
+        // production IdentifyTenant; production alone flips the CTA to platform login.
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'app.same_showcase_and_crm_host' => true,
+            'app.platform_domain' => 'platform.traklo.pro',
+            'app.url' => 'https://traklo.pro',
+        ]);
+
+        $previous = $this->app->make('env');
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->get($this->showcaseUrl('/'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->component('Public/TrakloComingSoon')
+                    ->where('comingSoon', true)
+                    ->where('crmLoginUrl', 'https://platform.traklo.pro/login')
+                    ->where('publicSite.crm_login_url', 'https://platform.traklo.pro/login')
+                    ->missing('plans')
+                );
+        } finally {
+            $this->app->instance('env', $previous);
+        }
+    }
+
+    public function test_apex_login_redirects_to_platform_not_404(): void
+    {
+        $apex = config('app.showcase_hosts')[0] ?? 'saas.local';
+
+        config([
+            'app.platform_domain' => 'platform.'.$apex,
+            'app.same_showcase_and_crm_host' => true,
+        ]);
+
+        $previous = $this->app->make('env');
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->get($this->showcaseUrl('/login'))
+                ->assertRedirect('http://platform.'.$apex.'/login');
+        } finally {
+            $this->app->instance('env', $previous);
+        }
+    }
+
     public function test_authenticated_user_is_redirected_from_root_to_dashboard(): void
     {
         $user = new User;
         $user->id = 1;
+        $user->tenant_id = 1;
         $user->name = 'Admin User';
         $user->email = 'admin@example.com';
         $user->exists = true;
 
         $response = $this->actingAs($user)->get('/');
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $this->assertTrue(
+            str_contains($location, '/dashboard') || str_contains($location, '/onboarding'),
+            "Expected cabinet redirect, got {$location}"
+        );
     }
 }

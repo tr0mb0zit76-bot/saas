@@ -308,7 +308,7 @@ class HandleInertiaRequests extends Middleware
 
     private function shouldServeUrlsAsHttps(Request $request): bool
     {
-        if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
+        if ((bool) config('app.force_https')) {
             return true;
         }
 

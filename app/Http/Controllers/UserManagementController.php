@@ -40,20 +40,36 @@ class UserManagementController extends Controller
                     'signingOwnCompanies:id,name',
                     'departments:id,name',
                 ])
+                // CRM «Пользователи» is staff-only; Traklo externals stay in counterparty invite flow.
+                ->when(
+                    Schema::hasColumn('users', 'is_external'),
+                    fn ($q) => $q->where(function ($query): void {
+                        $query->where('is_external', false)->orWhereNull('is_external');
+                    }),
+                )
                 ->orderBy('is_active', 'desc')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (User $user): array => $this->serializeUser($user))
                 ->values(),
             'roles' => Role::query()
+                ->where('name', 'not like', 'counterparty_%')
                 ->orderBy('display_name')
                 ->orderBy('name')
-                ->get(['id', 'name', 'display_name'])
+                ->get(array_values(array_filter([
+                    'id',
+                    'name',
+                    'display_name',
+                    // Column may be absent on older lab DBs; guard like RoleManagementController.
+                    Schema::hasColumn('roles', 'has_signing_authority') ? 'has_signing_authority' : null,
+                ])))
                 ->map(fn (Role $role): array => [
                     'id' => $role->id,
                     'name' => $role->name,
                     'display_name' => $role->display_name,
-                    'default_has_signing_authority' => (bool) ($role->has_signing_authority ?? false),
+                    'default_has_signing_authority' => Schema::hasColumn('roles', 'has_signing_authority')
+                        ? (bool) $role->has_signing_authority
+                        : false,
                 ])
                 ->values(),
             'ownCompanies' => $ownCompanies,
@@ -129,6 +145,7 @@ class UserManagementController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
+        abort_if($user->isExternal(), 404);
         abort_if($request->user()?->is($user) && ! $request->boolean('is_active'), 422, 'Вы не можете деактивировать свою учетную запись.');
 
         $validated = $request->validated();
@@ -200,6 +217,7 @@ class UserManagementController extends Controller
     public function destroy(Request $request, User $user): RedirectResponse
     {
         abort_unless(RoleAccess::canAccessSettingsSystem($request->user()), 403);
+        abort_if($user->isExternal(), 404);
         abort_if($request->user()?->is($user), 422, 'Вы не можете удалить свою учетную запись.');
 
         $user->delete();

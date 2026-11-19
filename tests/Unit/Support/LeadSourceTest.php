@@ -14,6 +14,12 @@ class LeadSourceTest extends TestCase
         $this->assertSame('Повторная обработка базы', LeadSource::label('base_reprocessing'));
     }
 
+    public function test_label_maps_traklo_customer_request_to_inbound(): void
+    {
+        $this->assertSame('Входящий', LeadSource::label('traklo_customer_request'));
+        $this->assertSame('Входящий', LeadSource::label('traklo_customer_request · Иван Петров'));
+    }
+
     public function test_label_returns_original_value_for_unknown_source(): void
     {
         $this->assertSame('custom_channel', LeadSource::label('custom_channel'));

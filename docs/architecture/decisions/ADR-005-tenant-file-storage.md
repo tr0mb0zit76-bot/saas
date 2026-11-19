@@ -7,7 +7,7 @@
 
 **Traklo Pro uses S3-compatible object storage** as the target production backend for all tenant-owned files. Implementation via `App\Support\TenantStorage` and Laravel disk `tenant_s3`.
 
-**Nextcloud WebDAV is legacy (v5 / single-tenant AA only)** — not extended for SaaS multi-tenant path.
+**Nextcloud WebDAV is removed from the SaaS codebase.** Files live only on `TenantStorage` / local disk. AA/v5 Nextcloud stays in the v5 repo if needed; migration into SaaS is export → `tenants/{id}/` (no WebDAV adapter here).
 
 ### Object key layout (local lab = same paths)
 

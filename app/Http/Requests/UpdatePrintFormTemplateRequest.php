@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\PrintFormTemplate;
+use App\Support\PrintFormCatalogPathRule;
 use App\Support\PrintFormTemplateDefaultScope;
 use App\Support\PrintFormTemplateTransportScope;
 use App\Support\RoleAccess;
@@ -54,7 +55,7 @@ class UpdatePrintFormTemplateRequest extends FormRequest
             'is_active' => ['nullable', 'boolean'],
             'variable_mappings' => ['nullable', 'array'],
             'variable_mappings.*.placeholder' => ['required_with:variable_mappings', 'string', 'max:255'],
-            'variable_mappings.*.source_path' => ['nullable', 'string', 'max:255'],
+            'variable_mappings.*.source_path' => PrintFormCatalogPathRule::sourcePath(),
             'internal_signature_placeholder' => ['nullable', 'string', 'max:255'],
             'internal_stamp_placeholder' => ['nullable', 'string', 'max:255'],
             'signature_image_width_mm' => ['nullable', 'numeric', 'min:5', 'max:200'],

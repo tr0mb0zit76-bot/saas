@@ -2,11 +2,20 @@
 
 namespace Tests;
 
+use App\Support\TenantContext;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 
 abstract class SaasTestCase extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        TenantContext::clear();
+    }
+
     use RefreshDatabase {
         refreshTestDatabase as baseRefreshTestDatabase;
     }
@@ -33,6 +42,6 @@ abstract class SaasTestCase extends TestCase
             $this->migrateFreshUsing(),
         ));
 
-        $this->app->make(\Illuminate\Contracts\Console\Kernel::class)->setArtisan(null);
+        $this->app->make(Kernel::class)->setArtisan(null);
     }
 }

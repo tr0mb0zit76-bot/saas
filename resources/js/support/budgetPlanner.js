@@ -1,6 +1,9 @@
 export const MODE_TOP_DOWN = 'top_down';
 export const MODE_BOTTOM_UP = 'bottom_up';
 
+/** Keep in sync with BudgetPlannerService::FORMULA_VERSION */
+export const FORMULA_VERSION = 'adr020_p0_v1';
+
 export function defaultBudgetInputs() {
     return {
         calculation_mode: MODE_TOP_DOWN,
@@ -13,6 +16,7 @@ export function defaultBudgetInputs() {
         manager_count: 3,
         margin_per_manager: null,
         use_db_margin_per_manager: false,
+        payroll_contributions_percent: 30.2,
     };
 }
 
@@ -49,6 +53,11 @@ export function normalizeBudgetInputs(raw) {
         manager_count: Math.max(1, Math.min(100, Number(raw?.manager_count ?? defaults.manager_count) || defaults.manager_count)),
         margin_per_manager: marginPerManager,
         use_db_margin_per_manager: Boolean(raw?.use_db_margin_per_manager),
+        payroll_contributions_percent: Math.max(
+            0,
+            Math.min(100, Number(raw?.payroll_contributions_percent ?? defaults.payroll_contributions_percent) || 0),
+        ),
+        formula_version: FORMULA_VERSION,
     };
 }
 
@@ -58,8 +67,12 @@ export function articleAppliesToMonth(month, article) {
     return ramp === null || ramp === undefined || month <= Number(ramp);
 }
 
-export function monthlyFixedOpex(month, opexArticles) {
+/** Mirrors BudgetPlannerService::monthlyFixedOpex — per_head × N + взносы %. */
+export function monthlyFixedOpex(month, opexArticles, inputs = {}) {
+    const managerCount = Math.max(1, Number(inputs.manager_count) || 1);
+    const contribPct = Math.max(0, Number(inputs.payroll_contributions_percent) || 0);
     let total = 0;
+    let perHeadBase = 0;
 
     for (const article of opexArticles) {
         if (!articleAppliesToMonth(month, article)) {
@@ -70,7 +83,20 @@ export function monthlyFixedOpex(month, opexArticles) {
             continue;
         }
 
-        total += Number(article.amount_monthly) || 0;
+        const amount = Number(article.amount_monthly) || 0;
+        const basis = article.amount_basis || 'total';
+
+        if (basis === 'per_head') {
+            const scaled = amount * managerCount;
+            perHeadBase += scaled;
+            total += scaled;
+        } else {
+            total += amount;
+        }
+    }
+
+    if (contribPct > 0 && perHeadBase > 0) {
+        total += perHeadBase * (contribPct / 100);
     }
 
     return total;
@@ -94,14 +120,14 @@ export function monthlyPercentRate(month, opexArticles) {
     return Math.min(0.99, rate);
 }
 
-export function monthlyOpex(month, opexArticles, margin = 0) {
-    const fixed = monthlyFixedOpex(month, opexArticles);
+export function monthlyOpex(month, opexArticles, margin = 0, inputs = {}) {
+    const fixed = monthlyFixedOpex(month, opexArticles, inputs);
 
     return fixed + margin * monthlyPercentRate(month, opexArticles);
 }
 
-export function marginForTargetNet(month, opexArticles, targetNet) {
-    const fixed = monthlyFixedOpex(month, opexArticles);
+export function marginForTargetNet(month, opexArticles, targetNet, inputs = {}) {
+    const fixed = monthlyFixedOpex(month, opexArticles, inputs);
     const rate = monthlyPercentRate(month, opexArticles);
 
     if (rate >= 0.99) {
@@ -144,7 +170,7 @@ function simulateCumulativeThroughMonth(throughMonth, inputs, opexArticles, knot
 
     for (let month = 1; month <= throughMonth; month += 1) {
         const margin = marginAtMonthWithKnots(month, knots);
-        cumulative += margin - monthlyOpex(month, opexArticles, margin);
+        cumulative += margin - monthlyOpex(month, opexArticles, margin, inputs);
     }
 
     return cumulative;
@@ -153,7 +179,7 @@ function simulateCumulativeThroughMonth(throughMonth, inputs, opexArticles, knot
 function resolveMarginAtCashZero(inputs, opexArticles, operatingMonth, cashZeroMonth, targetMonth, marginAtOperating, marginAtTarget) {
     const floor = Math.max(
         marginAtOperating,
-        marginForTargetNet(cashZeroMonth, opexArticles, 0),
+        marginForTargetNet(cashZeroMonth, opexArticles, 0, inputs),
     );
 
     if (cashZeroMonth <= operatingMonth) {
@@ -161,7 +187,7 @@ function resolveMarginAtCashZero(inputs, opexArticles, operatingMonth, cashZeroM
     }
 
     let low = floor;
-    let high = Math.max(marginAtTarget, floor * 2, marginForTargetNet(cashZeroMonth, opexArticles, inputs.target_dividends_amount));
+    let high = Math.max(marginAtTarget, floor * 2, marginForTargetNet(cashZeroMonth, opexArticles, inputs.target_dividends_amount, inputs));
 
     for (let i = 0; i < 64; i += 1) {
         const mid = (low + high) / 2;
@@ -290,8 +316,8 @@ function buildTopDownPlan(inputs, opexArticles) {
     const targetMonth = inputs.target_dividends_month;
     const managerCount = inputs.manager_count;
 
-    let marginAtOperating = marginForTargetNet(operatingMonth, opexArticles, 0);
-    let marginAtTarget = marginForTargetNet(targetMonth, opexArticles, inputs.target_dividends_amount);
+    let marginAtOperating = marginForTargetNet(operatingMonth, opexArticles, 0, inputs);
+    let marginAtTarget = marginForTargetNet(targetMonth, opexArticles, inputs.target_dividends_amount, inputs);
     let marginAtCash = resolveMarginAtCashZero(
         inputs,
         opexArticles,
@@ -317,18 +343,19 @@ function buildTopDownPlan(inputs, opexArticles) {
 
     for (let month = 1; month <= horizon; month += 1) {
         const margin = marginAtMonthWithKnots(month, rampKnots);
-        const opex = monthlyOpex(month, opexArticles, margin);
+        const opex = monthlyOpex(month, opexArticles, margin, inputs);
         const net = margin - opex;
         cumulative += net;
         minCumulative = Math.min(minCumulative, cumulative);
+        const opexFixed = monthlyFixedOpex(month, opexArticles, inputs);
 
         months.push({
             month,
             margin: Math.round(margin * 100) / 100,
             margin_per_manager: Math.round((margin / managerCount) * 100) / 100,
             opex: Math.round(opex * 100) / 100,
-            opex_fixed: Math.round(monthlyFixedOpex(month, opexArticles) * 100) / 100,
-            opex_percent: Math.round((opex - monthlyFixedOpex(month, opexArticles)) * 100) / 100,
+            opex_fixed: Math.round(opexFixed * 100) / 100,
+            opex_percent: Math.round((opex - opexFixed) * 100) / 100,
             net: Math.round(net * 100) / 100,
             cumulative: Math.round(cumulative * 100) / 100,
         });
@@ -345,6 +372,7 @@ function buildTopDownPlan(inputs, opexArticles) {
         manager_plan: managerPlan,
         summary: {
             calculation_mode: MODE_TOP_DOWN,
+            formula_version: FORMULA_VERSION,
             required_margin_breakeven: Math.round(marginAtOperating * 100) / 100,
             required_margin_cash_zero: Math.round(marginAtCash * 100) / 100,
             required_margin_target: Math.round(marginAtTarget * 100) / 100,
@@ -361,8 +389,10 @@ function buildTopDownPlan(inputs, opexArticles) {
             target_dividends_amount: inputs.target_dividends_amount,
             owner_investment: inputs.owner_investment,
             min_cumulative: Math.round(minCumulative * 100) / 100,
+            peak_funding: Math.round(Math.max(0, -minCumulative) * 100) / 100,
             cumulative_at_horizon: Math.round(cumulative * 100) / 100,
             manager_count: managerCount,
+            payroll_contributions_percent: inputs.payroll_contributions_percent,
             margin_per_manager_used: null,
             company_margin_monthly: null,
         },
@@ -383,7 +413,7 @@ function buildBottomUpPlan(inputs, opexArticles, dbBenchmark) {
 
     for (let month = 1; month <= horizon; month += 1) {
         const margin = companyMargin;
-        const opex = monthlyOpex(month, opexArticles, margin);
+        const opex = monthlyOpex(month, opexArticles, margin, inputs);
         const net = margin - opex;
         cumulative += net;
         minCumulative = Math.min(minCumulative, cumulative);
@@ -396,13 +426,15 @@ function buildBottomUpPlan(inputs, opexArticles, dbBenchmark) {
             dividendsMonth = month;
         }
 
+        const opexFixed = monthlyFixedOpex(month, opexArticles, inputs);
+
         months.push({
             month,
             margin: Math.round(margin * 100) / 100,
             margin_per_manager: Math.round(marginPerManager * 100) / 100,
             opex: Math.round(opex * 100) / 100,
-            opex_fixed: Math.round(monthlyFixedOpex(month, opexArticles) * 100) / 100,
-            opex_percent: Math.round((opex - monthlyFixedOpex(month, opexArticles)) * 100) / 100,
+            opex_fixed: Math.round(opexFixed * 100) / 100,
+            opex_percent: Math.round((opex - opexFixed) * 100) / 100,
             net: Math.round(net * 100) / 100,
             cumulative: Math.round(cumulative * 100) / 100,
         });
@@ -411,7 +443,7 @@ function buildBottomUpPlan(inputs, opexArticles, dbBenchmark) {
     const managerPlan = managerPlanFromMonths(months, managerCount, null, dividendsMonth);
     const cashMonth = managerPlan.breakeven_month_cash;
     const beMonth = cashMonth ?? breakevenOperating ?? inputs.breakeven_month;
-    const marginRequiredAtBe = marginForTargetNet(beMonth, opexArticles, 0);
+    const marginRequiredAtBe = marginForTargetNet(beMonth, opexArticles, 0, inputs);
     const cashEstimated = cashMonth === null ? estimateCashBreakevenMonth(months) : null;
 
     return {
@@ -420,6 +452,7 @@ function buildBottomUpPlan(inputs, opexArticles, dbBenchmark) {
         manager_plan: managerPlan,
         summary: {
             calculation_mode: MODE_BOTTOM_UP,
+            formula_version: FORMULA_VERSION,
             margin_per_manager_used: Math.round(marginPerManager * 100) / 100,
             company_margin_monthly: Math.round(companyMargin * 100) / 100,
             breakeven_month_operating: managerPlan.breakeven_month_operating ?? breakevenOperating,
@@ -435,8 +468,10 @@ function buildBottomUpPlan(inputs, opexArticles, dbBenchmark) {
             target_dividends_amount: inputs.target_dividends_amount,
             owner_investment: inputs.owner_investment,
             min_cumulative: Math.round(minCumulative * 100) / 100,
+            peak_funding: Math.round(Math.max(0, -minCumulative) * 100) / 100,
             cumulative_at_horizon: Math.round(cumulative * 100) / 100,
             manager_count: managerCount,
+            payroll_contributions_percent: inputs.payroll_contributions_percent,
         },
     };
 }

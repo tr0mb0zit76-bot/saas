@@ -25,6 +25,7 @@ const {
     cargoLineTotalWeightKg,
     cargoPackageCountFactor,
     cargoWeightInKg,
+    cargoWeightIsTotal,
     cargoLineTotalVolumeM3,
     cargoHasDimensions,
     cargoDimensionsLabel,
@@ -85,7 +86,7 @@ const {
                         </select>
                     </div>
                     <div class="space-y-1 lg:col-span-2">
-                        <label class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Вес</label>
+                        <label class="text-xs font-medium text-zinc-600 dark:text-zinc-400">{{ item.weight_is_total ? 'Общий вес' : 'Вес места' }}</label>
                         <div class="flex gap-1.5">
                             <input
                                 :value="item.weight_value ?? ''"
@@ -99,6 +100,14 @@ const {
                                 <option value="t">т</option>
                             </select>
                         </div>
+                        <select
+                            class="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-1.5 py-1 text-[11px] dark:border-zinc-700 dark:bg-zinc-950"
+                            :value="item.weight_is_total ? 'total' : 'per_place'"
+                            @change="item.weight_is_total = $event.target.value === 'total'"
+                        >
+                            <option value="total">Общий вес</option>
+                            <option value="per_place">Вес места</option>
+                        </select>
                     </div>
                     <div class="space-y-1 lg:col-span-1">
                         <label class="text-xs font-medium text-zinc-600 dark:text-zinc-400">Мест</label>
@@ -229,7 +238,7 @@ const {
                         <div class="font-medium text-zinc-700 dark:text-zinc-200">Сводка позиции</div>
                         <div class="mt-1">
                             Вес: {{ cargoLineTotalWeightKg(item).toFixed(2) }} кг
-                            <span v-if="cargoPackageCountFactor(item) > 1" class="text-zinc-500">({{ cargoWeightInKg(item).toFixed(2) }} кг × {{ cargoPackageCountFactor(item) }})</span>
+                            <span v-if="!cargoWeightIsTotal(item) && cargoPackageCountFactor(item) > 1" class="text-zinc-500">({{ cargoWeightInKg(item).toFixed(2) }} кг × {{ cargoPackageCountFactor(item) }})</span>
                         </div>
                         <div>
                             Объём:

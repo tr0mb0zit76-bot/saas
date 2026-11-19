@@ -30,6 +30,10 @@ final class LeadCargoItemPayloadNormalizer
 
         $cargoType = self::resolveCargoType($item);
 
+        $weightIsTotal = array_key_exists('weight_is_total', $item)
+            ? CargoWeightSemantics::isTotalWeight($item)
+            : null;
+
         $metadata = array_filter([
             'weight_value' => $weightValue,
             'weight_unit' => $weightUnit,
@@ -58,7 +62,15 @@ final class LeadCargoItemPayloadNormalizer
             'trailer_type_ids' => self::normalizeIdList($item['trailer_type_ids'] ?? null),
             'is_oversized' => (bool) ($item['is_oversized'] ?? $cargoType === 'oversized'),
             'is_fragile' => (bool) ($item['is_fragile'] ?? $cargoType === 'fragile'),
+            'needs_temperature' => (bool) ($item['needs_temperature'] ?? false),
+            'temp_min' => self::normalizeFloat($item['temp_min'] ?? null),
+            'temp_max' => self::normalizeFloat($item['temp_max'] ?? null),
         ], fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []);
+
+        // false must survive array_filter — total vs per-place is intentional.
+        if ($weightIsTotal !== null) {
+            $metadata['weight_is_total'] = $weightIsTotal;
+        }
 
         return [
             'name' => trim((string) ($item['name'] ?? '')),
@@ -89,6 +101,7 @@ final class LeadCargoItemPayloadNormalizer
             'weight_value' => $metadata['weight_value'] ?? $cargo->weight_kg,
             'weight_kg' => $metadata['weight_value'] ?? $cargo->weight_kg,
             'weight_unit' => $metadata['weight_unit'] ?? 'kg',
+            'weight_is_total' => CargoWeightSemantics::isTotalWeight($metadata),
             'volume_m3' => $cargo->volume_m3,
             'length_m' => $metadata['length_m'] ?? null,
             'width_m' => $metadata['width_m'] ?? null,
@@ -121,6 +134,9 @@ final class LeadCargoItemPayloadNormalizer
             'cargo_type' => $cargo->cargo_type ?? 'general',
             'is_oversized' => (bool) ($metadata['is_oversized'] ?? $cargo->cargo_type === 'oversized'),
             'is_fragile' => (bool) ($metadata['is_fragile'] ?? $cargo->cargo_type === 'fragile'),
+            'needs_temperature' => (bool) ($metadata['needs_temperature'] ?? false),
+            'temp_min' => $metadata['temp_min'] ?? null,
+            'temp_max' => $metadata['temp_max'] ?? null,
         ];
     }
 

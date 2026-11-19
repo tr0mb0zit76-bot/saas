@@ -12,6 +12,18 @@
             </div>
         </div>
 
+        <div class="grid gap-3 sm:grid-cols-3">
+            <Link
+                v-for="link in quickLinks"
+                :key="link.href"
+                :href="link.href"
+                class="rounded-2xl border border-zinc-200 bg-white p-4 transition hover:border-sky-300 hover:bg-sky-50 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-sky-800 dark:hover:bg-sky-950/40"
+            >
+                <div class="text-sm font-medium text-sky-800 dark:text-sky-200">{{ link.label }}</div>
+                <p class="mt-1 text-xs text-zinc-500">{{ link.hint }}</p>
+            </Link>
+        </div>
+
         <div class="grid gap-4 lg:grid-cols-2">
             <div class="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 class="text-sm font-medium">По статусу</h2>
@@ -47,6 +59,7 @@
 
 <script setup>
 import PlatformLayout from '@/Layouts/PlatformLayout.vue';
+import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 defineOptions({
@@ -63,6 +76,24 @@ const statusLabels = {
     trial: 'Пробный период',
     suspended: 'Приостановлен',
 };
+
+const quickLinks = [
+    {
+        label: 'Тарифы и модули',
+        hint: 'Чекбоксы модулей Start / Pro / Enterprise',
+        href: route('platform.plans.index'),
+    },
+    {
+        label: 'Арендаторы',
+        hint: 'Тариф клиента и переопределение модулей',
+        href: route('platform.tenants.index'),
+    },
+    {
+        label: 'Аудит',
+        hint: 'Журнал изменений платформы',
+        href: route('platform.audit.index'),
+    },
+];
 
 const statCards = computed(() => [
     { label: 'Арендаторы', value: props.stats.tenants_total },

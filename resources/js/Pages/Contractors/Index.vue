@@ -3,18 +3,23 @@ import { computed, nextTick, onMounted, ref, toRaw, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import {
     Building2,
+    ChevronDown,
+    Copy,
     FileDown,
     FileText,
     History,
+    Link2,
     Plus,
     Save,
     Search,
     ShieldCheck,
+    Star,
     Trash2,
     UserCircle,
     Users,
     X,
 } from 'lucide-vue-next';
+import axios from 'axios';
 import Modal from '@/Components/Modal.vue';
 import ContractorsGrid from '@/Components/Contractors/ContractorsGrid.vue';
 import ContractorDocumentsSection from '@/Components/Contractors/ContractorDocumentsSection.vue';
@@ -130,6 +135,11 @@ const availableColumns = computed(() => page.props.contractorColumns ?? []);
 const roleColumnsConfig = computed(() => page.props.auth?.user?.role?.columns_config ?? {});
 const search = ref(props.filters.search || '');
 const activeTab = ref(props.initialTab || 'general');
+const expandedContactIndex = ref(null);
+const trakloBusyContactId = ref(null);
+const trakloInviteUrl = ref('');
+const trakloInviteMessage = ref('');
+const inviteParty = ref('customer');
 const isCreateModalOpen = ref(false);
 const isCreateRouteDismissed = ref(false);
 const isDetailsModalDismissed = ref(false);
@@ -581,11 +591,14 @@ function contractorToForm(contractor) {
         owner_id: contractor.owner_id ?? null,
         contacts: Array.isArray(contractor.contacts)
             ? contractor.contacts.map((contact) => ({
+                id: contact.id ?? null,
                 full_name: contact.full_name ?? '',
                 position: contact.position ?? '',
                 phone: contact.phone ?? '',
                 email: contact.email ?? '',
                 is_primary: Boolean(contact.is_primary),
+                is_traklo_primary: Boolean(contact.is_traklo_primary),
+                has_traklo_user: Boolean(contact.has_traklo_user),
                 is_decision_maker: Boolean(contact.is_decision_maker),
                 role_in_deal: contact.role_in_deal ?? (contact.is_decision_maker ? 'decision_maker' : 'unknown'),
                 communication_notes: contact.communication_notes ?? '',
@@ -619,6 +632,7 @@ function contractorToForm(contractor) {
 }
 
 const form = useForm(contractorToForm(props.selectedContractor));
+const needsTrakloPartyChoice = computed(() => ['both', 'contractor'].includes(String(form.type ?? props.selectedContractor?.type ?? '').toLowerCase()));
 
 /** Синхронизация адресов на закладке «Реквизиты» (не уходят на сервер отдельно). */
 const actualMatchesLegal = ref(false);
@@ -780,6 +794,10 @@ watch(() => props.selectedContractor, (contractor, previousContractor) => {
     }
 
     applyFormState(contractor, { resetTab });
+
+    if (resetTab) {
+        expandedContactIndex.value = null;
+    }
 });
 
 watch(() => form.is_non_resident, (isNonResident) => {
@@ -1555,16 +1573,116 @@ function removeContractor() {
 
 function addContact() {
     form.contacts.push({
+        id: null,
         full_name: '',
         position: '',
         phone: '',
         email: '',
         is_primary: form.contacts.length === 0,
+        is_traklo_primary: false,
+        has_traklo_user: false,
         is_decision_maker: false,
         role_in_deal: 'unknown',
         communication_notes: '',
         notes: '',
     });
+    expandedContactIndex.value = form.contacts.length - 1;
+}
+
+async function setTrakloPrimary(contact) {
+    if (!selectedContractorId.value || !contact?.id) {
+        return;
+    }
+
+    trakloBusyContactId.value = contact.id;
+    trakloInviteMessage.value = '';
+    trakloInviteUrl.value = '';
+
+    try {
+        await axios.post(route('contractors.contacts.traklo.primary', [selectedContractorId.value, contact.id]));
+        form.contacts = (form.contacts ?? []).map((row) => ({
+            ...row,
+            is_traklo_primary: Number(row.id) === Number(contact.id),
+        }));
+        router.reload({ only: ['selectedContractor'], preserveScroll: true });
+    } catch (error) {
+        trakloInviteMessage.value = error?.response?.data?.message ?? 'Не удалось отметить основной контакт Traklo.';
+    } finally {
+        trakloBusyContactId.value = null;
+    }
+}
+
+async function inviteToTraklo(contact) {
+    if (!selectedContractorId.value || !contact?.id) {
+        trakloInviteMessage.value = 'Сначала сохраните контакт, затем пригласите в Traklo.';
+
+        return;
+    }
+
+    trakloBusyContactId.value = contact.id;
+    trakloInviteMessage.value = '';
+    trakloInviteUrl.value = '';
+
+    try {
+        const payload = needsTrakloPartyChoice.value ? { external_party: inviteParty.value } : {};
+        const { data } = await axios.post(
+            route('contractors.contacts.traklo.invite', [selectedContractorId.value, contact.id]),
+            payload,
+        );
+        trakloInviteUrl.value = data.url ?? '';
+        trakloInviteMessage.value = data.created
+            ? 'Ссылка создана. Отправьте её контакту.'
+            : 'Новая ссылка для существующего пользователя.';
+        contact.has_traklo_user = true;
+        router.reload({ only: ['selectedContractor'], preserveScroll: true });
+    } catch (error) {
+        const errors = error?.response?.data?.errors ?? {};
+        trakloInviteMessage.value =
+            errors.email?.[0]
+            ?? errors.role?.[0]
+            ?? errors.external_party?.[0]
+            ?? error?.response?.data?.message
+            ?? 'Не удалось создать приглашение.';
+    } finally {
+        trakloBusyContactId.value = null;
+    }
+}
+
+async function copyTrakloInviteUrl() {
+    if (!trakloInviteUrl.value || !navigator?.clipboard) {
+        return;
+    }
+
+    await navigator.clipboard.writeText(trakloInviteUrl.value);
+    trakloInviteMessage.value = 'Ссылка скопирована в буфер обмена.';
+}
+
+function toggleContactAccordion(index) {
+    expandedContactIndex.value = expandedContactIndex.value === index ? null : index;
+}
+
+function removeContact(index) {
+    removeItem(form.contacts, index);
+
+    if (expandedContactIndex.value === null) {
+        return;
+    }
+
+    if (expandedContactIndex.value === index) {
+        expandedContactIndex.value = null;
+
+        return;
+    }
+
+    if (expandedContactIndex.value > index) {
+        expandedContactIndex.value -= 1;
+    }
+}
+
+function contactSummaryLabel(contact, field, fallback) {
+    const value = String(contact?.[field] ?? '').trim();
+
+    return value !== '' ? value : fallback;
 }
 
 function addInteraction() {
@@ -3439,78 +3557,163 @@ function goToPage(pageNumber) {
                         </div>
                     </div>
                     <div v-else-if="activeTab === 'contacts'" class="space-y-4">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="text-sm text-zinc-500 dark:text-zinc-400">
-                                Отдельные контакты удобно хранить отдельно от основной карточки компании. Основной контакт подставляется в заявку и печатные формы, если в заказе не указан другой.
-                            </div>
+                        <div class="flex items-center justify-end gap-3">
                             <button type="button" class="inline-flex items-center gap-2 border border-zinc-200 px-3 py-2 text-sm text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800" @click="addContact">
                                 <Plus class="h-4 w-4" />
                                 Добавить контакт
                             </button>
                         </div>
 
-                        <div class="space-y-3">
-                            <div v-for="(contact, index) in form.contacts" :key="`contact-${index}`" class="border border-zinc-200 p-4 dark:border-zinc-800">
-                                <div class="mb-3 flex items-center justify-between gap-3">
-                                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Контакт #{{ index + 1 }}</div>
-                                    <button type="button" class="text-sm text-rose-600 hover:text-rose-700 dark:text-rose-300" @click="removeItem(form.contacts, index)">
-                                        Удалить
-                                    </button>
-                                </div>
+                        <div class="space-y-2">
+                            <div
+                                v-for="(contact, index) in form.contacts"
+                                :key="`contact-${index}`"
+                                class="overflow-hidden border border-zinc-200 dark:border-zinc-800"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
+                                    :aria-expanded="expandedContactIndex === index"
+                                    @click="toggleContactAccordion(index)"
+                                >
+                                    <ChevronDown
+                                        class="h-4 w-4 shrink-0 text-zinc-400 transition-transform"
+                                        :class="expandedContactIndex === index ? 'rotate-0' : '-rotate-90'"
+                                    />
+                                    <div class="min-w-0 flex-1">
+                                        <div class="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            {{ contactSummaryLabel(contact, 'full_name', 'Без ФИО') }}
+                                            <span
+                                                v-if="contact.is_primary"
+                                                class="ml-2 inline-flex align-middle text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300"
+                                            >основной</span>
+                                            <span
+                                                v-if="contact.has_traklo_user"
+                                                class="ml-2 inline-flex align-middle rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                            >Traklo</span>
+                                        </div>
+                                        <div class="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                                            {{ contactSummaryLabel(contact, 'position', 'Должность не указана') }}
+                                            ·
+                                            {{ contactSummaryLabel(contact, 'phone', 'Телефон не указан') }}
+                                        </div>
+                                    </div>
+                                </button>
 
-                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                    <div class="space-y-2 xl:col-start-1 xl:row-start-1">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">ФИО</label>
-                                        <input v-model="contact.full_name" type="text" :class="crmFieldFluid" />
+                                <div v-if="expandedContactIndex === index" class="border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
+                                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                        <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            <template v-if="contact.has_traklo_user">Есть доступ в Traklo</template>
+                                            <template v-else-if="contact.id">Нет доступа в Traklo</template>
+                                            <template v-else>Сохраните контакт, чтобы выдать доступ в Traklo</template>
+                                        </div>
+                                        <button type="button" class="text-sm text-rose-600 hover:text-rose-700 dark:text-rose-300" @click="removeContact(index)">
+                                            Удалить
+                                        </button>
                                     </div>
-                                    <div class="space-y-2 xl:col-start-2 xl:row-start-1">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Должность</label>
-                                        <input v-model="contact.position" type="text" :class="crmFieldFluid" />
+
+                                    <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                        <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Traklo · личный кабинет</div>
+                                        <p class="mt-1 text-xs text-zinc-500">
+                                            Ссылка привязывает заявки к этому контакту — в источнике лида будет его ФИО.
+                                        </p>
+                                        <div v-if="needsTrakloPartyChoice" class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                                            <span class="text-zinc-500">Сторона:</span>
+                                            <select v-model="inviteParty" class="rounded-lg border border-zinc-300 bg-white px-2 py-1 dark:border-zinc-700 dark:bg-zinc-950">
+                                                <option value="customer">Заказчик</option>
+                                                <option value="carrier">Перевозчик</option>
+                                            </select>
+                                        </div>
+                                        <div class="mt-3 flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                :class="crmBtnNeutral"
+                                                :disabled="!contact.id || trakloBusyContactId === contact.id || contact.is_traklo_primary"
+                                                @click="setTrakloPrimary(contact)"
+                                            >
+                                                <Star class="h-4 w-4" />
+                                                Основной в Traklo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :class="crmBtnCreate"
+                                                :disabled="!contact.id || !contact.email || trakloBusyContactId === contact.id"
+                                                @click="inviteToTraklo(contact)"
+                                            >
+                                                <Link2 class="h-4 w-4" />
+                                                {{ contact.has_traklo_user ? 'Новая ссылка' : 'Пригласить' }}
+                                            </button>
+                                        </div>
+                                        <div
+                                            v-if="expandedContactIndex === index && trakloInviteUrl"
+                                            class="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+                                        >
+                                            <span class="break-all">{{ trakloInviteUrl }}</span>
+                                            <button type="button" :class="crmBtnNeutral" @click="copyTrakloInviteUrl">
+                                                <Copy class="h-4 w-4" />
+                                                Копировать
+                                            </button>
+                                        </div>
+                                        <p
+                                            v-if="expandedContactIndex === index && trakloInviteMessage"
+                                            class="mt-2 text-xs text-zinc-500"
+                                        >{{ trakloInviteMessage }}</p>
                                     </div>
-                                    <div class="flex flex-col gap-3 md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:row-span-2">
-                                        <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
-                                            <input v-model="contact.is_primary" type="checkbox" :class="crmCheckbox" />
-                                            Основной контакт (для заявок и печати)
-                                        </label>
-                                        <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
-                                            <input
-                                                v-model="contact.is_decision_maker"
-                                                type="checkbox"
-                                                :class="crmCheckbox"
-                                                @change="contact.role_in_deal = contact.is_decision_maker ? 'decision_maker' : (contact.role_in_deal === 'decision_maker' ? 'unknown' : contact.role_in_deal)"
-                                            />
-                                            ЛПР
-                                        </label>
-                                    </div>
-                                    <div class="space-y-2 xl:col-start-1 xl:row-start-3 md:col-span-2">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Роль в сделке</label>
-                                        <select v-model="contact.role_in_deal" :class="crmFieldFluid">
-                                            <option v-for="option in portraitOptions.role_in_deal ?? []" :key="option.value" :value="option.value">
-                                                {{ option.label }}
-                                            </option>
-                                        </select>
-                                    </div>
-                                    <div class="space-y-2 xl:col-start-2 xl:row-start-3 md:col-span-2">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Заметки по общению</label>
-                                        <input v-model="contact.communication_notes" type="text" :class="crmFieldFluid" placeholder="Когда звонить, стиль, табу-темы" />
-                                    </div>
-                                    <div class="space-y-2 xl:col-start-1 xl:row-start-2">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Телефон</label>
-                                        <input v-model="contact.phone" type="text" :class="crmFieldFluid" />
-                                    </div>
-                                    <div class="space-y-2 xl:col-start-2 xl:row-start-2">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Email</label>
-                                        <input v-model="contact.email" type="email" :class="crmFieldFluid" />
-                                    </div>
-                                    <div class="col-span-full space-y-2">
-                                        <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Комментарий</label>
-                                        <input v-model="contact.notes" type="text" :class="crmFieldFluid" />
+
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                        <div class="space-y-2 xl:col-start-1 xl:row-start-1">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">ФИО</label>
+                                            <input v-model="contact.full_name" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="space-y-2 xl:col-start-2 xl:row-start-1">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Должность</label>
+                                            <input v-model="contact.position" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="flex flex-col gap-3 md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:row-span-2">
+                                            <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
+                                                <input v-model="contact.is_primary" type="checkbox" :class="crmCheckbox" />
+                                                Основной контакт (для заявок и печати)
+                                            </label>
+                                            <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
+                                                <input
+                                                    v-model="contact.is_decision_maker"
+                                                    type="checkbox"
+                                                    :class="crmCheckbox"
+                                                    @change="contact.role_in_deal = contact.is_decision_maker ? 'decision_maker' : (contact.role_in_deal === 'decision_maker' ? 'unknown' : contact.role_in_deal)"
+                                                />
+                                                ЛПР
+                                            </label>
+                                        </div>
+                                        <div class="space-y-2 xl:col-start-1 xl:row-start-3 md:col-span-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Роль в сделке</label>
+                                            <select v-model="contact.role_in_deal" :class="crmFieldFluid">
+                                                <option v-for="option in portraitOptions.role_in_deal ?? []" :key="option.value" :value="option.value">
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="space-y-2 xl:col-start-2 xl:row-start-3 md:col-span-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Заметки по общению</label>
+                                            <input v-model="contact.communication_notes" type="text" :class="crmFieldFluid" placeholder="Когда звонить, стиль, табу-темы" />
+                                        </div>
+                                        <div class="space-y-2 xl:col-start-1 xl:row-start-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Телефон</label>
+                                            <input v-model="contact.phone" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="space-y-2 xl:col-start-2 xl:row-start-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Email</label>
+                                            <input v-model="contact.email" type="email" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="col-span-full space-y-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Комментарий</label>
+                                            <input v-model="contact.notes" type="text" :class="crmFieldFluid" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <div v-if="form.contacts.length === 0" class="border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                                Отдельные контакты пока не добавлены.
+                                Контакты пока не добавлены.
                             </div>
                         </div>
                     </div>
@@ -3518,7 +3721,6 @@ function goToPage(pageNumber) {
                     <ContractorPortraitTab
                         v-else-if="activeTab === 'portrait' && selectedContractorId"
                         :contractor-id="selectedContractorId"
-                        :contractor-type="props.selectedContractor?.type ?? null"
                         :portrait="portraitForTab"
                         :contacts="props.selectedContractor?.contacts ?? []"
                         :interactions="props.selectedContractor?.interactions ?? []"

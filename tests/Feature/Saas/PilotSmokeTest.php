@@ -104,7 +104,7 @@ class PilotSmokeTest extends SaasTestCase
 
         $pilotTenant = Tenant::query()->where('slug', $slug)->first();
         $this->assertNotNull($pilotTenant);
-        $this->assertSame(7, Role::query()->withoutGlobalScopes()->where('tenant_id', $pilotTenant->id)->count());
+        $this->assertSame(9, Role::query()->withoutGlobalScopes()->where('tenant_id', $pilotTenant->id)->count());
 
         $this->assertDatabaseHas('tenant_audit_logs', [
             'tenant_id' => $pilotTenant->id,
@@ -192,6 +192,7 @@ class PilotSmokeTest extends SaasTestCase
         $settings['features'] = ['mail' => true];
         $pilotTenant->update(['settings' => $settings]);
         TenantContext::bypass(false);
+        config(['saas.default_tenant_slug' => $slug]);
         TenantContext::set($pilotTenant->fresh());
 
         $this->actingAs($owner->fresh())->get('/mail')->assertOk();

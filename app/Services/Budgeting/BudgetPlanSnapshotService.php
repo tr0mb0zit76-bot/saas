@@ -48,6 +48,7 @@ class BudgetPlanSnapshotService
             $approver,
             $notes,
             $articles,
+            $inputs,
         ): array {
             $snapshot = BudgetPlanSnapshot::query()->create([
                 'scenario_id' => $scenario->id,
@@ -57,10 +58,13 @@ class BudgetPlanSnapshotService
                 'approved_at' => now(),
                 'approved_by_user_id' => $approver->id,
                 'notes' => $notes,
+                'formula_version' => BudgetPlannerService::FORMULA_VERSION,
             ]);
 
             $linesCount = 0;
             $monthIndex = 1;
+            $managerCount = max(1, (int) ($inputs['manager_count'] ?? 1));
+            $contribPct = max(0, (float) ($inputs['payroll_contributions_percent'] ?? 0));
 
             for ($cursor = $periodStart->startOfMonth(); $cursor->lte($periodEnd); $cursor = $cursor->addMonth()) {
                 foreach ($articles as $article) {
@@ -74,7 +78,14 @@ class BudgetPlanSnapshotService
                         continue;
                     }
 
-                    $plannedAmount = round((float) $article->amount_monthly, 2);
+                    $plannedAmount = (float) $article->amount_monthly;
+                    if (($article->amount_basis ?? BudgetOpexArticle::AMOUNT_BASIS_TOTAL) === BudgetOpexArticle::AMOUNT_BASIS_PER_HEAD) {
+                        $plannedAmount *= $managerCount;
+                        if ($contribPct > 0) {
+                            $plannedAmount += $plannedAmount * ($contribPct / 100);
+                        }
+                    }
+                    $plannedAmount = round($plannedAmount, 2);
 
                     if ($plannedAmount <= 0) {
                         continue;
@@ -217,6 +228,7 @@ class BudgetPlanSnapshotService
     {
         return [
             'cost_type' => $article->cost_type ?? BudgetOpexArticle::COST_FIXED_MONTHLY,
+            'amount_basis' => $article->amount_basis ?? BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
             'amount_monthly' => (float) $article->amount_monthly,
             'percent_of_margin' => $article->percent_of_margin !== null ? (float) $article->percent_of_margin : null,
             'ramp_months' => $article->ramp_months,

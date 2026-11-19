@@ -108,6 +108,12 @@ export function buildNormalizeCargoItem(props, normalizeNullableNumber) {
             weight_value: weightValue,
             weight_kg: weightValue,
             weight_unit: raw.weight_unit === 't' ? 't' : 'kg',
+            weight_is_total: Boolean(
+                raw.weight_is_total
+                ?? (raw.ati_cargo_payload && typeof raw.ati_cargo_payload === 'object'
+                    ? raw.ati_cargo_payload.weight_is_total
+                    : false),
+            ),
             volume_m3: raw.volume_m3 ?? null,
             length_m: raw.length_m ?? null,
             width_m: raw.width_m ?? null,
@@ -262,6 +268,10 @@ export function useOrderWizardCargoTab(deps) {
         return value;
     }
 
+    function cargoWeightIsTotal(item) {
+        return Boolean(item?.weight_is_total);
+    }
+
     function cargoPackageCountFactor(item) {
         const n = parseLocaleDecimal(item.package_count);
         if (n !== null && n > 0) {
@@ -272,7 +282,12 @@ export function useOrderWizardCargoTab(deps) {
     }
 
     function cargoLineTotalWeightKg(item) {
-        return cargoWeightInKg(item) * cargoPackageCountFactor(item);
+        const kg = cargoWeightInKg(item);
+        if (cargoWeightIsTotal(item)) {
+            return kg;
+        }
+
+        return kg * cargoPackageCountFactor(item);
     }
 
     function cargoLineTotalVolumeM3(item) {
@@ -518,6 +533,7 @@ export function useOrderWizardCargoTab(deps) {
                 weight_value: item.weight_value ?? item.weight_kg,
                 weight_kg: item.weight_value ?? item.weight_kg,
                 weight_unit: item.weight_unit === 't' ? 't' : 'kg',
+                weight_is_total: Boolean(item.weight_is_total),
                 volume_m3: item.volume_m3,
                 length_m: item.length_m,
                 width_m: item.width_m,
@@ -550,6 +566,7 @@ export function useOrderWizardCargoTab(deps) {
                 performer_allocations: performerAllocations,
                 ati_cargo_payload: {
                     ...atiBase,
+                    weight_is_total: Boolean(item.weight_is_total),
                     performer_allocations: performerAllocations,
                 },
             };
@@ -579,6 +596,7 @@ export function useOrderWizardCargoTab(deps) {
         cargoLineTotalWeightKg,
         cargoPackageCountFactor,
         cargoWeightInKg,
+        cargoWeightIsTotal,
         cargoLineTotalVolumeM3,
         cargoHasDimensions,
         cargoDimensionsLabel,

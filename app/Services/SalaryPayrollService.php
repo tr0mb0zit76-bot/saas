@@ -10,6 +10,7 @@ use App\Models\SalaryPeriod;
 use App\Models\User;
 use App\Support\CustomerPaymentAmountResolver;
 use App\Support\OrderManagerSalaryPaymentResolver;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -162,7 +163,9 @@ class SalaryPayrollService
                 )
                 ->whereNotNull('orders.manager_id')
                 ->whereDate('orders.order_date', '>=', $period->period_start)
-                ->whereDate('orders.order_date', '<=', $period->period_end)
+                ->whereDate('orders.order_date', '<=', $period->period_end);
+            TenantContext::restrict($orders, 'orders.tenant_id');
+            $orders = $orders
                 ->select([
                     'orders.id',
                     'orders.manager_id',
@@ -181,9 +184,9 @@ class SalaryPayrollService
                 $salaryAmount = $this->fallbackSalaryAmount($delta, $salaryCoefficient);
 
                 if (Schema::hasColumn('orders', 'salary_accrued')) {
-                    DB::table('orders')
-                        ->where('id', $order->id)
-                        ->update(['salary_accrued' => $salaryAmount]);
+                    $accrued = DB::table('orders')->where('id', $order->id);
+                    TenantContext::restrict($accrued, 'orders.tenant_id');
+                    $accrued->update(['salary_accrued' => $salaryAmount]);
                 }
 
                 $customerRate = (float) ($order->customer_rate ?? 0);
@@ -639,9 +642,9 @@ class SalaryPayrollService
 
         $paidTotal = OrderManagerSalaryPaymentResolver::paidAmountForOrder($orderId);
 
-        DB::table('orders')
-            ->where('id', $orderId)
-            ->update(['salary_paid' => $paidTotal]);
+        $paidUpdate = DB::table('orders')->where('id', $orderId);
+        TenantContext::restrict($paidUpdate, 'orders.tenant_id');
+        $paidUpdate->update(['salary_paid' => $paidTotal]);
 
         $order = Order::query()->find($orderId);
 

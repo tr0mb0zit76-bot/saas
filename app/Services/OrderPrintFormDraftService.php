@@ -14,6 +14,7 @@ use App\Models\RoutePoint;
 use App\Models\User;
 use App\Services\PrintForm\PrintFormBasicTermsService;
 use App\Support\CargoPackagesLabelFormatter;
+use App\Support\CargoWeightSemantics;
 use App\Support\CarrierNormsPenaltiesForPrintContext;
 use App\Support\CarrierPaymentTermResolver;
 use App\Support\CarrierPortalSubmission;
@@ -2535,12 +2536,16 @@ class OrderPrintFormDraftService
 
         if ($scope === null) {
             $factor = $this->cargoPackageCountFactor($cargo);
+            $weightIsTotal = CargoWeightSemantics::isTotalWeight($cargo);
+            $totalWeightKg = $weightIsTotal ? $perWeightKg : $perWeightKg * $factor;
 
             return [
                 'package_count' => $factor,
-                'total_weight_kg' => $perWeightKg * $factor,
+                'total_weight_kg' => $totalWeightKg,
                 'total_volume_m3' => $perVolumeM3 * $factor,
-                'per_place_weight_kg' => $perWeightKg,
+                'per_place_weight_kg' => $weightIsTotal && $factor > 0
+                    ? $totalWeightKg / $factor
+                    : $perWeightKg,
                 'per_place_volume_m3' => $perVolumeM3,
             ];
         }

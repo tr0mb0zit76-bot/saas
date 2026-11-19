@@ -559,6 +559,7 @@ class StoreOrderRequest extends FormRequest
             'cargo_items.*.weight_value' => ['nullable', 'numeric', 'min:0'],
             'cargo_items.*.weight_kg' => ['nullable', 'numeric', 'min:0'],
             'cargo_items.*.weight_unit' => ['nullable', Rule::in(['kg', 't'])],
+            'cargo_items.*.weight_is_total' => ['nullable', 'boolean'],
             'cargo_items.*.length_m' => ['nullable', 'numeric', 'min:0'],
             'cargo_items.*.width_m' => ['nullable', 'numeric', 'min:0'],
             'cargo_items.*.height_m' => ['nullable', 'numeric', 'min:0'],

@@ -5,7 +5,12 @@
             is_array(auth()->user()->ui_preferences) ? auth()->user()->ui_preferences : null,
         );
     }
-    $crmThemeColor = ($crmHtmlAppearance['workspace_skin'] ?? 'classic') === 'sky' ? '#0284c7' : '#18181b';
+    $crmThemePalette = \App\Support\CrmAppearance::paletteForSkin(
+        (string) ($crmHtmlAppearance['workspace_skin'] ?? 'sky'),
+    );
+    $crmThemeColor = $crmHtmlAppearance['theme_colors']['accent']
+        ?? $crmThemePalette['accent']
+        ?? '#18181b';
 @endphp
 <!DOCTYPE html>
 <html
@@ -14,6 +19,7 @@
     data-crm-accent="{{ $crmHtmlAppearance['primary_accent'] }}"
     data-crm-tab-style="{{ $crmHtmlAppearance['tab_style'] }}"
     data-crm-workspace-skin="{{ $crmHtmlAppearance['workspace_skin'] }}"
+    data-crm-nav-icons="{{ $crmHtmlAppearance['nav_icon_style'] }}"
 >
     <head>
         <meta charset="utf-8">
@@ -27,9 +33,11 @@
         <meta name="apple-mobile-web-app-title" content="{{ $documentTitleDefault ?? config('app.crm_browser_title') }}">
 
         <title inertia>{{ $documentTitleDefault ?? config('app.crm_browser_title') }}</title>
+
+        <link rel="icon" type="image/png" href="/assets/favicon/favicon-32x32.png" sizes="32x32">
+        <link rel="icon" type="image/png" href="/assets/favicon/favicon-16x16.png" sizes="16x16">
         <link rel="icon" type="image/png" href="/assets/favicon/favicon-96x96.png" sizes="96x96">
-        <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg">
-        <link rel="shortcut icon" href="/assets/favicon/favicon.ico">
+        <link rel="shortcut icon" href="/favicon.ico">
         <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-touch-icon.png">
         <link rel="manifest" href="/manifest.webmanifest">
 

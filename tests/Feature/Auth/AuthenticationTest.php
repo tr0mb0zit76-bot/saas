@@ -75,4 +75,37 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_lab_http_logout_succeeds_with_forwarded_https_header(): void
+    {
+        config(['app.url' => 'http://saas.local']);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->withHeader('X-Forwarded-Proto', 'https')
+            ->post('/logout');
+
+        $response->assertRedirect('/');
+        $this->assertGuest();
+    }
+
+    public function test_lab_http_session_cookie_is_not_secure_with_forwarded_https(): void
+    {
+        config(['app.url' => 'http://saas.local']);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->withHeader('X-Forwarded-Proto', 'https')
+            ->get('/dashboard');
+
+        $response->assertOk();
+
+        $sessionCookie = collect($response->headers->getCookies())
+            ->first(fn ($cookie) => str_contains($cookie->getName(), 'session'));
+
+        $this->assertNotNull($sessionCookie);
+        $this->assertFalse($sessionCookie->isSecure());
+    }
 }

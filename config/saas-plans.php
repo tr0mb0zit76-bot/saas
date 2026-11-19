@@ -4,13 +4,14 @@ return [
 
     'plans' => [
         'start' => [
-            'label' => 'Start',
+            'label' => 'Старт',
             'features' => [
                 'leads',
                 'orders',
                 'contractors',
                 'tasks',
                 'grid_views',
+                'carrier_matching',
             ],
             'limits' => [
                 'users' => 5,
@@ -19,7 +20,7 @@ return [
             ],
         ],
         'pro' => [
-            'label' => 'Pro',
+            'label' => 'Про',
             'features' => [
                 'leads',
                 'orders',
@@ -34,7 +35,10 @@ return [
                 'sales_book',
                 'sales_trainer',
                 'proposals_html',
+                'how_much_fits',
                 'mcp_read',
+                'carrier_matching',
+                'traklo_mobile',
             ],
             'limits' => [
                 'users' => 25,
@@ -43,7 +47,7 @@ return [
             ],
         ],
         'enterprise' => [
-            'label' => 'Enterprise',
+            'label' => 'Корпоративный',
             'features' => [
                 'leads',
                 'orders',
@@ -58,11 +62,16 @@ return [
                 'sales_book',
                 'sales_trainer',
                 'proposals_html',
+                'how_much_fits',
                 'mcp_read',
                 'mcp_write',
                 'fleet',
                 'disposition',
                 'management_accounting',
+                'budgeting',
+                'company_planning',
+                'ai_analytics',
+                'carrier_matching',
                 'load_board',
                 'import_cost',
                 'integrations',

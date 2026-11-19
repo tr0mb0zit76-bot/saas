@@ -63,3 +63,20 @@ php artisan test tests/Feature/Saas/PilotSmokeTest.php
 Полный список: `docs/sync/pilot-smoke-checklist.md`
 
 После прохода отметьте пункты в checklist и сохраните дату в `docs/sync/pilot-run-report-*.md` (опционально).
+
+## 7. Staging (HTTPS) — тот же сценарий
+
+Host bootstrap: `docs/sync/staging-checklist.md` · ADR-014.
+
+Замените `http://saas.local` → `https://{CRM_DOMAIN}`, platform → `https://platform.{CRM_DOMAIN}`, tenant → `https://{slug}.{CRM_DOMAIN}`.
+
+Ожидания, отличные от lab:
+
+| Проверка | Staging |
+| --- | --- |
+| Cookies | `SESSION_SECURE_COOKIE=true`; Secure + HTTPS (без lab middleware) |
+| Demo signup | Обычно выключен (`SAAS_DEMO_SIGNUP_ENABLED=false`) — вход по seed/invite |
+| Files | `TENANT_STORAGE_DISK=tenant_s3` |
+| PDF | Gotenberg на хосте, не OSPanel loopback с ПК |
+
+M9.5 закрываем только после одного полного прохода на staging HTTPS.

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PlatformHost;
+use App\Support\SaasFeatureCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -64,6 +66,32 @@ class PublicSiteController extends Controller
         ));
     }
 
+    protected function resolveCrmLoginUrl(): string
+    {
+        // Single-host lab: CRM login lives on the same origin.
+        // Production apex must not advertise CRM /login (fail-closed → platform).
+        if (config('app.same_showcase_and_crm_host') && ! app()->isProduction()) {
+            return '/login';
+        }
+
+        if (PlatformHost::domain() !== '') {
+            return PlatformHost::url('/login');
+        }
+
+        $crmHost = strtolower(trim((string) config('app.crm_domain')));
+        if ($crmHost === '') {
+            $crmHost = strtolower(trim((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost')));
+        }
+
+        if (strtolower(trim((string) request()->getHost())) === $crmHost) {
+            return '/login';
+        }
+
+        $scheme = request()->isSecure() ? 'https' : 'http';
+
+        return sprintf('%s://%s/login', $scheme, $crmHost);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -71,11 +99,6 @@ class PublicSiteController extends Controller
     {
         $locale = $this->resolvePublicLocale();
         $translations = [];
-        $crmHost = trim((string) config('app.crm_domain'));
-        if ($crmHost === '') {
-            $crmHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'crm.avtoaliyans.ru';
-        }
-        $crmScheme = request()->isSecure() ? 'https' : 'http';
 
         foreach ($this->translationPathsForLocale($locale) as $translationsPath) {
             if (! is_file($translationsPath)) {
@@ -95,7 +118,7 @@ class PublicSiteController extends Controller
             'canRegister' => \Route::has('register'),
             'publicSite' => [
                 'texts' => $translations,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $this->resolveCrmLoginUrl(),
                 'active_locale' => $locale,
                 'available_locales' => [
                     ['code' => 'ru', 'label' => 'RU'],
@@ -177,6 +200,13 @@ class PublicSiteController extends Controller
     public function home(): Response
     {
         if (config('showcase.mode') === 'traklo_pro') {
+            $comingSoon = (bool) config('showcase.coming_soon', true);
+
+            // Closed gate: minimal page only — no feature galleries / plan matrix / product mocks.
+            if ($comingSoon) {
+                return Inertia::render('Public/TrakloComingSoon', $this->trakloProComingSoonProps());
+            }
+
             return Inertia::render('Public/TrakloLanding', $this->trakloProProps());
         }
 
@@ -184,18 +214,64 @@ class PublicSiteController extends Controller
     }
 
     /**
+     * Slim props for the closed витрина — no plans, matrix, or marketing copy dump.
+     *
+     * @return array<string, mixed>
+     */
+    protected function trakloProComingSoonProps(): array
+    {
+        $texts = $this->trakloProTexts();
+        $crmLoginUrl = $this->resolveCrmLoginUrl();
+        $closedTexts = array_intersect_key($texts, array_flip([
+            'brand',
+            'nav_login',
+            'coming_soon_banner',
+            'coming_soon_text',
+            'coming_soon_cta',
+        ]));
+
+        return [
+            'canLogin' => \Route::has('login'),
+            'comingSoon' => true,
+            'texts' => $closedTexts,
+            'crmLoginUrl' => $crmLoginUrl,
+            'publicSite' => [
+                'texts' => $closedTexts,
+                'crm_login_url' => $crmLoginUrl,
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function trakloProProps(): array
     {
-        $texts = [];
-        $path = resource_path('locales/public/traklo-pro.ru.json');
+        $texts = $this->trakloProTexts();
+        $crmLoginUrl = $this->resolveCrmLoginUrl();
 
-        if (is_file($path)) {
-            $decoded = json_decode((string) file_get_contents($path), true);
-            if (is_array($decoded)) {
-                $texts = $decoded;
+        $planSummaries = SaasFeatureCatalog::planSummaries();
+        $plans = [];
+
+        foreach ($planSummaries as $summary) {
+            $key = (string) ($summary['key'] ?? '');
+            if ($key === '') {
+                continue;
             }
+
+            $limits = is_array($summary['limits'] ?? null) ? $summary['limits'] : [];
+            $users = $limits['users'] ?? null;
+            $usersLabel = $users === null
+                ? (string) ($texts['plan_'.$key.'_users'] ?? 'без лимита по договору')
+                : (string) ($texts['plan_'.$key.'_users'] ?? ('до '.$users.' пользователей'));
+
+            $plans[] = [
+                'key' => $key,
+                'label' => (string) ($texts['plan_'.$key] ?? $summary['label'] ?? ucfirst($key)),
+                'users' => $usersLabel,
+                'limits' => $limits,
+                'featured' => $key === 'pro',
+            ];
         }
 
         $crmHost = trim((string) config('app.crm_domain'));
@@ -204,42 +280,37 @@ class PublicSiteController extends Controller
         }
         $crmScheme = request()->isSecure() ? 'https' : 'http';
 
-        /** @var array<string, array{label: string, limits: array<string, int|null>}> $planConfig */
-        $planConfig = config('saas-plans.plans', []);
-        $plans = [];
-
-        foreach (['start', 'pro', 'enterprise'] as $key) {
-            if (! isset($planConfig[$key])) {
-                continue;
-            }
-
-            $limits = $planConfig[$key]['limits'] ?? [];
-            $users = $limits['users'] ?? null;
-            $usersLabel = $users === null
-                ? 'без лимита по договору'
-                : 'до '.$users.' пользователей';
-
-            $plans[] = [
-                'key' => $key,
-                'label' => (string) ($planConfig[$key]['label'] ?? ucfirst($key)),
-                'users' => $usersLabel,
-                'featured' => $key === 'pro',
-            ];
-        }
-
         return [
             'canLogin' => \Route::has('login'),
+            'comingSoon' => false,
             'texts' => $texts,
-            'crmLoginUrl' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+            'crmLoginUrl' => $crmLoginUrl,
             'demoSignupUrl' => config('saas.demo_signup_enabled', false)
                 ? sprintf('%s://%s/demo/signup', $crmScheme, $crmHost)
                 : null,
             'plans' => $plans,
+            'planMatrix' => SaasFeatureCatalog::planMatrix(),
             'publicSite' => [
                 'texts' => $texts,
-                'crm_login_url' => sprintf('%s://%s/login', $crmScheme, $crmHost),
+                'crm_login_url' => $crmLoginUrl,
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function trakloProTexts(): array
+    {
+        $path = resource_path('locales/public/traklo-pro.ru.json');
+
+        if (! is_file($path)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     public function about(): Response

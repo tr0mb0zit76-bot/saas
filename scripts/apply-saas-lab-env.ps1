@@ -24,6 +24,9 @@ if (-not (Test-Path $envFile)) {
 $appUrl = "http://$HostName"
 $lines = Get-Content $envFile
 $replacements = [ordered]@{
+    'APP_NAME'                   = 'Traklo Pro'
+    'CRM_BROWSER_TITLE'          = 'Traklo Pro'
+    'SHOWCASE_BROWSER_TITLE'     = 'Traklo Pro'
     'APP_URL'                    = $appUrl
     'CRM_DOMAIN'                 = $HostName
     'SHOWCASE_DOMAIN'            = $HostName
@@ -34,10 +37,16 @@ $replacements = [ordered]@{
     'SAAS_TRIAL_DAYS'            = '14'
     'SAAS_DEMO_SIGNUP_ENABLED'   = 'true'
     'SESSION_SECURE_COOKIE'      = 'false'
+    'DOCUMENT_STORAGE'           = 'local'
+    'TENANT_STORAGE_DISK'        = 'tenant_local'
+    'TENANT_STORAGE_FOR_DOCUMENTS' = 'true'
 }
 
 foreach ($key in $replacements.Keys) {
     $val = $replacements[$key]
+    if ($val -match '\s') {
+        $val = '"' + ($val -replace '"', '\"') + '"'
+    }
     $idx = [array]::FindIndex($lines, [Predicate[string]] { param($l) $l -match "^$key=" })
     if ($idx -ge 0) {
         $lines[$idx] = "$key=$val"
@@ -55,6 +64,7 @@ Write-Host "  SHOWCASE_MODE=traklo_pro"
 Write-Host "  PLATFORM_DOMAIN=platform.$HostName"
 Write-Host "  SAAS_DEMO_SIGNUP_ENABLED=true"
 Write-Host "  SESSION_SECURE_COOKIE=false (lab HTTP — avoids Secure cookies → 419)"
+Write-Host "  DOCUMENT_STORAGE=local + TENANT_STORAGE_DISK=tenant_local (no Nextcloud for SaaS)"
 
 if ($SkipArtisanClear) { return }
 

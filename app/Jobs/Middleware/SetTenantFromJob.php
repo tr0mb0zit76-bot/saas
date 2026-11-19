@@ -22,7 +22,8 @@ class SetTenantFromJob
         $tenant = Tenant::query()->find($tenantId);
 
         if ($tenant === null) {
-            return $next($job);
+            // Fail closed for jobs that declared a tenant_id but it is missing.
+            throw new \RuntimeException("Tenant [{$tenantId}] not found for job.");
         }
 
         return TenantContext::runAs($tenant, fn () => $next($job));

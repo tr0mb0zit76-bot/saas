@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Contractor;
 use App\Models\Order;
 use App\Models\OrderDocument;
+use App\Models\Tenant;
 use App\Support\PrintFormVerificationCode;
 use App\Support\PrintVerificationPageScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -15,6 +17,16 @@ class PublicOrderDocumentVerificationController extends Controller
 {
     public function show(Request $request, OrderDocument $orderDocument): Response
     {
+        // Owner tenant setting only (ADR-021) — not whatever host context IdentifyTenant set.
+        $owner = $orderDocument->tenant_id
+            ? Tenant::query()->find($orderDocument->tenant_id)
+            : TenantContext::get();
+
+        abort_unless(
+            $owner !== null && $owner->settingBool('print.document_verification', false),
+            404
+        );
+
         abort_unless(
             PrintFormVerificationCode::matchesOrderDocument($orderDocument, (string) $request->query('code')),
             404

@@ -19,7 +19,7 @@ final class OrderIntakeSchema
     "loading": {"address": string|null, "planned_date": string|null, "contact": string|null, "phone": string|null},
     "unloading": {"address": string|null, "planned_date": string|null, "contact": string|null, "phone": string|null}
   },
-  "cargo": {"name": string|null, "description": string|null, "weight_kg": number|null, "volume_m3": number|null, "package_count": number|null},
+  "cargo": {"name": string|null, "description": string|null, "weight_kg": number|null, "volume_m3": number|null, "package_count": number|null, "package_type": string|null, "length_m": number|null, "width_m": number|null, "height_m": number|null, "dangerous_goods": boolean|null, "dangerous_class": string|null},
   "commercial": {
     "customer_rate": number|null,
     "customer_vat_percent": number|null,
@@ -118,13 +118,20 @@ TEXT;
 
         $cargoName = self::nullableString($cargo['name'] ?? null);
         $cargoDescription = self::nullableString($cargo['description'] ?? null);
-        if ($cargoName !== null || $cargoDescription !== null || isset($cargo['weight_kg']) || isset($cargo['volume_m3'])) {
+        if ($cargoName !== null || $cargoDescription !== null || isset($cargo['weight_kg']) || isset($cargo['volume_m3'])
+            || isset($cargo['package_count']) || isset($cargo['length_m']) || isset($cargo['width_m']) || isset($cargo['height_m'])) {
             $patch['cargo_items'] = [[
                 'name' => $cargoName ?? '',
                 'description' => $cargoDescription,
                 'weight_kg' => isset($cargo['weight_kg']) ? (float) $cargo['weight_kg'] : null,
                 'volume_m3' => isset($cargo['volume_m3']) ? (float) $cargo['volume_m3'] : null,
                 'package_count' => isset($cargo['package_count']) ? (int) $cargo['package_count'] : null,
+                'package_type' => self::nullableString($cargo['package_type'] ?? null),
+                'length_m' => isset($cargo['length_m']) ? (float) $cargo['length_m'] : null,
+                'width_m' => isset($cargo['width_m']) ? (float) $cargo['width_m'] : null,
+                'height_m' => isset($cargo['height_m']) ? (float) $cargo['height_m'] : null,
+                'dangerous_goods' => isset($cargo['dangerous_goods']) ? (bool) $cargo['dangerous_goods'] : null,
+                'dangerous_class' => self::nullableString($cargo['dangerous_class'] ?? null),
             ]];
         }
 

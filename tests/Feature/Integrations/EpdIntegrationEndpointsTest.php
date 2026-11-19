@@ -7,6 +7,14 @@ use Tests\TestCase;
 
 class EpdIntegrationEndpointsTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These tests cover the quarantined AA stubs when explicitly re-enabled.
+        config()->set('saas.legacy_aa_integrations_enabled', true);
+    }
+
     public function test_astral_webhook_updates_etrn_status_when_signature_is_valid(): void
     {
         config()->set('epd.operator.webhook_secret', 'test-secret');

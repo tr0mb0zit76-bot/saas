@@ -15,6 +15,9 @@
 
 - **saas-migration-orchestrator** — автономный переезд (bootstrap, БД, migrate, smoke)
 - **saas-architect** — архитектура, ADR, тарифы
+- **saas-security** — изоляция, сессия, доступ
+- **saas-qa** — приёмка и тесты изоляции
+- **saas-privacy** — персональные данные, 152-ФЗ, оферта
 
 ## Архитектура
 
@@ -42,6 +45,7 @@
 ## Продукт и инфра
 
 - [[architecture/saas-product-roadmap-brief|Roadmap brief M6/M7]]
+- [[architecture/saas-refinement-backlog|План доработок (WS) — канон]] ← **WS-9 AI-секретарь**
 - [[traklo-pro-storage|Хранилище Traklo Pro (lab vs prod)]]
 
 ## Исходный CRM (read-only)

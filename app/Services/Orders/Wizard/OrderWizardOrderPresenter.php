@@ -11,6 +11,7 @@ use App\Models\PrintFormTemplate;
 use App\Services\PaymentSettlementSummaryBuilder;
 use App\Services\PrintForm\PrintFormBasicTermsService;
 use App\Support\CargoPerformerAllocationNormalizer;
+use App\Support\CargoWeightSemantics;
 use App\Support\OrderAdditionalCostNormalizer;
 use App\Support\OrderCargoItemsPayloadNormalizer;
 use App\Support\OrderDocumentAccessAuthorization;
@@ -258,6 +259,7 @@ class OrderWizardOrderPresenter
                         'weight_value' => $cargo->weight_value ?? $cargo->weight,
                         'weight_kg' => $cargo->weight_value ?? $cargo->weight,
                         'weight_unit' => $cargo->weight_unit ?: 'kg',
+                        'weight_is_total' => CargoWeightSemantics::isTotalWeight($cargo),
                         'volume_m3' => $cargo->volume,
                         'length_m' => $cargo->length,
                         'width_m' => $cargo->width,

@@ -8,6 +8,7 @@ use App\Models\FleetDriverDocument;
 use App\Models\FleetVehicleDocument;
 use App\Models\OrderPortalInvite;
 use App\Support\CarrierPortalFleetResolver;
+use App\Support\TenantStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -123,13 +124,14 @@ class OrderCarrierPortalFleetDocumentService
     {
         abort_unless(Schema::hasTable('fleet_vehicle_documents'), 404);
 
-        $path = $file->store('fleet/vehicles/documents', 'public');
+        $relative = 'fleet/vehicles/'.$vehicleId.'/'.$file->hashName();
+        TenantStorage::put($relative, (string) file_get_contents($file->getRealPath()));
 
         return FleetVehicleDocument::query()->create([
             'fleet_vehicle_id' => $vehicleId,
             'document_type' => $documentType,
-            'disk' => 'public',
-            'path' => $path,
+            'disk' => TenantStorage::diskName(),
+            'path' => TenantStorage::path($relative),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getClientMimeType(),
             'size_bytes' => $file->getSize(),
@@ -141,13 +143,14 @@ class OrderCarrierPortalFleetDocumentService
     {
         abort_unless(Schema::hasTable('fleet_driver_documents'), 404);
 
-        $path = $file->store('fleet/drivers/documents', 'public');
+        $relative = 'fleet/drivers/'.$driverId.'/'.$file->hashName();
+        TenantStorage::put($relative, (string) file_get_contents($file->getRealPath()));
 
         return FleetDriverDocument::query()->create([
             'fleet_driver_id' => $driverId,
             'document_type' => $documentType,
-            'disk' => 'public',
-            'path' => $path,
+            'disk' => TenantStorage::diskName(),
+            'path' => TenantStorage::path($relative),
             'original_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getClientMimeType(),
             'size_bytes' => $file->getSize(),

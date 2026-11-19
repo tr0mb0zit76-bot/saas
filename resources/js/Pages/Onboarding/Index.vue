@@ -31,29 +31,40 @@ function submit() {
             <p class="mt-2 text-sm text-zinc-500">Настройте компанию за минуту — затем можно работать с лидами и заказами.</p>
         </div>
 
-        <form class="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900" @submit.prevent="submit">
+        <form class="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100" @submit.prevent="submit">
             <div class="space-y-1">
-                <label class="text-xs uppercase tracking-wide text-zinc-500">Ваше юрлицо (own company)</label>
-                <input v-model="form.company_name" type="text" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
-                <p v-if="form.errors.company_name" class="text-xs text-rose-600">{{ form.errors.company_name }}</p>
+                <label class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Ваше юрлицо (own company)</label>
+                <input
+                    v-model="form.company_name"
+                    type="text"
+                    class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                />
+                <p v-if="form.errors.company_name" class="text-xs text-rose-600 dark:text-rose-400">{{ form.errors.company_name }}</p>
             </div>
             <div class="space-y-1">
-                <label class="text-xs uppercase tracking-wide text-zinc-500">ИНН (необязательно)</label>
-                <input v-model="form.inn" type="text" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950" />
+                <label class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">ИНН (необязательно)</label>
+                <input
+                    v-model="form.inn"
+                    type="text"
+                    class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                />
             </div>
             <div class="space-y-1">
-                <label class="text-xs uppercase tracking-wide text-zinc-500">Часовой пояс</label>
-                <select v-model="form.timezone" class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950">
+                <label class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Часовой пояс</label>
+                <select
+                    v-model="form.timezone"
+                    class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100"
+                >
                     <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                 </select>
-                <p v-if="form.errors.timezone" class="text-xs text-rose-600">{{ form.errors.timezone }}</p>
+                <p v-if="form.errors.timezone" class="text-xs text-rose-600 dark:text-rose-400">{{ form.errors.timezone }}</p>
             </div>
             <div class="space-y-1">
-                <label class="text-xs uppercase tracking-wide text-zinc-500">Пример заказчика (необязательно)</label>
+                <label class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Пример заказчика (необязательно)</label>
                 <input
                     v-model="form.sample_customer_name"
                     type="text"
-                    class="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-950"
+                    class="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 dark:border-zinc-600 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                     placeholder="ООО «Первый клиент»"
                 />
             </div>

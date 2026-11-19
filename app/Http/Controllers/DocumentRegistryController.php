@@ -221,9 +221,7 @@ class DocumentRegistryController extends Controller
             if (filled($oldPath)) {
                 $this->documentStorage->delete(
                     $oldPath,
-                    $oldDriver === DocumentStorageService::DRIVER_NEXTCLOUD
-                        ? DocumentStorageService::DRIVER_NEXTCLOUD
-                        : DocumentStorageService::DRIVER_LOCAL,
+                    $this->documentStorage->resolveStoredDriver($oldDriver),
                 );
             }
 
@@ -385,9 +383,7 @@ class DocumentRegistryController extends Controller
         if (filled($oldPath)) {
             $this->documentStorage->delete(
                 $oldPath,
-                $oldDriver === DocumentStorageService::DRIVER_NEXTCLOUD
-                    ? DocumentStorageService::DRIVER_NEXTCLOUD
-                    : DocumentStorageService::DRIVER_LOCAL,
+                $this->documentStorage->resolveStoredDriver($oldDriver),
             );
         }
 
