@@ -65,4 +65,51 @@ final class TenantOnboardingService
             ['email' => $user->email, 'tenant_slug' => $tenant->slug],
         );
     }
+
+    /**
+     * Reset temp password for the primary tenant admin and resend welcome mail.
+     *
+     * @return array{user: User, password: string}
+     */
+    public function resetAndResendWelcomeInvite(Tenant $tenant, ?User $admin = null): array
+    {
+        $user = $admin ?? $this->primaryAdmin($tenant);
+
+        abort_if($user === null, 422, 'У арендатора нет активного администратора.');
+        abort_unless((int) $user->tenant_id === (int) $tenant->id, 404);
+
+        $password = Str::password(16);
+
+        TenantContext::runAs($tenant, function () use ($user, $password): void {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'is_active' => true,
+            ])->save();
+        });
+
+        $this->sendWelcomeInvite($tenant, $user->fresh(), $password);
+
+        return ['user' => $user->fresh(), 'password' => $password];
+    }
+
+    public function primaryAdmin(Tenant $tenant): ?User
+    {
+        return TenantContext::runAs($tenant, function () use ($tenant): ?User {
+            $adminRoleId = Role::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('name', 'admin')
+                ->value('id');
+
+            if ($adminRoleId === null) {
+                return null;
+            }
+
+            return User::query()
+                ->where('tenant_id', $tenant->id)
+                ->where('role_id', $adminRoleId)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->first();
+        });
+    }
 }

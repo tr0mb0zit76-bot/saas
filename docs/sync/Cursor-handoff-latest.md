@@ -10,9 +10,19 @@
 
 **Fix:** build tenant URLs from `config('app.crm_domain')`. Tests: `TenantHostTest`, login URL assert in `TenantWelcomeMailTest`.
 
-**Deployed HEAD:** `5411b28`. Prod smoke: `TenantHost` → `https://{slug}.traklo.pro/login`; config mailer still `smtp`/`smtps`; guide file present. **Resent** invites after password reset for `successful_partner` (`bavari08@mail.ru`) and `akvila_prime` (`aquilaprime888@mail.ru`) — SMTP accept OK.
+**Deployed HEAD:** `5411b28`. Prod smoke: `TenantHost` → `https://{slug}.traklo.pro/login`; config mailer still `smtp`/`smtps`; guide file present. **Resent** invites after password reset for `successful_partner` (`bavari08@mail.ru`) and `akvila_prime` (`aquilaprime888@mail.ru`) — SMTP accept OK. **Resent again 2026-11-19** (PO request after test mail confirmed) — same admins, new temp passwords in mail, SMTP accept OK.
 
 **Ops follow-up (DNS, not code):** SPF TXT is still `v=spf1 ip4:89.111.169.211 a mx ~all` — missing `include:_spf.hosting.reg.ru` required for SMTP via `mail.hosting.reg.ru`. No DKIM selectors found. Update zone in Reg.ru so mail.ru does not soft-fail / spam-folder.
+
+## Platform Ops — Resend invite (2026-11-19)
+
+**Where:** `platform.*/tenants/{id}/ops` → section «Приглашение администратора» → «Переслать приглашение» (confirm: password reset + email).
+
+**Backend:** `POST platform.tenants.ops.resend-invite` → `TenantOnboardingService::resetAndResendWelcomeInvite` (primary active `admin` by lowest id) → reset temp password → `sendWelcomeInvite` / `TenantWelcomeMail`. Flash success/error. `platform.admin` only.
+
+**Tests:** `tests/Feature/Saas/PlatformTenantResendInviteTest.php` (platform can; non-platform cannot; Mail fake).
+
+**Deploy:** not deployed unless asked.
 
 ## ADR-023 P0 shipped — workbook + thin cash (2026-11-18)
 

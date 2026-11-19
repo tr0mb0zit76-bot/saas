@@ -18,6 +18,31 @@
         </div>
 
         <section class="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 class="text-sm font-medium">Приглашение администратора</h2>
+            <p v-if="primary_admin" class="text-sm text-zinc-600 dark:text-zinc-300">
+                Основной admin:
+                <span class="font-medium">{{ primary_admin.name }}</span>
+                <span class="font-mono text-xs text-zinc-500">({{ primary_admin.email }})</span>
+            </p>
+            <p v-else class="text-sm text-amber-700">
+                Активный администратор арендатора не найден — переслать приглашение нельзя.
+            </p>
+            <p class="text-xs text-zinc-500">
+                Пересылка сбрасывает временный пароль и отправляет письмо `TenantWelcomeMail` (логин + гайд).
+            </p>
+            <div>
+                <button
+                    type="button"
+                    class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/70"
+                    :disabled="!primary_admin || inviteForm.processing"
+                    @click="resendInvite"
+                >
+                    {{ inviteForm.processing ? 'Отправка…' : 'Переслать приглашение' }}
+                </button>
+            </div>
+        </section>
+
+        <section class="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <h2 class="text-sm font-medium">Проверка печатных документов</h2>
             <p class="text-xs text-zinc-500">
                 `settings.print.document_verification` — не модуль тарифа. Выкл = без QR/кода, публичная проверка 404.
@@ -137,6 +162,7 @@ defineOptions({
 
 const props = defineProps({
     tenant: { type: Object, required: true },
+    primary_admin: { type: Object, default: null },
     document_verification: { type: Boolean, default: false },
     available_packs: { type: Array, default: () => [] },
     installed_packs: { type: Array, default: () => [] },
@@ -144,6 +170,8 @@ const props = defineProps({
     adapters: { type: Array, default: () => [] },
     connectors: { type: Array, default: () => [] },
 });
+
+const inviteForm = useForm({});
 
 const printForm = useForm({
     document_verification: Boolean(props.document_verification),
@@ -165,6 +193,25 @@ const connectorForm = useForm({
         id: null,
     },
 });
+
+function resendInvite() {
+    if (!props.primary_admin || inviteForm.processing) {
+        return;
+    }
+
+    const email = props.primary_admin.email;
+    if (
+        !window.confirm(
+            `Переслать приглашение на ${email}?\n\nТекущий пароль администратора будет сброшен, новый временный пароль уйдёт в письме.`,
+        )
+    ) {
+        return;
+    }
+
+    inviteForm.post(route('platform.tenants.ops.resend-invite', props.tenant.id), {
+        preserveScroll: true,
+    });
+}
 
 function savePrint() {
     printForm.patch(route('platform.tenants.ops.update', props.tenant.id), { preserveScroll: true });

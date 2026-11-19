@@ -293,6 +293,8 @@ class PlatformTenantController extends Controller
         $installed = data_get($tenant->settings, 'content_packs.sales_book', []);
         $installed = is_array($installed) ? array_values(array_filter($installed, 'is_string')) : [];
 
+        $primaryAdmin = $this->onboarding->primaryAdmin($tenant);
+
         $payload = [
             'tenant' => [
                 'id' => $tenant->id,
@@ -300,6 +302,11 @@ class PlatformTenantController extends Controller
                 'name' => $tenant->name,
                 'plan' => $tenant->planKey(),
             ],
+            'primary_admin' => $primaryAdmin ? [
+                'id' => $primaryAdmin->id,
+                'name' => $primaryAdmin->name,
+                'email' => $primaryAdmin->email,
+            ] : null,
             'document_verification' => $tenant->settingBool('print.document_verification', false),
             'installed_packs' => $installed,
             'available_packs' => array_map(
@@ -314,6 +321,49 @@ class PlatformTenantController extends Controller
         TenantContext::bypass(false);
 
         return Inertia::render('Platform/Tenants/Ops', $payload);
+    }
+
+    public function resendInvite(Tenant $tenant): RedirectResponse
+    {
+        TenantContext::bypass(true);
+
+        try {
+            $result = $this->onboarding->resetAndResendWelcomeInvite($tenant);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            TenantContext::bypass(false);
+
+            return to_route('platform.tenants.ops', $tenant)->with('flash', [
+                'type' => 'error',
+                'message' => $e->getMessage() !== '' ? $e->getMessage() : 'Не удалось переслать приглашение.',
+            ]);
+        } catch (\Throwable $e) {
+            TenantContext::bypass(false);
+
+            return to_route('platform.tenants.ops', $tenant)->with('flash', [
+                'type' => 'error',
+                'message' => 'Не удалось отправить приглашение: '.$e->getMessage(),
+            ]);
+        }
+
+        $this->auditLogger->log(
+            $tenant->id,
+            request()->user()?->id,
+            'tenant.invite_resent',
+            'user',
+            $result['user']->id,
+            null,
+            [
+                'email' => $result['user']->email,
+                'tenant_slug' => $tenant->slug,
+            ],
+        );
+
+        TenantContext::bypass(false);
+
+        return to_route('platform.tenants.ops', $tenant)->with('flash', [
+            'type' => 'success',
+            'message' => "Приглашение переслано на {$result['user']->email}. Временный пароль сброшен.",
+        ]);
     }
 
     public function updateOps(UpdatePlatformTenantOpsRequest $request, Tenant $tenant): RedirectResponse
