@@ -200,6 +200,13 @@ class PublicSiteController extends Controller
     public function home(): Response
     {
         if (config('showcase.mode') === 'traklo_pro') {
+            $comingSoon = (bool) config('showcase.coming_soon', true);
+
+            // Closed gate: minimal page only — no feature galleries / plan matrix / product mocks.
+            if ($comingSoon) {
+                return Inertia::render('Public/TrakloComingSoon', $this->trakloProComingSoonProps());
+            }
+
             return Inertia::render('Public/TrakloLanding', $this->trakloProProps());
         }
 
@@ -207,20 +214,40 @@ class PublicSiteController extends Controller
     }
 
     /**
+     * Slim props for the closed витрина — no plans, matrix, or marketing copy dump.
+     *
+     * @return array<string, mixed>
+     */
+    protected function trakloProComingSoonProps(): array
+    {
+        $texts = $this->trakloProTexts();
+        $crmLoginUrl = $this->resolveCrmLoginUrl();
+        $closedTexts = array_intersect_key($texts, array_flip([
+            'brand',
+            'nav_login',
+            'coming_soon_banner',
+            'coming_soon_text',
+            'coming_soon_cta',
+        ]));
+
+        return [
+            'canLogin' => \Route::has('login'),
+            'comingSoon' => true,
+            'texts' => $closedTexts,
+            'crmLoginUrl' => $crmLoginUrl,
+            'publicSite' => [
+                'texts' => $closedTexts,
+                'crm_login_url' => $crmLoginUrl,
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function trakloProProps(): array
     {
-        $texts = [];
-        $path = resource_path('locales/public/traklo-pro.ru.json');
-
-        if (is_file($path)) {
-            $decoded = json_decode((string) file_get_contents($path), true);
-            if (is_array($decoded)) {
-                $texts = $decoded;
-            }
-        }
-
+        $texts = $this->trakloProTexts();
         $crmLoginUrl = $this->resolveCrmLoginUrl();
 
         $planSummaries = SaasFeatureCatalog::planSummaries();
@@ -253,15 +280,12 @@ class PublicSiteController extends Controller
         }
         $crmScheme = request()->isSecure() ? 'https' : 'http';
 
-        $comingSoon = (bool) config('showcase.coming_soon', true);
-
         return [
             'canLogin' => \Route::has('login'),
-            'comingSoon' => $comingSoon,
+            'comingSoon' => false,
             'texts' => $texts,
             'crmLoginUrl' => $crmLoginUrl,
-            // Soft gate: marketing never advertises self-serve signup while closed.
-            'demoSignupUrl' => (! $comingSoon && config('saas.demo_signup_enabled', false))
+            'demoSignupUrl' => config('saas.demo_signup_enabled', false)
                 ? sprintf('%s://%s/demo/signup', $crmScheme, $crmHost)
                 : null,
             'plans' => $plans,
@@ -271,6 +295,22 @@ class PublicSiteController extends Controller
                 'crm_login_url' => $crmLoginUrl,
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function trakloProTexts(): array
+    {
+        $path = resource_path('locales/public/traklo-pro.ru.json');
+
+        if (! is_file($path)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     public function about(): Response

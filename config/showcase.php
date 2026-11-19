@@ -16,12 +16,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Soft gate on Traklo Pro marketing landing
+    | Closed gate on Traklo Pro marketing landing
     |--------------------------------------------------------------------------
     |
-    | When true, apex витрина shows «мы работаем над созданием…», hides demo/
-    | signup CTAs, and points waitlist to mailto. Does not affect platform.*
-    | or tenant CRM hosts — only Public/TrakloLanding props.
+    | When true, apex витрина is Public/TrakloComingSoon only (brand + copy +
+    | mailto + login). No feature galleries, plan matrix, or product mocks.
+    | Flip false to open Public/TrakloLanding. Does not affect platform.* or
+    | tenant CRM hosts.
     |
     */
 

@@ -60,12 +60,13 @@ class SecurityP0IsolationTest extends SaasTestCase
         $this->app->instance('env', 'production');
 
         try {
-            // Soft-gate marketing landing must render without a tenant slug.
+            // Closed marketing landing must render without a tenant slug.
             $this->get('http://'.$apex.'/')
                 ->assertOk()
                 ->assertInertia(fn ($page) => $page
-                    ->component('Public/TrakloLanding')
-                    ->where('comingSoon', true));
+                    ->component('Public/TrakloComingSoon')
+                    ->where('comingSoon', true)
+                    ->missing('plans'));
 
             // Apex /login must not 404 — send guests to platform (CRM stays fail-closed, no demo tenant).
             $platformLogin = 'http://platform.'.$apex.'/login';
@@ -112,8 +113,9 @@ class SecurityP0IsolationTest extends SaasTestCase
             ->get('http://'.$apex.'/')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Public/TrakloLanding')
-                ->where('comingSoon', true));
+                ->component('Public/TrakloComingSoon')
+                ->where('comingSoon', true)
+                ->missing('plans'));
     }
 
     public function test_customer_cargo_parse_stays_heuristic_and_skips_external_llm(): void

@@ -2,17 +2,35 @@
 
 **Обновлено:** 2026-11-18 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
-## ADR-023 Accepted — workbook UX + thin cash (2026-11-18)
+## ADR-023 P0 shipped — workbook + thin cash (2026-11-18)
 
-**Plan only** until PO says go. Architect + CFO re-check on cash.
+**Canon:** [`ADR-023`](../architecture/decisions/ADR-023-workbook-planning-control-shell.md) (**Accepted**, coding started after PO «давай пробовать»).
 
-- Canon: [`ADR-023`](../architecture/decisions/ADR-023-workbook-planning-control-shell.md) (**Accepted**)
-- PO locks: name «Бюджетирование»; live plan-fact + warning (freeze = official); soft-map **required** for pilot; KPI = Excel *simplicity/flexibility* not numeric match; **thin ДДС before external Enterprise**
-- «Безналичные статьи» = bank statement / cashless settlement → fact (not non-monetary)
-- UA model: statement auto + manual + «сколько сейчас» + retro + light predictive
-- Rephase: **P0** includes thin cash (statement balance, not schedule DSO/DPO); P2 = DSO/DPO from payment schedules
-- CFO: margin−OPEX stays «план маржи», never «касса»
-- Ask PO: утверждаем и кодим P0? (optional: opening balance = statement and/or manual override)
+### Shipped (P0)
+
+- Workbook TOC sheets between Бюджетирование ↔ УУ (`PlanningWorkbook` + `PlanningWorkbookToc`)
+- Plan | факт | Δ: live draft + warning; freeze = `plan_official`; soft-map required on OPEX store/update (same-tenant FK)
+- Min ICP OPEX seed on first enter (`BudgetMinIcpOpexSeedService`); full catalog deferred P1
+- Add OPEX row + UA kind filters + charts wired to filtered pivot/variance
+- Thin cash tab: opening (manual|statement) + bank/manual turnovers + «сейчас»; honest labels (not DSO/DPO, not margin−OPEX)
+- Honest CVP / milestones copy (план маржи ≠ касса)
+- Tests: `tests/Feature/Saas/WorkbookPlanningControlTest.php`
+
+### Deferred (P1/P2)
+
+- Full ICP OPEX catalog, scenario +N, monthly plan grid, predictive light
+- Cash from payment-schedule DSO/DPO; richer multi-scenario
+
+### Lab verify (demo enterprise)
+
+```powershell
+php artisan migrate
+# optional reseed: php artisan db:seed --class=SaasDemoSeeder --force
+php artisan test --filter=WorkbookPlanningControlTest
+```
+
+- Login `admin@saas.local` / `password` → `/budgeting` (TOC + soft-map + CVP) and `/finance/management-accounting?tab=cash`
+- **No prod deploy**
 
 ## Prod hotfix — apex `/login` 404 + tenantless 403 (2026-11-18)
 
@@ -22,16 +40,17 @@
 
 **Tests:** `PublicLandingPageTest` (coming soon 200, `/login` redirect, CTA); `SecurityP0IsolationTest` (apex login→platform, tenantless landing not 403, unknown subdomain 404).
 
-## Витрина coming soon (2026-11-18)
+**Deployed HEAD:** `71db2be` via `deploy-prod.ps1` (no maintenance). Smoke: `/` 200 `Public/TrakloLanding`; `/login` + `www` → 302 `https://platform.traklo.pro/login`; platform `/login` 200; `unknown-tenant.*/login` 404.
 
-Soft gate on apex Traklo Pro landing (`Public/TrakloLanding`, `SHOWCASE_MODE=traklo_pro`).
+## Витрина coming soon — closed page (2026-11-19)
 
-- Config: `SHOWCASE_COMING_SOON` → `config('showcase.coming_soon')` (default **true**)
-- Banner + hero/nav CTAs → mailto `hello@traklo.pro`; `demoSignupUrl` suppressed on marketing
+Closed gate on apex Traklo Pro (`SHOWCASE_MODE=traklo_pro`, `SHOWCASE_COMING_SOON=true`).
+
+- **Closed:** `Public/TrakloComingSoon` — brand + «Мы работаем над созданием…» + mailto `hello@traklo.pro` + platform login. No feature galleries, plan matrix, product mocks, or demo signup props.
+- **Open later:** `SHOWCASE_COMING_SOON=false` → `Public/TrakloLanding` (+ Vite rebuild).
 - Does **not** touch `platform.*` or tenant CRM hosts / `/demo/signup` routes
-- Flip open later: `SHOWCASE_COMING_SOON=false` (+ rebuild if Vue cache matters)
-- Tests: `tests/Feature/PublicLandingPageTest.php`
-- Soft-gate land: `e44ea33`. Apex `/login` fixed in hotfix above (no longer intentional 404).
+- Tests: `tests/Feature/PublicLandingPageTest.php`, apex cases in `SecurityP0IsolationTest`
+- Prior soft-gate banner-on-full-landing (`e232dc0`) replaced — looked «open» with stock mockups.
 
 ## Prod SMTP welcome mail (2026-11-18)
 

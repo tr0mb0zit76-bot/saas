@@ -34,7 +34,10 @@ class PublicLandingPageTest extends TestCase
 
     public function test_guest_can_open_traklo_pro_landing_page(): void
     {
-        config(['showcase.mode' => 'traklo_pro']);
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+        ]);
 
         $this->get($this->showcaseUrl('/'))
             ->assertOk()
@@ -46,7 +49,7 @@ class PublicLandingPageTest extends TestCase
             );
     }
 
-    public function test_traklo_pro_landing_soft_gates_when_coming_soon(): void
+    public function test_traklo_pro_landing_closed_when_coming_soon(): void
     {
         config([
             'showcase.mode' => 'traklo_pro',
@@ -57,10 +60,14 @@ class PublicLandingPageTest extends TestCase
         $this->get($this->showcaseUrl('/'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Public/TrakloLanding')
+                ->component('Public/TrakloComingSoon')
                 ->where('comingSoon', true)
-                ->where('demoSignupUrl', null)
                 ->where('texts.coming_soon_banner', 'Мы работаем над созданием Traklo Pro')
+                ->missing('plans')
+                ->missing('planMatrix')
+                ->missing('demoSignupUrl')
+                ->missing('texts.hero_title')
+                ->missing('texts.feature_orders_title')
             );
     }
 
@@ -135,6 +142,7 @@ class PublicLandingPageTest extends TestCase
     {
         config([
             'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
             'app.crm_domain' => 'saas.local',
             'app.showcase_hosts' => ['saas.local'],
             'app.same_showcase_and_crm_host' => true,
@@ -169,10 +177,11 @@ class PublicLandingPageTest extends TestCase
             $this->get($this->showcaseUrl('/'))
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page
-                    ->component('Public/TrakloLanding')
+                    ->component('Public/TrakloComingSoon')
                     ->where('comingSoon', true)
                     ->where('crmLoginUrl', 'https://platform.traklo.pro/login')
                     ->where('publicSite.crm_login_url', 'https://platform.traklo.pro/login')
+                    ->missing('plans')
                 );
         } finally {
             $this->app->instance('env', $previous);
