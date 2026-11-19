@@ -37,6 +37,11 @@ class TenantWelcomeMailTest extends BaseTestCase
             'email' => 'admin@example.com',
         ]);
 
+        config([
+            'app.url' => 'https://traklo.pro',
+            'app.crm_domain' => 'traklo.pro',
+        ]);
+
         $mailable = new TenantWelcomeMail($tenant, $user, 'temp-password-xyz');
 
         $mailable->assertHasSubject('Доступ в Traklo Pro');
@@ -44,6 +49,7 @@ class TenantWelcomeMailTest extends BaseTestCase
         $mailable->assertSeeInText('Заполните реквизиты своей компании');
         $mailable->assertSeeInText(TenantWelcomeMail::ADMIN_GUIDE_ATTACHMENT_NAME);
         $mailable->assertSeeInText('temp-password-xyz');
+        $mailable->assertSeeInText('https://acme-test.traklo.pro/login');
         $mailable->assertHasAttachment(
             Attachment::fromPath(base_path(TenantWelcomeMail::ADMIN_GUIDE_PATH))
                 ->as(TenantWelcomeMail::ADMIN_GUIDE_ATTACHMENT_NAME)

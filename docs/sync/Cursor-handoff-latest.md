@@ -1,6 +1,16 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-18 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-19 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Prod hotfix — invite login URL `{slug}.pro` (2026-11-19)
+
+**Symptom:** platform-created tenants got `user.invited` audit + SMTP accept, but recipients reported no usable invite (dead link / spam risk).
+
+**Root cause:** `TenantHost::url` stripped the first label of `APP_URL` host `traklo.pro` → links like `https://akvila_prime.pro/login` instead of `https://akvila_prime.traklo.pro/login`. Guide file + `MAIL_*=smtp` were fine; attachment missing would not abort send.
+
+**Fix:** build tenant URLs from `config('app.crm_domain')`. Tests: `TenantHostTest`, login URL assert in `TenantWelcomeMailTest`.
+
+**Ops follow-up (DNS, not code):** SPF TXT is `v=spf1 ip4:89.111.169.211 a mx ~all` — missing `include:_spf.hosting.reg.ru` required for SMTP via `mail.hosting.reg.ru`. No DKIM selectors found. Update zone in Reg.ru, then **resend** invites (reset temp passwords) for `successful_partner` / `akvila_prime`.
 
 ## ADR-023 P0 shipped — workbook + thin cash (2026-11-18)
 
@@ -51,6 +61,7 @@ Closed gate on apex Traklo Pro (`SHOWCASE_MODE=traklo_pro`, `SHOWCASE_COMING_SOO
 - Does **not** touch `platform.*` or tenant CRM hosts / `/demo/signup` routes
 - Tests: `tests/Feature/PublicLandingPageTest.php`, apex cases in `SecurityP0IsolationTest`
 - Prior soft-gate banner-on-full-landing (`e232dc0`) replaced — looked «open» with stock mockups.
+- **Deployed HEAD:** `70fac37` (git on prod; Vite assets uploaded after server `npm ci` race). Prod `.env` `SHOWCASE_COMING_SOON=true`. Smoke: `/` 200 `Public/TrakloComingSoon`, no `plans`/`planMatrix`/`showcase-shots`; `platform.*/login` 200.
 
 ## Prod SMTP welcome mail (2026-11-18)
 
