@@ -5,7 +5,7 @@
                 <h1 :class="crmPageTitle">Бюджетирование</h1>
                 <p :class="crmPageLead">
                     План выхода в ноль / калькулятор найма: цели <strong class="font-medium">или</strong> маржа менеджера.
-                    Не кассовый бюджет и не налоги — без DSO/DPO, НДС и взносов сверх заданного %.
+                    Математика = маржа − OPEX (не касса). Тонкая ДДС — лист «Касса» в УУ.
                 </p>
             </div>
             <div :class="crmSegmented">
@@ -26,11 +26,20 @@
             </div>
         </div>
 
+        <PlanningWorkbookToc :sheets="workbook" />
+
+        <p
+            v-if="!soft_map_ready"
+            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+            Soft-map статья → категория УУ обязателен для pilot variance. Привяжите категории к статьям OPEX ниже.
+        </p>
+
         <div class="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(300px,380px)_1fr]">
             <aside class="space-y-4">
-                <section :class="`${crmPanel} p-4`">
+                <section id="sheet-opex" :class="`${crmPanel} scroll-mt-4 p-4`">
                     <div class="flex items-center justify-between gap-2">
-                        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">План по статьям</h2>
+                        <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">План OPEX</h2>
                         <Link
                             :href="management_accounting_categories_url"
                             class="text-xs font-medium text-sky-700 hover:underline dark:text-sky-300"
@@ -39,17 +48,35 @@
                         </Link>
                     </div>
                     <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        План OPEX: фикс на всех, ставка на 1 менеджера × N, или % маржи. «Действует N мес.» — иначе весь горизонт.
+                        Фикс / per_head × N / % маржи. Soft-map → УУ обязателен для план/факт.
                     </p>
                     <div class="mt-3 space-y-2">
                         <div
                             v-for="article in localOpexArticles"
                             :key="article.id ?? article._localKey"
                             class="rounded-xl border border-zinc-200 p-3 dark:border-zinc-700"
+                            :class="article.management_expense_category_id ? '' : 'border-amber-300 dark:border-amber-700'"
                         >
                             <div class="font-medium text-sm text-zinc-800 dark:text-zinc-100">
                                 {{ article.name }}
                             </div>
+                            <label class="mt-2 block space-y-0.5">
+                                <span class="text-[10px] uppercase text-zinc-500">Категория УУ (soft-map)</span>
+                                <select
+                                    v-model="article.management_expense_category_id"
+                                    class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                                    @change="persistOpexArticle(article)"
+                                >
+                                    <option :value="null">— выберите —</option>
+                                    <option
+                                        v-for="category in expense_categories"
+                                        :key="category.id"
+                                        :value="category.id"
+                                    >
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                            </label>
                             <label class="mt-2 block space-y-0.5">
                                 <span class="text-[10px] uppercase text-zinc-500">Тип</span>
                                 <select
@@ -116,10 +143,69 @@
                             </div>
                         </div>
                         <p v-if="localOpexArticles.length === 0" class="text-xs text-zinc-500">
-                            Нет статей с планом. Добавьте их в
-                            <Link :href="management_accounting_categories_url" class="text-sky-700 hover:underline dark:text-sky-300">«Статьи учёта»</Link>.
+                            Нет статей — минимальный ICP seed появится при первом входе, либо добавьте строку ниже.
                         </p>
                     </div>
+
+                    <form class="mt-4 space-y-2 border-t border-zinc-200 pt-3 dark:border-zinc-700" @submit.prevent="addOpexArticle">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Добавить статью</div>
+                        <input
+                            v-model="newOpexForm.name"
+                            type="text"
+                            required
+                            placeholder="Название"
+                            class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                        >
+                        <select
+                            v-model="newOpexForm.management_expense_category_id"
+                            required
+                            class="w-full rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                        >
+                            <option disabled :value="null">Категория УУ</option>
+                            <option
+                                v-for="category in expense_categories"
+                                :key="category.id"
+                                :value="category.id"
+                            >
+                                {{ category.name }}
+                            </option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select
+                                v-model="newOpexForm.cost_type"
+                                class="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                            >
+                                <option value="fixed_monthly">Фикс</option>
+                                <option value="percent_of_margin">% маржи</option>
+                            </select>
+                            <input
+                                v-if="newOpexForm.cost_type === 'fixed_monthly'"
+                                v-model.number="newOpexForm.amount_monthly"
+                                type="number"
+                                min="0"
+                                step="1000"
+                                class="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm tabular-nums dark:border-zinc-600 dark:bg-zinc-950"
+                                placeholder="₽/мес"
+                            >
+                            <input
+                                v-else
+                                v-model.number="newOpexForm.percent_of_margin"
+                                type="number"
+                                min="0"
+                                max="99"
+                                step="0.5"
+                                class="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm tabular-nums dark:border-zinc-600 dark:bg-zinc-950"
+                                placeholder="% маржи"
+                            >
+                        </div>
+                        <button
+                            type="submit"
+                            class="w-full rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+                            :disabled="newOpexForm.processing"
+                        >
+                            Добавить строку
+                        </button>
+                    </form>
                 </section>
 
                 <section
@@ -206,10 +292,28 @@
                             {{ snapshot.period_label }} · {{ formatSnapshotDate(snapshot.approved_at) }}
                         </li>
                     </ul>
+                    <p class="mt-2 text-[11px] text-zinc-500">
+                        Freeze = официальный план/факт в УУ. Live draft допустим с предупреждением.
+                    </p>
                 </section>
 
-                <section :class="`${crmPanel} p-4`">
-                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Команда и вливание</h2>
+                <section id="sheet-cvp" :class="`${crmPanel} scroll-mt-4 p-4`">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">CVP</h2>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ cvp?.disclaimer }}</p>
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <div class="text-[10px] uppercase text-zinc-500">Постоянные / мес</div>
+                            <div class="font-semibold tabular-nums">{{ formatMoney(cvp?.fixed_monthly) }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase text-zinc-500">Переменные</div>
+                            <div class="font-semibold tabular-nums">{{ cvp?.variable_percent_of_margin ?? 0 }}% маржи</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="sheet-drivers" :class="`${crmPanel} scroll-mt-4 p-4`">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Драйверы</h2>
                     <div class="mt-3 space-y-3">
                         <label class="block space-y-1">
                             <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">Число менеджеров</span>
@@ -428,16 +532,16 @@
                     </div>
                 </section>
 
-                <section :class="`${crmPanel} overflow-hidden`">
+                <section id="sheet-timeline" :class="`${crmPanel} scroll-mt-4 overflow-hidden`">
                     <button
                         type="button"
                         class="flex w-full items-start justify-between gap-3 px-5 py-4 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-950/40"
                         @click="summaryPanelOpen = !summaryPanelOpen"
                     >
                         <div class="min-w-0 space-y-1">
-                            <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Сводка и оценка сценария</h2>
+                            <h2 class="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Вехи и сводка</h2>
                             <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                                Ключевые сроки, целевая маржа и общий вывод по текущим вводным.
+                                Ноль месяца, накопленный остаток плана, пик финансирования — не банковская касса.
                             </p>
                         </div>
                         <ChevronDown
@@ -824,8 +928,10 @@
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { ChevronDown } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
+import PlanningWorkbookToc from '@/Components/Planning/PlanningWorkbookToc.vue';
 import CrmLayout from '@/Layouts/CrmLayout.vue';
 import {
+    crmBtnCreate,
     crmPageLead,
     crmPageTitle,
     crmPanel,
@@ -853,8 +959,13 @@ defineOptions({
 const props = defineProps({
     inputs: { type: Object, required: true },
     plan: { type: Object, required: true },
+    cvp: { type: Object, default: () => ({}) },
     opex_articles: { type: Array, default: () => [] },
+    expense_categories: { type: Array, default: () => [] },
+    soft_map_ready: { type: Boolean, default: false },
+    workbook: { type: Array, default: () => [] },
     management_accounting_categories_url: { type: String, required: true },
+    management_accounting_plan_fact_url: { type: String, default: null },
     db_benchmark: { type: Object, default: () => ({}) },
     scenario: { type: Object, default: () => ({}) },
     plan_snapshots: { type: Array, default: () => [] },
@@ -1172,7 +1283,7 @@ function saveScenario() {
 }
 
 function persistOpexArticle(article) {
-    if (!article.id) {
+    if (!article.id || !article.management_expense_category_id) {
         return;
     }
 
@@ -1186,9 +1297,32 @@ function persistOpexArticle(article) {
             ? (Number(article.percent_of_margin) || 0)
             : null,
         ramp_months: article.ramp_months === '' || article.ramp_months === null ? null : Number(article.ramp_months),
+        management_expense_category_id: Number(article.management_expense_category_id),
     };
 
     router.patch(route('budgeting.opex-articles.update', article.id), payload, { preserveScroll: true });
+}
+
+const newOpexForm = useForm({
+    name: '',
+    cost_type: 'fixed_monthly',
+    amount_basis: 'total',
+    amount_monthly: 0,
+    percent_of_margin: null,
+    ramp_months: null,
+    management_expense_category_id: null,
+});
+
+function addOpexArticle() {
+    newOpexForm.post(route('budgeting.opex-articles.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            newOpexForm.reset();
+            newOpexForm.cost_type = 'fixed_monthly';
+            newOpexForm.amount_basis = 'total';
+            newOpexForm.management_expense_category_id = null;
+        },
+    });
 }
 
 const planMilestoneCumulativeWarning = computed(() => {
@@ -1328,17 +1462,17 @@ const summaryCards = computed(() => {
     const plannedCashMonth = s.cash_zero_month ?? localInputs.cash_zero_month;
     const cashBeHint = s.breakeven_month_cash
         ? (s.breakeven_month_cash === plannedCashMonth
-            ? 'Накопленный остаток ≥ 0'
-            : `Факт: мес. ${s.breakeven_month_cash}, цель — мес. ${plannedCashMonth}`)
+            ? 'Накопленный остаток плана (маржа−OPEX) ≥ 0 — не банковская касса'
+            : `План: мес. ${s.breakeven_month_cash}, цель — мес. ${plannedCashMonth}`)
         : (s.breakeven_month_cash_estimated
-            ? `Оценка при текущем потоке; цель — мес. ${plannedCashMonth}`
+            ? `Оценка потока модели; цель — мес. ${plannedCashMonth}`
             : `Цель — мес. ${plannedCashMonth}`);
 
     if (localInputs.calculation_mode === MODE_BOTTOM_UP) {
         cards.push(
             {
                 key: 'be-cash',
-                label: 'Окупаемость',
+                label: 'Окупаемость плана',
                 value: cashBeValue,
                 hint: cashBeHint,
             },

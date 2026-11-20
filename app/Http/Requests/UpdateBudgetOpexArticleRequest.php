@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\BudgetOpexArticle;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -21,6 +22,7 @@ class UpdateBudgetOpexArticleRequest extends FormRequest
     public function rules(): array
     {
         $costType = $this->input('cost_type', BudgetOpexArticle::COST_FIXED_MONTHLY);
+        $tenantId = TenantContext::id();
 
         return [
             'cost_type' => ['required', 'string', Rule::in([
@@ -45,6 +47,15 @@ class UpdateBudgetOpexArticleRequest extends FormRequest
                 'max:99',
             ],
             'ramp_months' => ['nullable', 'integer', 'min:1', 'max:36'],
+            // ADR-023: soft-map required for pilot variance quality (same-tenant FK).
+            'management_expense_category_id' => [
+                'required',
+                'integer',
+                Rule::exists('management_expense_categories', 'id')->when(
+                    $tenantId !== null,
+                    fn ($rule) => $rule->where('tenant_id', $tenantId),
+                ),
+            ],
         ];
     }
 }

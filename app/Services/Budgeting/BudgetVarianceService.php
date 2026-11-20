@@ -35,7 +35,34 @@ class BudgetVarianceService
         Collection $categories,
         array $actualByCategory,
     ): array {
-        $planByCategory = $this->snapshotService->plannedByCategoryForPeriod($snapshot, $start, $end);
+        return $this->compareFromPlanMap(
+            $this->snapshotService->plannedByCategoryForPeriod($snapshot, $start, $end),
+            $categories,
+            $actualByCategory,
+        );
+    }
+
+    /**
+     * Live draft or freeze — same matrix shape (ADR-023 plan | факт | Δ).
+     *
+     * @param  array<int, float>  $planByCategory
+     * @param  array<int, array{in?: float, out?: float}>  $actualByCategory
+     * @return list<array{
+     *     category_id: int|null,
+     *     code: string|null,
+     *     name: string,
+     *     kind: string|null,
+     *     planned: float,
+     *     actual: float,
+     *     variance: float,
+     *     variance_percent: float|null
+     * }>
+     */
+    public function compareFromPlanMap(
+        array $planByCategory,
+        Collection $categories,
+        array $actualByCategory,
+    ): array {
         $rows = [];
 
         foreach ($categories as $category) {
@@ -69,7 +96,7 @@ class BudgetVarianceService
                 continue;
             }
 
-            $rows[] = $this->buildRow($categoryId, null, 'Статья #'.$categoryId, null, (float) $planned, $actual);
+            $rows[] = $this->buildRow((int) $categoryId, null, 'Статья #'.$categoryId, null, (float) $planned, $actual);
         }
 
         usort($rows, fn (array $left, array $right): int => abs($right['variance']) <=> abs($left['variance']));

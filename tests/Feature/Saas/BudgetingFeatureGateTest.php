@@ -36,6 +36,7 @@ class BudgetingFeatureGateTest extends SaasTestCase
             'cost_type' => BudgetOpexArticle::COST_FIXED_MONTHLY,
             'amount_basis' => BudgetOpexArticle::AMOUNT_BASIS_TOTAL,
             'amount_monthly' => 10000,
+            'management_expense_category_id' => 1,
         ])->assertForbidden();
     }
 

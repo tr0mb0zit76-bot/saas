@@ -25,9 +25,10 @@ abstract class SaasTestCase extends TestCase
      */
     protected function migrateFreshUsing(): array
     {
-        return [
-            '--schema-path' => database_path('schema/.skip-mysql-cli-load'),
-        ];
+        // Do not pass --schema-path=.skip-mysql-cli-load: an empty dump makes
+        // migrate:fresh drop the migrations table after "schema load" (Windows/MySQL).
+        // Full migration replay is ~30–60s and is the reliable path for Feature/Saas.
+        return [];
     }
 
     protected function refreshTestDatabase(): void

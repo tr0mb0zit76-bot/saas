@@ -132,20 +132,23 @@ class ManagementAccountingAnalyticsService
         $varianceRows = [];
         $payrollVariance = null;
 
-        if ($planContext['snapshot'] instanceof BudgetPlanSnapshot) {
-            $varianceRows = $this->varianceService->compare(
-                $planContext['snapshot'],
-                $bounds['start'],
-                $bounds['end'],
+        if ($planContext['source'] !== 'none') {
+            $varianceRows = $this->varianceService->compareFromPlanMap(
+                $planByCategory,
                 $categories,
                 $aggregates['by_category'],
             );
+        }
+
+        if ($planContext['snapshot'] instanceof BudgetPlanSnapshot) {
             $payrollVariance = $this->varianceService->payrollVariance(
                 $planContext['snapshot'],
                 $bounds['start'],
                 $bounds['end'],
             );
         }
+
+        $softMap = $this->softMapStatus();
 
         return [
             'period_type' => $periodType,
@@ -196,10 +199,34 @@ class ManagementAccountingAnalyticsService
             'pivot' => $pivot,
             'plan_available' => $planAvailable,
             'plan_source' => $planContext['source'],
+            'plan_official' => $planContext['source'] === 'snapshot',
             'plan_snapshot' => $planContext['snapshot_meta'],
+            'soft_map_ready' => $softMap['ready'],
+            'soft_map_unmapped_count' => $softMap['unmapped_count'],
+            'variance_ready' => $softMap['ready'] && $planContext['source'] !== 'none',
             'variance_rows' => $varianceRows,
             'payroll_variance' => $payrollVariance,
             'full_picture' => $this->fullPictureService->build($bounds['start'], $bounds['end']),
+        ];
+    }
+
+    /**
+     * @return array{ready: bool, unmapped_count: int}
+     */
+    private function softMapStatus(): array
+    {
+        if (! Schema::hasTable('budget_opex_articles')
+            || ! Schema::hasColumn('budget_opex_articles', 'management_expense_category_id')) {
+            return ['ready' => false, 'unmapped_count' => 0];
+        }
+
+        $total = (int) BudgetOpexArticle::query()->count();
+        $mapped = (int) BudgetOpexArticle::query()->whereNotNull('management_expense_category_id')->count();
+        $unmapped = max(0, $total - $mapped);
+
+        return [
+            'ready' => $total > 0 && $unmapped === 0,
+            'unmapped_count' => $unmapped,
         ];
     }
 

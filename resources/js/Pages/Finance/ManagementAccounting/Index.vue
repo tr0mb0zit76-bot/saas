@@ -11,23 +11,34 @@
                 </Link>
                 <h1 :class="crmPageTitle">Управленческий учёт</h1>
                 <p :class="crmPageLead">
-                    Факт распоряжения валовой маржой по статьям. Разнос банковских выписок — в графике оплат.
+                    Операционный контур: безнал из выписки, ручные строки, план/факт, тонкая касса. Не путать с планом маржи в «Бюджетировании».
                 </p>
             </div>
-            <Link
-                href="/finance?section=cashflow&cashflow_tab=reconcile"
-                class="text-sm font-medium text-sky-700 hover:underline dark:text-sky-300"
-            >
-                Разнос выписки →
-            </Link>
-            <ManagementAccountingManualEntryModal
-                v-if="can_manage_manual_entries"
-                :bank-accounts="bank_accounts"
-                :categories="categories"
-                :recent-entries="recent_manual_entries"
-                :can-manage="can_manage_manual_entries"
-            />
+            <div class="flex flex-wrap items-center gap-3">
+                <Link
+                    v-if="budgeting_url"
+                    :href="budgeting_url"
+                    class="text-sm font-medium text-sky-700 hover:underline dark:text-sky-300"
+                >
+                    Бюджетирование →
+                </Link>
+                <Link
+                    href="/finance?section=cashflow&cashflow_tab=reconcile"
+                    class="text-sm font-medium text-sky-700 hover:underline dark:text-sky-300"
+                >
+                    Разнос выписки →
+                </Link>
+                <ManagementAccountingManualEntryModal
+                    v-if="can_manage_manual_entries"
+                    :bank-accounts="bank_accounts"
+                    :categories="categories"
+                    :recent-entries="recent_manual_entries"
+                    :can-manage="can_manage_manual_entries"
+                />
+            </div>
         </div>
+
+        <PlanningWorkbookToc :sheets="workbook" />
 
         <div class="flex flex-wrap gap-2 border-b border-zinc-200 pb-2 dark:border-zinc-700">
             <button
@@ -41,7 +52,11 @@
             </button>
         </div>
 
-        <div v-if="activeTab === 'ledger'" class="space-y-4">
+        <div v-if="activeTab === 'cash'">
+            <ManagementAccountingThinCash :cash="thin_cash" :bank-accounts="bank_accounts" />
+        </div>
+
+        <div v-else-if="activeTab === 'ledger'" class="space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div :class="crmSegmented">
                     <button
@@ -68,6 +83,20 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
+                    <label class="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                        Фильтр
+                        <select
+                            :value="filters.kind || 'all'"
+                            class="rounded-lg border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-950"
+                            @change="switchKind($event.target.value)"
+                        >
+                            <option value="all">Все статьи</option>
+                            <option value="expense">Расходы</option>
+                            <option value="income">Доходы</option>
+                            <option value="payroll">ФОТ</option>
+                            <option value="tax">Налоги</option>
+                        </select>
+                    </label>
                     <button type="button" :class="crmBtnNeutral" @click="shiftPeriod(-1)">
                         ←
                     </button>
@@ -212,25 +241,38 @@
                 </div>
             </section>
 
-            <ManagementAccountingLedgerReport :pivot="analytics.pivot ?? { columns: [], rows: [], time_series: [] }" />
-
-            <ManagementAccountingVarianceTable
-                v-if="analytics.plan_available"
-                :variance-rows="analytics.variance_rows ?? []"
-                :payroll-variance="analytics.payroll_variance"
-                :plan-snapshot="analytics.plan_snapshot"
-                :plan-source="analytics.plan_source ?? 'none'"
+            <ManagementAccountingLedgerReport
+                :pivot="filteredPivot"
             />
 
-            <p v-if="analytics.plan_source === 'live'" class="text-xs text-amber-700 dark:text-amber-300">
-                План не зафиксирован — отклонения считаются по черновику бюджета. Зафиксируйте план в разделе «Бюджетирование».
-            </p>
-            <p v-if="!analytics.plan_available" class="text-xs text-amber-700 dark:text-amber-300">
-                Справочник бюджетирования недоступен — план расходов не рассчитан.
-            </p>
+            <div id="sheet-plan-fact" class="scroll-mt-4 space-y-2">
+                <ManagementAccountingVarianceTable
+                    v-if="analytics.plan_available"
+                    :variance-rows="filteredVarianceRows"
+                    :payroll-variance="analytics.payroll_variance"
+                    :plan-snapshot="analytics.plan_snapshot"
+                    :plan-source="analytics.plan_source ?? 'none'"
+                    :plan-official="Boolean(analytics.plan_official)"
+                    :soft-map-ready="Boolean(analytics.soft_map_ready)"
+                    :soft-map-unmapped-count="Number(analytics.soft_map_unmapped_count || 0)"
+                />
+
+                <p v-if="analytics.plan_source === 'live'" class="text-xs text-amber-700 dark:text-amber-300">
+                    Черновик бюджета (live) — отклонения неофициальные. Freeze в «Бюджетировании» = официальный план/факт.
+                </p>
+                <p v-if="analytics.plan_source === 'snapshot'" class="text-xs text-emerald-700 dark:text-emerald-300">
+                    Официальные отклонения по зафиксированному снимку плана.
+                </p>
+                <p v-if="analytics.soft_map_ready === false" class="text-xs text-amber-700 dark:text-amber-300">
+                    Soft-map не готов: {{ analytics.soft_map_unmapped_count || 0 }} статей бюджета без категории УУ — pilot variance неполный.
+                </p>
+                <p v-if="!analytics.plan_available" class="text-xs text-amber-700 dark:text-amber-300">
+                    Справочник бюджетирования недоступен — план расходов не рассчитан.
+                </p>
+            </div>
         </div>
 
-        <section v-else :class="`${crmPanel} p-5`">
+        <section v-else-if="activeTab === 'categories'" :class="`${crmPanel} p-5`">
             <ManagementAccountingCategoryTree :tree="category_tree" />
         </section>
     </div>
@@ -243,7 +285,9 @@ import { ArrowLeft } from 'lucide-vue-next';
 import ManagementAccountingCategoryTree from '@/Components/Finance/ManagementAccountingCategoryTree.vue';
 import ManagementAccountingLedgerReport from '@/Components/Finance/ManagementAccountingLedgerReport.vue';
 import ManagementAccountingManualEntryModal from '@/Components/Finance/ManagementAccountingManualEntryModal.vue';
+import ManagementAccountingThinCash from '@/Components/Finance/ManagementAccountingThinCash.vue';
 import ManagementAccountingVarianceTable from '@/Components/Finance/ManagementAccountingVarianceTable.vue';
+import PlanningWorkbookToc from '@/Components/Planning/PlanningWorkbookToc.vue';
 import CrmLayout from '@/Layouts/CrmLayout.vue';
 import { crmTabButtonClasses } from '@/support/crmAppearance.js';
 import {
@@ -263,27 +307,60 @@ defineOptions({
 });
 
 const props = defineProps({
-    filters: { type: Object, default: () => ({ tab: 'ledger', period_type: 'month', period_anchor: '' }) },
+    filters: { type: Object, default: () => ({ tab: 'ledger', period_type: 'month', period_anchor: '', kind: 'all' }) },
     categories: { type: Array, default: () => [] },
     category_tree: { type: Array, default: () => [] },
     bank_accounts: { type: Array, default: () => [] },
     recent_manual_entries: { type: Array, default: () => [] },
     can_manage_manual_entries: { type: Boolean, default: false },
     analytics: { type: Object, required: true },
+    thin_cash: { type: Object, default: () => ({}) },
+    workbook: { type: Array, default: () => [] },
+    budgeting_url: { type: String, default: null },
 });
 
 const tabs = [
     { key: 'ledger', label: 'Учёт' },
     { key: 'categories', label: 'Статьи учёта' },
+    { key: 'cash', label: 'Касса' },
 ];
 
 const activeTab = computed(() => props.filters.tab ?? 'ledger');
+const kindFilter = computed(() => props.filters.kind || 'all');
+
+const filteredVarianceRows = computed(() => {
+    const rows = props.analytics.variance_rows ?? [];
+    if (kindFilter.value === 'all') {
+        return rows;
+    }
+
+    return rows.filter((row) => (row.kind || '') === kindFilter.value);
+});
+
+const filteredPivot = computed(() => {
+    const pivot = props.analytics.pivot ?? { columns: [], rows: [], time_series: [] };
+    if (kindFilter.value === 'all') {
+        return pivot;
+    }
+
+    return {
+        ...pivot,
+        rows: (pivot.rows || []).filter((row) => {
+            if (row.is_summary) {
+                return true;
+            }
+
+            return (row.kind || '') === kindFilter.value;
+        }),
+    };
+});
 
 function reloadWithFilters(overrides = {}) {
     router.get('/finance/management-accounting', {
         tab: overrides.tab ?? activeTab.value,
         period_type: overrides.period_type ?? props.filters.period_type ?? 'month',
         period_anchor: overrides.period_anchor ?? props.filters.period_anchor,
+        kind: overrides.kind ?? props.filters.kind ?? 'all',
     }, {
         preserveState: true,
         preserveScroll: true,
@@ -297,6 +374,10 @@ function switchTab(tab) {
 
 function switchPeriodType(periodType) {
     reloadWithFilters({ tab: 'ledger', period_type: periodType });
+}
+
+function switchKind(kind) {
+    reloadWithFilters({ tab: 'ledger', kind });
 }
 
 function shiftPeriod(direction) {

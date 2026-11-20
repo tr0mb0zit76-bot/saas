@@ -18,6 +18,9 @@ class ManagementBankAccount extends Model
         'account_number',
         'account_mask',
         'currency',
+        'opening_balance',
+        'opening_balance_as_of',
+        'opening_balance_source',
         'is_active',
         'sort_order',
     ];
@@ -29,6 +32,8 @@ class ManagementBankAccount extends Model
     {
         return [
             'is_active' => 'boolean',
+            'opening_balance' => 'decimal:2',
+            'opening_balance_as_of' => 'date',
         ];
     }
 

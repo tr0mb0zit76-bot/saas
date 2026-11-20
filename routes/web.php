@@ -707,6 +707,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/finance/management-accounting', [ManagementAccountingController::class, 'index'])
         ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.index');
+    Route::patch('/finance/management-accounting/thin-cash/opening-balance', [ManagementAccountingController::class, 'updateOpeningBalance'])
+        ->middleware('feature:management_accounting')
+        ->name('finance.management-accounting.thin-cash.opening-balance');
     Route::post('/finance/management-accounting/imports', [ManagementAccountingImportController::class, 'store'])
         ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.imports.store');

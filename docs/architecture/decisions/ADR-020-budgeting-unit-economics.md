@@ -2,9 +2,10 @@
 
 **Status:** Accepted  
 **Date:** 2026-11-10  
-**Related:** ADR-003 (module packaging), ADR-006 (feature gating), ADR-002 / ADR-010 (tenant isolation)  
+**Related:** ADR-003 (module packaging), ADR-006 (feature gating), ADR-002 / ADR-010 (tenant isolation); **UX workbook + thin cash → [ADR-023](ADR-023-workbook-planning-control-shell.md) (Accepted)**  
 **Team input:** saas-architect · CFO brief (×2) · saas-qa · saas-privacy · saas-security (2026-11-10)  
-**PO decisions:** 2026-11-10 (per_head + взносы в P0; УУ = только plan vs actual)
+**PO decisions:** 2026-11-10 (per_head + взносы в P0; УУ = только plan vs actual)  
+**Note (2026-11-18):** математика Budgeting (margin − OPEX) здесь и **не равна кассе**. Организация «книга» + тонкая ДДС (выписка/сальдо) до внешнего Enterprise — ADR-023; soft-map обязателен для пилота; DSO/DPO schedules по-прежнему не в формуле Budgeting.
 
 ## Context
 
