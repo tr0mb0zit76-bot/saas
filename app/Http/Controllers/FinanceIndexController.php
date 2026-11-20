@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ManagementBankAccount;
 use App\Models\ManagementStatementImport;
+use App\Services\Finance\CashFlowControlDashboardService;
 use App\Services\Finance\FinanceOverviewService;
 use App\Services\ManagementAccounting\ManagementBankAccountSyncService;
 use App\Support\PaymentScheduleAutomaticStatus;
@@ -16,8 +17,11 @@ use Inertia\Response;
 
 class FinanceIndexController extends Controller
 {
-    public function __invoke(Request $request, FinanceOverviewService $financeOverview): Response|RedirectResponse
-    {
+    public function __invoke(
+        Request $request,
+        FinanceOverviewService $financeOverview,
+        CashFlowControlDashboardService $cashFlowDashboard,
+    ): Response|RedirectResponse {
         if ($request->query('section') === 'documents') {
             return redirect()->route('finance.index');
         }
@@ -67,6 +71,16 @@ class FinanceIndexController extends Controller
             'can_payment_schedule_cancel_row' => RoleAccess::canCancelPaymentScheduleRow($user),
             'paymentScheduleColumns' => PaymentScheduleTableColumns::options(),
         ];
+
+        if ($activeSubmodule === 'cashflow' && $cashflowTab === 'schedule') {
+            $payload['cashflow_dashboard'] = $cashFlowDashboard->build($user, [
+                'period' => (string) $request->query('cf_period', 'M'),
+                'flow' => (string) $request->query('cf_flow', 'total'),
+                'overlay' => (string) $request->query('cf_overlay', 'fact_plus_expectations'),
+                'direction' => $request->query('cf_direction'),
+                'anchor' => $request->query('cf_anchor'),
+            ]);
+        }
 
         if ($activeSubmodule === 'cashflow' && $cashflowTab === 'reconcile') {
             $payload = [...$payload, ...$this->statementReconcileProps($request)];

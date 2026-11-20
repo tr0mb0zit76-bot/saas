@@ -1,6 +1,48 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-19 · **Фаза:** Phase 4 + ADR-021/022 P0 · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-20 · **Фаза:** Phase 4 + ADR-024 P1 shipped · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## ADR-024 P1 shipped — enhance График оплат (2026-11-20)
+
+**Canon:** [`ADR-024`](../architecture/decisions/ADR-024-payment-calendar-directions-pro-lite-pnl.md) (Accepted). No new «calendar lite» menu — dashboard on `/finance?section=cashflow`.
+
+### Shipped
+
+- `CashFlowControlDashboardService` + `CashFlowControlDashboard.vue` above existing `CashFlowGrid`
+- Gauges plan|факт|% (поступления / списания / итого); accuracy by week; directions (`own_company_id` + domestic/international)
+- Three honest lenses: «Сейчас» (thin cash, Enterprise only); «Факт + ожидания (ДЗ/КЗ)»; Упр. ОПиУ stub (M/Q/H/Y selector, not cash)
+- Props `cashflow_dashboard.mode`: `schedules_only` (Pro) | `schedules_plus_bank` (Enterprise; bank join in gauges still P2)
+- Isolation: `TenantContext::restrict` on raw schedule queries
+- Tests: `tests/Feature/Saas/CashFlowControlDashboardTest.php`
+- ADR-023 P0 committed: `31a7e71` (workbook TOC, soft-map, thin cash)
+
+### Verify (lab)
+
+```powershell
+php artisan migrate
+php artisan test --filter=CashFlowControlDashboardTest
+php artisan test --filter=WorkbookPlanningControlTest
+```
+
+- **Pro:** login tenant plan=pro → `/finance?section=cashflow` → mode `schedules_only`, «Сейчас» unavailable, gauges from schedules
+- **Enterprise:** plan=enterprise + UA → same URL → mode `schedules_plus_bank`, «Сейчас» from thin cash; УУ Касса still at `/finance/management-accounting?tab=cash`
+- **No prod deploy**
+
+### Deferred (P2 / later)
+
+- Bank statement join into the same gauges (plan schedule ↔ выписка)
+- Full упр. ОПиУ sheet + money|accrual toggle
+- Tenant handbook «Направления»; richer transport-type keys
+- Full ICP OPEX catalog / +N / monthly grid (ADR-023 P1 leftovers)
+
+## Commercial sales pricing baseline (2026-11-20)
+
+**Канон цифр для финплана продаж:** [`docs/architecture/commercial-sales-pricing-baseline.md`](../architecture/commercial-sales-pricing-baseline.md)  
+Canvas: `traklo-pro-pricing-valuation` (SaaS + сценарии add-on).
+
+- SaaS list: Старт 9 900 / Про **24 900** / Корп от 59 000 ₽/мес (+ add-on матрица)  
+- On‑prem «как есть»: Про ~**550 тыс** разово или ~**320 тыс**/год; поддержка **18–25%**/год; кастом **80–120 тыс**/день  
+- Не прайс с НДС; править после 3–5 переговоров. Цен в `subscription_plans` ещё нет.
 
 ## Prod hotfix — invite login URL `{slug}.pro` (2026-11-19)
 
