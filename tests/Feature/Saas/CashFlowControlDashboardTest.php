@@ -124,7 +124,96 @@ class CashFlowControlDashboardTest extends SaasTestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page): Assert => $page
                 ->component('Finance/Index')
-                ->missing('cashflow_dashboard'));
+                ->missing('cashflow_dashboard')
+                ->where('can_access_payment_schedules', false));
+    }
+
+    public function test_start_plan_cannot_open_cashflow_section(): void
+    {
+        $fixture = $this->seedStaffTenant('start');
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+
+        $this->assertFalse($fixture['tenant']->featureEnabled('payment_schedules'));
+
+        $this->get(route('finance.index', ['section' => 'cashflow']))
+            ->assertForbidden();
+    }
+
+    public function test_enterprise_without_management_accounting_role_hides_cash_now(): void
+    {
+        $fixture = $this->seedStaffTenant('enterprise');
+        $fixture['staff']->forceFill(['can_management_accounting' => false])->save();
+
+        // Non-admin role so RoleAccess::canAccessManagementAccounting respects the flag.
+        $managerRole = Role::query()->create([
+            'tenant_id' => $fixture['tenant']->id,
+            'name' => 'manager',
+            'display_name' => 'Manager',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('manager'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('manager'),
+        ]);
+        $fixture['staff']->forceFill([
+            'role_id' => $managerRole->id,
+            'can_management_accounting' => false,
+        ])->save();
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']->fresh());
+        $this->seedSchedulePair($fixture['tenant'], $fixture['staff'], ownCompanyName: 'ООО No UA');
+
+        $this->get(route('finance.index', ['section' => 'cashflow']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('cashflow_dashboard.mode', 'schedules_only')
+                ->where('cashflow_dashboard.lenses.cash_now.available', false)
+                ->etc());
+    }
+
+    public function test_manager_scope_limits_expectations_to_own_orders(): void
+    {
+        $fixture = $this->seedStaffTenant('pro');
+        TenantContext::set($fixture['tenant']);
+
+        $managerRole = Role::query()->create([
+            'tenant_id' => $fixture['tenant']->id,
+            'name' => 'manager',
+            'display_name' => 'Manager',
+            'permissions' => RoleAccess::permissionKeys(),
+            'visibility_areas' => RoleAccess::defaultVisibilityAreas('manager'),
+            'visibility_scopes' => RoleAccess::defaultVisibilityScopes('manager'),
+        ]);
+
+        $manager = User::query()->create([
+            'tenant_id' => $fixture['tenant']->id,
+            'role_id' => $managerRole->id,
+            'name' => 'Scoped Manager',
+            'email' => 'mgr-'.$fixture['tenant']->slug.'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $other = User::query()->create([
+            'tenant_id' => $fixture['tenant']->id,
+            'role_id' => $managerRole->id,
+            'name' => 'Other Manager',
+            'email' => 'other-'.$fixture['tenant']->slug.'@saas.local',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $this->seedSchedulePair($fixture['tenant'], $manager, ownCompanyName: 'Own Co', incomeAmount: 10000, incomePaid: 0, expenseAmount: 4000);
+        $this->seedSchedulePair($fixture['tenant'], $other, ownCompanyName: 'Other Co', incomeAmount: 999000, incomePaid: 0, expenseAmount: 500000);
+
+        $this->actingAsTenant($fixture['tenant'], $manager);
+
+        $this->get(route('finance.index', ['section' => 'cashflow']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->where('cashflow_dashboard.lenses.expectations.value.expected_in', fn ($v): bool => (float) $v === 10000.0)
+                ->where('cashflow_dashboard.lenses.expectations.value.expected_out', fn ($v): bool => (float) $v === 4000.0)
+                ->etc());
     }
 
     /**

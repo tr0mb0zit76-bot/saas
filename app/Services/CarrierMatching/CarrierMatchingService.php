@@ -120,8 +120,11 @@ class CarrierMatchingService
             ->with(['cargoItems', 'routePoints'])
             ->where('counterparty_id', $contractorId)
             ->where(function ($query): void {
+                // Source can be rewritten to "inbound" in the wizard select (traklo value
+                // is not in LeadSource::options). metadata.created_via is the durable mark.
                 $query->where('source', self::SOURCE_CUSTOMER_REQUEST)
-                    ->orWhere('source', 'like', self::SOURCE_CUSTOMER_REQUEST.' · %');
+                    ->orWhere('source', 'like', self::SOURCE_CUSTOMER_REQUEST.' · %')
+                    ->orWhere('metadata->created_via', 'customer_cabinet');
             })
             ->orderByDesc('id')
             ->limit(50)
@@ -135,7 +138,7 @@ class CarrierMatchingService
         }
 
         return (int) $lead->counterparty_id === (int) $customer->contractor_id
-            && self::isCustomerRequestSource($lead->source);
+            && self::isCustomerCabinetLead($lead);
     }
 
     public static function isCustomerRequestSource(mixed $source): bool
@@ -144,6 +147,41 @@ class CarrierMatchingService
 
         return $value === self::SOURCE_CUSTOMER_REQUEST
             || str_starts_with($value, self::SOURCE_CUSTOMER_REQUEST.' · ');
+    }
+
+    /**
+     * Cabinet-visible просчёт: traklo source and/or metadata from createCustomerRequest.
+     */
+    public static function isCustomerCabinetLead(Lead $lead): bool
+    {
+        if (self::isCustomerRequestSource($lead->source)) {
+            return true;
+        }
+
+        $metadata = is_array($lead->metadata) ? $lead->metadata : [];
+
+        return ($metadata['created_via'] ?? null) === 'customer_cabinet';
+    }
+
+    /**
+     * Wizard source select only offers LeadSource::values() (e.g. inbound).
+     * Choosing the same label must not erase the traklo cabinet source.
+     */
+    public static function resolveStaffSourceUpdate(Lead $lead, ?string $incomingSource): ?string
+    {
+        $incoming = $incomingSource !== null ? trim($incomingSource) : '';
+        $incoming = $incoming === '' ? null : $incoming;
+
+        if (
+            self::isCustomerCabinetLead($lead)
+            && ($incoming === null || $incoming === 'inbound')
+        ) {
+            $current = trim((string) ($lead->source ?? ''));
+
+            return $current !== '' ? $current : self::SOURCE_CUSTOMER_REQUEST;
+        }
+
+        return $incoming;
     }
 
     /**
@@ -532,14 +570,25 @@ class CarrierMatchingService
 
     /**
      * Staff «Ответить клиенту» — make quoted_price visible in customer DTO.
+     * Optional $price: save draft then send (Predрасчёт / finance UI may only have local amount).
      */
-    public function sendQuoteToClient(Lead $lead, User $staff): Lead
-    {
+    public function sendQuoteToClient(
+        Lead $lead,
+        User $staff,
+        float|int|string|null $price = null,
+        ?string $currency = null,
+    ): Lead {
         abort_if($staff->isExternal(), 403);
+
+        if ($price !== null && $price !== '') {
+            $lead = $this->saveQuoteDraft($lead, $staff, $price, $currency);
+        }
+
         abort_unless($lead->quoted_price !== null && (float) $lead->quoted_price > 0, 422, 'Сначала сохраните цену оферты.');
 
         $status = (string) ($lead->quote_status ?: 'none');
-        abort_unless(in_array($status, ['draft', 'sent'], true), 422, 'Отправить можно только черновик оферты.');
+        // none: amount already on lead (or just drafted above) but status not flipped yet
+        abort_unless(in_array($status, ['none', 'draft', 'sent'], true), 422, 'Отправить можно только черновик оферты.');
 
         $lead->forceFill([
             'quote_status' => 'sent',
@@ -588,7 +637,7 @@ class CarrierMatchingService
     {
         return match ($status) {
             'draft' => 'Черновик оферты',
-            'sent' => 'Оферта отправлена',
+            'sent' => 'Оферта получена',
             'agreed' => 'Цена согласована',
             default => 'Оферта не сформирована',
         };

@@ -1466,7 +1466,8 @@ async function submit() {
     form.contacts = (form.contacts ?? []).map((contact) => ({
         ...contact,
         is_primary: Boolean(contact.is_primary),
-        is_decision_maker: Boolean(contact.is_decision_maker),
+        // UI dropped the ЛПР checkbox; keep API boolean in sync with role select.
+        is_decision_maker: contact.role_in_deal === 'decision_maker',
     }));
 
     const primaryBankAccount = form.bank_accounts.find((account) => account.is_primary) ?? form.bank_accounts[0] ?? null;
@@ -1612,9 +1613,39 @@ async function setTrakloPrimary(contact) {
     }
 }
 
+function contactEmailValue(contact) {
+    return String(contact?.email ?? '').trim();
+}
+
+function canInviteContactToTraklo(contact) {
+    return Boolean(contact?.id) && contactEmailValue(contact) !== '' && trakloBusyContactId.value !== contact.id;
+}
+
+function trakloInviteDisabledReason(contact) {
+    if (!contact?.id) {
+        return 'Сначала сохраните карточку контрагента — у контакта должен появиться id.';
+    }
+
+    if (contactEmailValue(contact) === '') {
+        return 'Укажите email именно у контакта (поле Email ниже), затем сохраните при необходимости.';
+    }
+
+    if (trakloBusyContactId.value === contact.id) {
+        return 'Создаём ссылку…';
+    }
+
+    return '';
+}
+
 async function inviteToTraklo(contact) {
     if (!selectedContractorId.value || !contact?.id) {
         trakloInviteMessage.value = 'Сначала сохраните контакт, затем пригласите в Traklo.';
+
+        return;
+    }
+
+    if (contactEmailValue(contact) === '') {
+        trakloInviteMessage.value = 'Укажите email контакта, затем пригласите в Traklo.';
 
         return;
     }
@@ -1631,8 +1662,8 @@ async function inviteToTraklo(contact) {
         );
         trakloInviteUrl.value = data.url ?? '';
         trakloInviteMessage.value = data.created
-            ? 'Ссылка создана. Отправьте её контакту.'
-            : 'Новая ссылка для существующего пользователя.';
+            ? 'Ссылка создана. Отправьте её контакту (SMTP не нужен — скопируйте URL).'
+            : 'Новая ссылка для существующего пользователя (renew).';
         contact.has_traklo_user = true;
         router.reload({ only: ['selectedContractor'], preserveScroll: true });
     } catch (error) {
@@ -3612,10 +3643,52 @@ function goToPage(pageNumber) {
                                         </button>
                                     </div>
 
-                                    <div class="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                        <div class="min-w-0 space-y-2 xl:col-start-1 xl:row-start-1">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">ФИО</label>
+                                            <input v-model="contact.full_name" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="min-w-0 space-y-2 xl:col-start-2 xl:row-start-1">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Должность</label>
+                                            <input v-model="contact.position" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="flex min-w-0 items-start md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-start-1">
+                                            <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
+                                                <input v-model="contact.is_primary" type="checkbox" :class="crmCheckbox" />
+                                                Основной контакт (для заявок и печати)
+                                            </label>
+                                        </div>
+                                        <div class="min-w-0 space-y-2 xl:col-start-1 xl:row-start-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Телефон</label>
+                                            <input v-model="contact.phone" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="min-w-0 space-y-2 xl:col-start-2 xl:row-start-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Email</label>
+                                            <input v-model="contact.email" type="email" :class="crmFieldFluid" />
+                                        </div>
+                                        <div class="min-w-0 space-y-2 xl:col-start-1 xl:row-start-3">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Роль</label>
+                                            <select v-model="contact.role_in_deal" :class="crmFieldFluid">
+                                                <option v-for="option in portraitOptions.role_in_deal ?? []" :key="option.value" :value="option.value">
+                                                    {{ option.label }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="min-w-0 space-y-2 xl:col-span-2 xl:col-start-2 xl:row-start-3">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Заметки по общению</label>
+                                            <input v-model="contact.communication_notes" type="text" :class="crmFieldFluid" placeholder="Когда звонить, стиль, табу-темы" />
+                                        </div>
+                                        <div class="col-span-full min-w-0 space-y-2">
+                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Комментарий</label>
+                                            <input v-model="contact.notes" type="text" :class="crmFieldFluid" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
                                         <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Traklo · личный кабинет</div>
                                         <p class="mt-1 text-xs text-zinc-500">
-                                            Ссылка привязывает заявки к этому контакту — в источнике лида будет его ФИО.
+                                            Нужны сохранённый контакт (id) и email в поле выше — не email контрагента на вкладке «Общее».
+                                            Ссылка сразу показывается здесь (SMTP не обязателен).
                                         </p>
                                         <div v-if="needsTrakloPartyChoice" class="mt-3 flex flex-wrap items-center gap-2 text-sm">
                                             <span class="text-zinc-500">Сторона:</span>
@@ -3637,13 +3710,18 @@ function goToPage(pageNumber) {
                                             <button
                                                 type="button"
                                                 :class="crmBtnCreate"
-                                                :disabled="!contact.id || !contact.email || trakloBusyContactId === contact.id"
+                                                :disabled="!canInviteContactToTraklo(contact)"
+                                                :title="trakloInviteDisabledReason(contact) || undefined"
                                                 @click="inviteToTraklo(contact)"
                                             >
                                                 <Link2 class="h-4 w-4" />
                                                 {{ contact.has_traklo_user ? 'Новая ссылка' : 'Пригласить' }}
                                             </button>
                                         </div>
+                                        <p
+                                            v-if="!canInviteContactToTraklo(contact) && trakloInviteDisabledReason(contact)"
+                                            class="mt-2 text-xs text-amber-700 dark:text-amber-300"
+                                        >{{ trakloInviteDisabledReason(contact) }}</p>
                                         <div
                                             v-if="expandedContactIndex === index && trakloInviteUrl"
                                             class="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
@@ -3658,56 +3736,6 @@ function goToPage(pageNumber) {
                                             v-if="expandedContactIndex === index && trakloInviteMessage"
                                             class="mt-2 text-xs text-zinc-500"
                                         >{{ trakloInviteMessage }}</p>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                        <div class="space-y-2 xl:col-start-1 xl:row-start-1">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">ФИО</label>
-                                            <input v-model="contact.full_name" type="text" :class="crmFieldFluid" />
-                                        </div>
-                                        <div class="space-y-2 xl:col-start-2 xl:row-start-1">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Должность</label>
-                                            <input v-model="contact.position" type="text" :class="crmFieldFluid" />
-                                        </div>
-                                        <div class="flex flex-col gap-3 md:col-span-2 xl:col-span-1 xl:col-start-3 xl:row-start-1 xl:row-span-2">
-                                            <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
-                                                <input v-model="contact.is_primary" type="checkbox" :class="crmCheckbox" />
-                                                Основной контакт (для заявок и печати)
-                                            </label>
-                                            <label class="flex items-center gap-2 text-sm text-zinc-900 dark:text-zinc-100">
-                                                <input
-                                                    v-model="contact.is_decision_maker"
-                                                    type="checkbox"
-                                                    :class="crmCheckbox"
-                                                    @change="contact.role_in_deal = contact.is_decision_maker ? 'decision_maker' : (contact.role_in_deal === 'decision_maker' ? 'unknown' : contact.role_in_deal)"
-                                                />
-                                                ЛПР
-                                            </label>
-                                        </div>
-                                        <div class="space-y-2 xl:col-start-1 xl:row-start-3 md:col-span-2">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Роль в сделке</label>
-                                            <select v-model="contact.role_in_deal" :class="crmFieldFluid">
-                                                <option v-for="option in portraitOptions.role_in_deal ?? []" :key="option.value" :value="option.value">
-                                                    {{ option.label }}
-                                                </option>
-                                            </select>
-                                        </div>
-                                        <div class="space-y-2 xl:col-start-2 xl:row-start-3 md:col-span-2">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Заметки по общению</label>
-                                            <input v-model="contact.communication_notes" type="text" :class="crmFieldFluid" placeholder="Когда звонить, стиль, табу-темы" />
-                                        </div>
-                                        <div class="space-y-2 xl:col-start-1 xl:row-start-2">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Телефон</label>
-                                            <input v-model="contact.phone" type="text" :class="crmFieldFluid" />
-                                        </div>
-                                        <div class="space-y-2 xl:col-start-2 xl:row-start-2">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Email</label>
-                                            <input v-model="contact.email" type="email" :class="crmFieldFluid" />
-                                        </div>
-                                        <div class="col-span-full space-y-2">
-                                            <label class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Комментарий</label>
-                                            <input v-model="contact.notes" type="text" :class="crmFieldFluid" />
-                                        </div>
                                     </div>
                                 </div>
                             </div>

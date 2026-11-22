@@ -19,6 +19,7 @@ use App\Http\Controllers\External\ExternalInviteController;
 use App\Http\Controllers\FinanceDocumentController;
 use App\Http\Controllers\FinanceIndexController;
 use App\Http\Controllers\FinanceReconciliationController;
+use App\Http\Controllers\WorkingCapitalController;
 use App\Http\Controllers\FleetDriverController;
 use App\Http\Controllers\FleetEfficiencyController;
 use App\Http\Controllers\FleetTripController;
@@ -704,6 +705,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/finance/reconciliation', [FinanceReconciliationController::class, 'store'])
         ->middleware('visibility.area:payment_schedules')
         ->name('finance.reconciliation.store');
+    Route::get('/finance/working-capital', [WorkingCapitalController::class, 'register'])
+        ->middleware(['feature:management_accounting', 'visibility.area.any:documents|payment_schedules|finance_salary'])
+        ->name('finance.working-capital');
+    Route::get('/finance/balance', [WorkingCapitalController::class, 'balance'])
+        ->middleware('feature:management_accounting')
+        ->name('finance.balance');
     Route::get('/finance/management-accounting', [ManagementAccountingController::class, 'index'])
         ->middleware('feature:management_accounting')
         ->name('finance.management-accounting.index');

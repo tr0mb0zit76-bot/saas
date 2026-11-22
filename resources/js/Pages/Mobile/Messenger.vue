@@ -640,26 +640,34 @@
                             <div class="flex items-start gap-3">
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
-                                        <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-200">Просчёт</span>
-                                        <span class="truncate text-[10px] text-zinc-400">{{ lead.status_label || lead.status || '—' }}</span>
+                                        <span class="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-zinc-300">Просчёт</span>
                                     </div>
                                     <div class="mt-1 text-sm font-semibold text-zinc-50">{{ lead.number }} · {{ lead.title || 'Просчёт перевозки' }}</div>
-                                    <div v-if="lead.loading_location || lead.unloading_location" class="mt-2 text-xs text-sky-100">
-                                        {{ lead.loading_location || '—' }} → {{ lead.unloading_location || '—' }}
+                                    <div class="mt-2 flex items-start gap-3">
+                                        <div class="min-w-0 flex-1">
+                                            <div v-if="lead.loading_location || lead.unloading_location" class="text-xs text-zinc-300">
+                                                {{ lead.loading_location || '—' }} → {{ lead.unloading_location || '—' }}
+                                            </div>
+                                            <div v-if="lead.cargo?.name" class="mt-1 truncate text-xs text-zinc-500">{{ lead.cargo.name }}</div>
+                                            <div v-if="cargoRequestSummary(lead)" class="mt-1 text-xs text-zinc-500">{{ cargoRequestSummary(lead) }}</div>
+                                            <div v-if="lead.planned_shipping_date || lead.loading_date" class="mt-1 text-xs text-zinc-500">
+                                                Дата погрузки: {{ formatShortDate(lead.planned_shipping_date || lead.loading_date) }}
+                                            </div>
+                                            <div class="mt-2 text-[11px] font-medium text-zinc-200">Изменить</div>
+                                        </div>
+                                        <div
+                                            v-if="lead.quote_status_label || (lead.quoted_price != null && ['sent', 'agreed'].includes(lead.quote_status))"
+                                            class="ml-auto flex shrink-0 flex-col items-end gap-0.5 text-right"
+                                        >
+                                            <div v-if="lead.quote_status_label" class="text-xs text-zinc-400">{{ lead.quote_status_label }}</div>
+                                            <div
+                                                v-if="lead.quoted_price != null && ['sent', 'agreed'].includes(lead.quote_status)"
+                                                class="text-lg font-semibold tabular-nums text-emerald-300"
+                                            >
+                                                {{ formatCargoQuote(lead) }}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div v-if="lead.cargo?.name" class="mt-1 truncate text-xs text-zinc-500">{{ lead.cargo.name }}</div>
-                                    <div v-if="cargoRequestSummary(lead)" class="mt-1 text-xs text-zinc-500">{{ cargoRequestSummary(lead) }}</div>
-                                    <div v-if="lead.quote_status_label" class="mt-1 text-xs text-zinc-400">{{ lead.quote_status_label }}</div>
-                                    <div
-                                        v-if="lead.quoted_price != null && ['sent', 'agreed'].includes(lead.quote_status)"
-                                        class="mt-1 text-sm font-semibold tabular-nums text-emerald-300"
-                                    >
-                                        {{ formatCargoQuote(lead) }}
-                                    </div>
-                                    <div v-if="lead.planned_shipping_date || lead.loading_date" class="mt-1 text-xs text-zinc-500">
-                                        Дата погрузки: {{ formatShortDate(lead.planned_shipping_date || lead.loading_date) }}
-                                    </div>
-                                    <div class="mt-2 text-[11px] font-medium text-sky-300">Изменить</div>
                                 </div>
                                 <span class="shrink-0 text-[10px] text-zinc-500">{{ formatShortDate(lead.created_at) }}</span>
                             </div>
@@ -1004,7 +1012,7 @@
                     </div>
 
                     <div class="overflow-x-auto pb-0.5">
-                    <div class="grid min-w-[22rem] grid-cols-[0.9fr_0.7fr_auto_0.55fr_0.55fr_0.55fr_0.65fr] gap-1.5">
+                    <div class="grid min-w-[22rem] grid-cols-[0.9fr_0.7fr_minmax(3.25rem,auto)_0.55fr_0.55fr_0.55fr_0.65fr] gap-1.5">
                         <label class="block min-w-0">
                             <span class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-500">ТС</span>
                             <input

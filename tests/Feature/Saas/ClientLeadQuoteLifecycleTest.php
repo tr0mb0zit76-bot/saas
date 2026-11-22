@@ -169,6 +169,89 @@ class ClientLeadQuoteLifecycleTest extends SaasTestCase
         $this->postJson(route('leads.carrier-matching.quote.agree', $lead))->assertForbidden();
     }
 
+    public function test_send_quote_with_price_body_reaches_customer_cabinet_without_prior_draft(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $lead = $this->createCustomerLead($fixture);
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+
+        $this->postJson(route('leads.carrier-matching.quote.send', $lead), [
+            'quoted_price' => 175000,
+            'quoted_currency' => 'RUB',
+        ])->assertOk()
+            ->assertJsonPath('lead.quote_status', 'sent')
+            ->assertJsonPath('lead.quoted_price', 175000);
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+        $this->getJson(route('mobile.shell.counterparty.cargo-requests.show', $lead))
+            ->assertOk()
+            ->assertJsonPath('lead.quoted_price', 175000)
+            ->assertJsonPath('lead.quote_status', 'sent');
+
+        $list = $this->getJson(route('mobile.shell.counterparty.cargo-requests.index'))
+            ->assertOk()
+            ->json('leads');
+
+        $this->assertTrue(collect($list)->contains(fn (array $row): bool => (int) $row['id'] === (int) $lead->id
+            && (float) ($row['quoted_price'] ?? 0) === 175000.0));
+    }
+
+    public function test_customer_still_sees_quote_after_staff_rewrites_source_to_inbound(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $lead = $this->createCustomerLead($fixture, [
+            'source' => CarrierMatchingService::SOURCE_CUSTOMER_REQUEST.' · Client Contact',
+            'metadata' => [
+                'created_via' => 'customer_cabinet',
+                'privacy_notice_ack' => true,
+            ],
+            'quoted_price' => 99000,
+            'quoted_currency' => 'RUB',
+            'quote_status' => 'sent',
+            'quote_sent_at' => now(),
+        ]);
+
+        // Simulate wizard select: traklo source not in options → staff picks «Входящий».
+        $lead->forceFill(['source' => 'inbound'])->save();
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['customer']);
+
+        $this->getJson(route('mobile.shell.counterparty.cargo-requests.show', $lead))
+            ->assertOk()
+            ->assertJsonPath('lead.quoted_price', 99000)
+            ->assertJsonPath('lead.quote_status', 'sent');
+
+        $list = $this->getJson(route('mobile.shell.counterparty.cargo-requests.index'))
+            ->assertOk()
+            ->json('leads');
+
+        $this->assertTrue(collect($list)->contains(
+            fn (array $row): bool => (int) $row['id'] === (int) $lead->id
+        ));
+    }
+
+    public function test_staff_lead_update_preserves_traklo_source_when_inbound_posted(): void
+    {
+        $fixture = $this->seedTenantFixture('pro');
+        $trakloSource = CarrierMatchingService::SOURCE_CUSTOMER_REQUEST.' · Client Contact';
+        $lead = $this->createCustomerLead($fixture, [
+            'source' => $trakloSource,
+            'metadata' => ['created_via' => 'customer_cabinet'],
+            'title' => 'Preserve Source Lead',
+        ]);
+
+        $this->actingAsTenant($fixture['tenant'], $fixture['staff']);
+
+        $resolved = CarrierMatchingService::resolveStaffSourceUpdate($lead, 'inbound');
+        $this->assertSame($trakloSource, $resolved);
+
+        $lead->forceFill([
+            'source' => CarrierMatchingService::resolveStaffSourceUpdate($lead, 'inbound'),
+        ])->save();
+
+        $this->assertSame($trakloSource, $lead->fresh()->source);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -288,6 +371,10 @@ class ClientLeadQuoteLifecycleTest extends SaasTestCase
             'unloading_location' => 'Казань',
             'quote_status' => 'none',
             'quoted_currency' => 'RUB',
+            'metadata' => [
+                'created_via' => 'customer_cabinet',
+                'privacy_notice_ack' => true,
+            ],
             'created_by' => $fixture['customer']->id,
         ], $overrides));
     }

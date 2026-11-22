@@ -1,7 +1,8 @@
 {
   "version": 1,
-  "updated_at": "2026-11-08T07:00:00Z",
+  "updated_at": "2026-11-20T10:15:00Z",
   "current_phase": "P4",
+  "lab_note": "2026-11-20: demo.saas.local hosts+Apache aliases fixed; users NOT wiped (admin@saas.local/password works on demo + saas.local).",
   "product_backlog": "docs/architecture/saas-refinement-backlog.md",
   "phases": {
     "M0": {

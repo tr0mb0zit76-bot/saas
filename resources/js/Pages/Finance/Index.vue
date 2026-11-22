@@ -434,6 +434,24 @@ const submoduleTiles = computed(() => {
 
     if (props.can_access_management_accounting) {
         tiles.push({
+            key: 'working-capital',
+            title: 'Оборотный капитал',
+            description: 'ДЗ заказчиков и КЗ перевозчиков по графику оплат',
+            icon: 'Wallet',
+            accent: 'sky',
+            group: 'Учёт',
+            href: '/finance/working-capital',
+        });
+        tiles.push({
+            key: 'balance',
+            title: 'Баланс',
+            description: 'Управленческий срез оборотного капитала (не бух. баланс)',
+            icon: 'Wallet',
+            accent: 'amber',
+            group: 'Учёт',
+            href: '/finance/balance',
+        });
+        tiles.push({
             key: 'management-accounting',
             title: 'Управленческий учёт',
             description: 'Валовая маржа, факт по статьям и план из бюджетирования',

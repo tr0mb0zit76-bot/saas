@@ -36,6 +36,7 @@ use App\Services\Commercial\ManagerSalesCoachingInsightsService;
 use App\Services\Contractor\ContractorPortraitService;
 use App\Services\DaDataService;
 use App\Services\ImportCostCalculatorService;
+use App\Services\CarrierMatching\CarrierMatchingService;
 use App\Services\LeadBusinessProcessService;
 use App\Services\LeadConversionService;
 use App\Services\LeadLinkedTaskService;
@@ -360,7 +361,11 @@ class LeadController extends Controller
 
             $lead->update([
                 'status' => $newStatus,
-                'source' => $request->string('source')->toString() ?: null,
+                // Keep traklo cabinet source when wizard select only offers "inbound".
+                'source' => CarrierMatchingService::resolveStaffSourceUpdate(
+                    $lead,
+                    $request->string('source')->toString() ?: null,
+                ),
                 'counterparty_id' => $request->input('counterparty_id'),
                 'responsible_id' => $responsibleId,
                 'title' => $request->string('title')->toString(),

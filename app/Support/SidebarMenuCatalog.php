@@ -37,6 +37,8 @@ final class SidebarMenuCatalog
             'mail' => '/mail',
             'finance' => '/finance',
             'finance-cashflow' => '/finance?section=cashflow',
+            'finance-working-capital' => '/finance/working-capital',
+            'finance-balance' => '/finance/balance',
             'finance-reconciliation' => '/finance/reconciliation',
             'finance-salary' => '/finance/salary',
             'finance-budgeting' => '/budgeting',
@@ -97,6 +99,8 @@ final class SidebarMenuCatalog
             'mail' => 'Почта',
             'finance' => 'Финансы',
             'finance-cashflow' => 'График оплат',
+            'finance-working-capital' => 'Оборотный капитал',
+            'finance-balance' => 'Баланс',
             'finance-reconciliation' => 'Акты сверок',
             'finance-salary' => 'Зарплата',
             'finance-budgeting' => 'Бюджетирование',
@@ -201,6 +205,9 @@ final class SidebarMenuCatalog
             'mail' => isset($areaSet['mail']),
             'finance' => self::hasAnyFinanceRoute($areas, $user),
             'finance-cashflow', 'finance-reconciliation' => isset($areaSet['documents']) || isset($areaSet['payment_schedules']),
+            'finance-working-capital' => (isset($areaSet['documents']) || isset($areaSet['payment_schedules']) || isset($areaSet['finance_salary']))
+                && $user->canManagementAccounting(),
+            'finance-balance' => $user->canManagementAccounting(),
             'finance-salary' => isset($areaSet['finance_salary']),
             'finance-budgeting' => $user->belongsToManagement(),
             'finance-management-accounting' => $user->canManagementAccounting(),
@@ -257,6 +264,8 @@ final class SidebarMenuCatalog
     private static function hasAnyFinanceRoute(array $areas, User $user): bool
     {
         return self::isKeyAccessibleForAreas('finance-cashflow', $areas, $user)
+            || self::isKeyAccessibleForAreas('finance-working-capital', $areas, $user)
+            || self::isKeyAccessibleForAreas('finance-balance', $areas, $user)
             || self::isKeyAccessibleForAreas('finance-reconciliation', $areas, $user)
             || self::isKeyAccessibleForAreas('finance-salary', $areas, $user)
             || self::isKeyAccessibleForAreas('finance-budgeting', $areas, $user)

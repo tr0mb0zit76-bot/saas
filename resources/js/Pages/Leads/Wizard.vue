@@ -182,7 +182,7 @@
                     <div class="grid gap-4" :class="isContractSigningCard ? 'md:grid-cols-1' : 'md:grid-cols-2'">
                         <div class="space-y-2">
                             <label :class="crmLabel">Источник</label>
-                            <select v-model="form.source" :class="crmFieldFluid">
+                            <select v-model="sourceSelectValue" :class="crmFieldFluid">
                                 <option value="">Не выбрано</option>
                                 <option v-for="option in sourceOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
                             </select>
@@ -731,6 +731,26 @@ const canManageClientQuote = computed(() => {
     const features = page.props.tenant?.features;
 
     return Array.isArray(features) && features.includes('carrier_matching');
+});
+
+function isTrakloCustomerRequestSource(value) {
+    const raw = String(value || '');
+
+    return raw === 'traklo_customer_request' || raw.startsWith('traklo_customer_request · ');
+}
+
+// Traklo cabinet sources are not in LeadSource::options — show as «Входящий»
+// without rewriting form.source (cabinet list filters by traklo source / metadata).
+const sourceSelectValue = computed({
+    get() {
+        return isTrakloCustomerRequestSource(form.source) ? 'inbound' : (form.source || '');
+    },
+    set(value) {
+        if (isTrakloCustomerRequestSource(form.source) && (value === 'inbound' || value === '')) {
+            return;
+        }
+        form.source = value;
+    },
 });
 
 watch(

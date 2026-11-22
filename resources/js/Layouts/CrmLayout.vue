@@ -860,6 +860,8 @@ const MENU_SAAS_FEATURES = {
     'mcp-integrations': 'mcp_read',
     'templates': 'print',
     'finance-management-accounting': 'management_accounting',
+    'finance-working-capital': 'management_accounting',
+    'finance-balance': 'management_accounting',
     'finance-budgeting': 'budgeting',
     disposition: 'disposition',
     'company-planning': 'company_planning',
@@ -987,6 +989,8 @@ const MENU_ROUTES = {
     mail: '/mail',
     finance: '/finance',
     'finance-cashflow': '/finance?section=cashflow',
+    'finance-working-capital': '/finance/working-capital',
+    'finance-balance': '/finance/balance',
     'finance-reconciliation': '/finance/reconciliation',
     'finance-salary': '/finance/salary',
     'finance-budgeting': '/budgeting',
@@ -1356,6 +1360,10 @@ const menuItems = computed(() => {
 
                 if (visibleAreas.value.includes('documents') || visibleAreas.value.includes('payment_schedules')) {
                     children.push({ key: 'finance-cashflow', label: 'График оплат' });
+                    if (hasManagementAccountingAccess.value) {
+                        children.push({ key: 'finance-working-capital', label: 'Оборотный капитал' });
+                        children.push({ key: 'finance-balance', label: 'Баланс' });
+                    }
                     children.push({ key: 'finance-reconciliation', label: 'Акты сверок' });
                 }
 

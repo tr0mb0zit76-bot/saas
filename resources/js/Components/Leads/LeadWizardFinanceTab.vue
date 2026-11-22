@@ -75,8 +75,12 @@ async function postQuote(url, body = null) {
         quoteStatus.value = lead.quote_status || 'none';
         quoteDraftAmount.value = lead.quoted_price ?? null;
         emit('quote-updated', lead);
+
+        return true;
     } catch (error) {
         quoteError.value = error?.message || 'Не удалось обновить оферту.';
+
+        return false;
     } finally {
         quoteBusy.value = false;
     }
@@ -98,7 +102,11 @@ function sendQuote() {
         return;
     }
 
-    return postQuote(route('leads.carrier-matching.quote.send', props.leadId));
+    // One-shot send: persist draft amount (Predрасчёт / local form) then mark sent.
+    return postQuote(route('leads.carrier-matching.quote.send', props.leadId), {
+        quoted_price: quoteDraftAmount.value,
+        quoted_currency: quotedCurrency.value || targetCurrency.value || 'RUB',
+    });
 }
 
 function agreeQuote() {
@@ -226,7 +234,7 @@ function formatMoney(value) {
                 <button
                     type="button"
                     :class="crmBtnPrimary"
-                    :disabled="quoteBusy || !['draft', 'sent'].includes(quoteStatus)"
+                    :disabled="quoteBusy || quoteStatus === 'agreed' || !(Number(quoteDraftAmount) > 0 || ['draft', 'sent'].includes(quoteStatus))"
                     @click="sendQuote"
                 >
                     Ответить клиенту

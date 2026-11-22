@@ -34,6 +34,13 @@ html:not(.dark) .traklo-mobile-shell [class*='text-zinc-500'] {
     color: #71717a !important;
 }
 
+/* sky-* text is near-white on dark UI; remap so it stays readable on light shell */
+html:not(.dark) .traklo-mobile-shell [class*='text-sky-100'],
+html:not(.dark) .traklo-mobile-shell [class*='text-sky-200'],
+html:not(.dark) .traklo-mobile-shell [class*='text-sky-300'] {
+    color: #0369a1 !important; /* sky-700 */
+}
+
 html:not(.dark) .traklo-mobile-shell [class~='border-white/10'],
 html:not(.dark) .traklo-mobile-shell [class*='border-white/10'] {
     border-color: #e4e4e7 !important;

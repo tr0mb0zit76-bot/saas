@@ -188,4 +188,6 @@ PO хочет и cash, и accrual, и «полную картину с ДЗ/КЗ
 
 Не блокируют P1:
 
-1. **База признания** упр. ОПиУ: исполнение / закрытие / погрузка? (default: исполнение/закрытие.)
+1. **База признания** упр. ОПиУ: исполнение / закрытие / погрузка? — **parked** with plain-RU explanation + recommended default in [ADR-025 §6](ADR-025-enterprise-balance-working-capital.md) (execution_or_closed). Awaits PO confirm; does not block coding default + `pnl_recognition_basis` setting.
+
+**Amended by ADR-025 (2026-11-21):** menu modules **«Баланс»** (WC-lite, not double-entry BS) and **«Оборотный капитал»** (separate AR/AP nav); full BS remains Out unless PO overrides.

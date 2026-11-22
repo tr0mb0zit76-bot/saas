@@ -4,9 +4,9 @@ namespace App\Services\Finance;
 
 use App\Models\User;
 use App\Services\ManagementAccounting\ThinCashBalanceService;
-use App\Support\OrderViewAuthorization;
 use App\Support\PaymentScheduleSettlementStatus;
 use App\Support\RoleAccess;
+use App\Support\ScopedPaymentScheduleQuery;
 use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -43,7 +43,9 @@ class CashFlowControlDashboardService
         [$periodStart, $periodEnd] = $this->periodBounds($period, $anchor);
 
         $tenant = TenantContext::get();
-        $hasThinCash = (bool) ($tenant?->featureEnabled('management_accounting'));
+        // Thin cash «Сейчас» = Enterprise UA feature + role (ADR-024/025); not schedules alone.
+        $hasThinCash = (bool) ($tenant?->featureEnabled('management_accounting'))
+            && RoleAccess::canAccessManagementAccounting($user);
         $mode = $hasThinCash ? 'schedules_plus_bank' : 'schedules_only';
 
         if (! Schema::hasTable('payment_schedules') || ! Schema::hasTable('orders')) {
@@ -350,41 +352,7 @@ class CashFlowControlDashboardService
 
     private function baseScheduleQuery(?User $user)
     {
-        $area = $user !== null
-            ? RoleAccess::resolvePaymentScheduleVisibilityAreaForUser($user)
-            : 'orders';
-
-        $query = DB::table('payment_schedules')
-            ->join('orders', 'orders.id', '=', 'payment_schedules.order_id')
-            ->when(
-                Schema::hasColumn('orders', 'deleted_at'),
-                fn ($q) => $q->whereNull('orders.deleted_at'),
-            )
-            ->whereNotIn('payment_schedules.status', ['cancelled'])
-            ->when(
-                Schema::hasColumn('payment_schedules', 'parent_payment_id'),
-                fn ($q) => $q->whereNull('payment_schedules.parent_payment_id'),
-            )
-            ->when(
-                Schema::hasColumn('payment_schedules', 'is_partial'),
-                fn ($q) => $q->where(function ($inner): void {
-                    $inner->whereNull('payment_schedules.is_partial')
-                        ->orWhere('payment_schedules.is_partial', false);
-                }),
-            );
-
-        // Raw DB::table bypasses Eloquent TenantScope — fail closed.
-        if (Schema::hasColumn('payment_schedules', 'tenant_id')) {
-            TenantContext::restrict($query, 'payment_schedules.tenant_id');
-        } elseif (Schema::hasColumn('orders', 'tenant_id')) {
-            TenantContext::restrict($query, 'orders.tenant_id');
-        }
-
-        if ($user !== null) {
-            OrderViewAuthorization::applyOrdersVisibilityScopeToQuery($query, $user, $area);
-        }
-
-        return $query;
+        return ScopedPaymentScheduleQuery::base($user);
     }
 
     private function applyDirectionFilter($query, ?string $direction): void

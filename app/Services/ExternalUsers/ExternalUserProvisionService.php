@@ -115,11 +115,18 @@ class ExternalUserProvisionService
             $user,
         );
 
+        // Re-issue for existing Traklo user: ?renew=1 opens activate (password reset)
+        // instead of bouncing to login. First invite stays without renew.
+        $url = $invitePayload['url'];
+        if (! $created) {
+            $url .= (str_contains($url, '?') ? '&' : '?').'renew=1';
+        }
+
         return [
             'user' => $user->fresh(['role']),
             'invite' => $invitePayload['invite'],
             'token' => $invitePayload['token'],
-            'url' => $invitePayload['url'],
+            'url' => $url,
             'created' => $created,
         ];
     }

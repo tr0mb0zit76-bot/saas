@@ -1,6 +1,79 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-20 · **Фаза:** Phase 4 + ADR-024 P1 shipped · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-22 · **Фаза:** Phase 4 + ADR-024 P1 + ADR-025 P0 shipped · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## Lab QA — Traklo invite button «disabled» for Василий (2026-11-22)
+
+**Not a carrier-only / plan gate.** Invite enables when `contact.id` (saved) **and** `contact.email` (Contacts tab field). Easy trap: email on «Общее» (`contact_person_email` / contractor email) does not enable the button; unsaved contact (no id) keeps it disabled even with typed email.
+
+**Lab row:** contractor #3 `ООО «Тест Заказчик»` type=`customer`, contact #1 `Василий` email=`ved@orientum.pro`, external user already exists (`external_party=customer`).
+
+**UI fix:** Contacts accordion — email/phone fields above Traklo box; amber hint when disabled; copy URL without SMTP.
+
+**Invite for QA (renew):** `http://saas.local/external/invite/nrsgcz1qdyl6lz1qrw2avlcbjx1yqxkaemt9p0atlqybpoyb?renew=1` — or Contractor → Contacts → «Новая ссылка». Alt: `http://saas.local/mobile/login` as `ved@orientum.pro` if password known.
+
+**Tests:** `php artisan test --filter=ExternalUserProvisionTest` (carrier + customer invite). No deploy / no commit unless asked.
+
+## Fix — CRM quote reply missing in client cabinet (2026-11-22)
+
+**Root cause:** Cabinet lists просчёты only by `source=traklo_customer_request…`. Wizard source select has no traklo value (only `inbound` with the same label), so a normal lead save rewrote source → lead vanished from client «Просчёты» even after «Ответить клиенту». Secondary: send without prior draft left amount only in the UI.
+
+**Fix:** preserve traklo source on inbound save; cabinet also matches `metadata.created_via=customer_cabinet`; send accepts `quoted_price` body (draft+send); Traklo re-invite URL gets `?renew=1`.
+
+**Re-test without burning invite:** after activate, login at mobile with password; or Contractor → Contacts → «Новая ссылка» (renew resets password).
+
+**Tests:** `php artisan test --filter="ClientLeadQuoteLifecycleTest|ExternalUserProvisionTest"`. No deploy / no commit unless asked.
+
+## ADR-025 P0 shipped — gates + «Баланс» / «Оборотный капитал» (2026-11-21)
+
+**Canon:** [`ADR-025`](../architecture/decisions/ADR-025-enterprise-balance-working-capital.md) (Accepted).
+
+### Shipped
+
+**P0 gates**
+- `/finance?section=cashflow` → `abort(403)` without `feature:payment_schedules` (Start cannot open)
+- Hub props: `can_access_payment_schedules` requires feature; empty journal when ungated
+- Thin cash lens «Сейчас»: `management_accounting` **and** `RoleAccess::canAccessManagementAccounting`
+- Shared `ScopedPaymentScheduleQuery` for cashflow + WC (tenant + visibility fail-closed)
+
+**Product**
+- `/finance/working-capital` → AR/AP register by contractor (`report_kind: working_capital_register`); Enterprise `feature:management_accounting` + `canViewPaymentSchedules`
+- `/finance/balance` → WC/liquidity lite (`report_kind: working_capital_lite` + disclaimer ≠ 1С BS); Enterprise + `canAccessManagementAccounting`
+- Menu IA: after «График оплат» → «Оборотный капитал» / «Баланс» (UA + feature filter)
+- Parked setting: `Tenant::pnlRecognitionBasis()` default `execution_or_closed` (`settings.finance.pnl_recognition_basis`)
+
+**Tests**
+- Extended `CashFlowControlDashboardTest` (Start cashflow 403; cash_now role gate; manager expectations scope)
+- `WorkingCapitalRegisterTest` + `WorkingCapitalBalanceTest`
+- Verify: `php artisan test --filter="CashFlowControlDashboardTest|WorkingCapitalRegisterTest|WorkingCapitalBalanceTest"`
+
+### Deferred (P1/P2)
+- Drill order/schedule from WC rows; period selector + Excel export; directions filter
+- Bank join into cashflow gauges; full упр. ОПиУ sheet
+- Tenant export/erase of finance tables before external Enterprise pilot
+- Double-entry BS still **Out**
+
+**No prod deploy. No commit unless asked.**
+
+## Lab repair — demo.saas.local unreachable (2026-11-20)
+
+**Symptom:** browser/curl login to `http://demo.saas.local/login` failed (`http_code=000` / DNS timeout). User asked if demo users were wiped again.
+
+**Users wiped?** **No** (this incident). Evidence on `saas_crm@127.0.1.21`: tenant `demo` (Demo Logistics) id=1 active; `admin@saas.local` id=1 tid=1 pwd_len=60; `manager@saas.local` present; `USERS_TOTAL=2`. `Hash::check('password')` + `Auth::attempt` → yes.
+
+**Real cause:** `demo.saas.local` missing from Windows hosts + Apache `ServerAlias` (only `www`/`platform`). Apex `saas.local` was already fine via `SAAS_DEFAULT_TENANT_SLUG=demo`.
+
+**Fix (no reseed / no migrate:fresh):**
+- hosts: `127.0.1.11` → `demo.saas.local` (+ demo-a/b) and restored missing `saas.local` / `www.saas.local`
+- `.osp/project.ini` + `httpd.conf` `Host_PHP` aliases include demo hosts
+- manual `httpd` restart (OSPanel `osp restart Apache` refuses PowerShell parent)
+
+**Verify:** `POST http://demo.saas.local/login` → 302 → `/dashboard` (200). Also works: `http://saas.local/login`.
+
+**Credentials:** `admin@saas.local` / `password`  
+**URLs:** http://demo.saas.local/login · http://saas.local/login
+
+**Note:** OSPanel may regenerate `httpd.conf` from `.osp/project.ini` on GUI restart — aliases are in project.ini so that path should keep demo hosts. If demo 404s again after OSPanel rewrite, restart Apache from OSPanel UI (not PowerShell `osp`).
 
 ## ADR-024 P1 shipped — enhance График оплат (2026-11-20)
 

@@ -26,6 +26,7 @@ html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) {
         --crm-text: 24 24 27;
         --crm-text-muted: 82 82 91;
         --crm-shadow: 15 23 42;
+        --crm-accent-contrast: 255 255 255;
     }
 
 html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) {
@@ -37,6 +38,8 @@ html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) {
     --crm-text: 244 244 245;
     --crm-text-muted: 161 161 170;
     --crm-shadow: 0 0 0;
+    /* Dark accents are light fills — contrast text must stay dark, not accent-on-accent. */
+    --crm-accent-contrast: 9 9 11;
 }
 
 /* Traklo Pro showcase palette (overrides shared sky tokens). */
@@ -62,13 +65,6 @@ html.dark[data-crm-workspace-skin='traklo'] {
     --crm-text-muted: 148 163 184;
     --crm-shadow: 0 0 0;
     --crm-accent-contrast: 7 11 20;
-}
-
-html.dark[data-crm-workspace-skin='traklo'] .crm-btn-create,
-html.dark[data-crm-workspace-skin='traklo'] .crm-btn-primary,
-html.dark[data-crm-workspace-skin='traklo'] .crm-tab-btn--active-filled,
-html.dark[data-crm-workspace-skin='traklo'] .crm-segmented-btn--active {
-    color: rgb(255 255 255);
 }
 
 html[data-crm-workspace-skin='traklo'] .crm-layout-main {
@@ -295,13 +291,13 @@ html.dark[data-crm-workspace-skin='indigo'] {
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.35);
         background: rgb(var(--crm-accent));
-        color: white;
+        color: rgb(var(--crm-accent-contrast, 255 255 255));
     }
 
     html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--active-filled {
         border-color: rgb(var(--crm-accent) / 0.5);
         background: rgb(var(--crm-accent));
-        color: rgb(var(--crm-accent));
+        color: rgb(var(--crm-accent-contrast, 9 9 11));
     }
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-tab-btn--inactive {
@@ -483,11 +479,11 @@ html.dark[data-crm-workspace-skin='indigo'] {
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn--active {
         background: rgb(var(--crm-accent));
-        color: white;
+        color: rgb(var(--crm-accent-contrast, 255 255 255));
     }
 
     html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-segmented-btn--active {
-        color: rgb(var(--crm-accent));
+        color: rgb(var(--crm-accent-contrast, 9 9 11));
     }
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-neutral,
@@ -696,7 +692,7 @@ html.dark[data-crm-workspace-skin='indigo'] {
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary {
         background-color: rgb(var(--crm-accent));
-        color: white;
+        color: rgb(var(--crm-accent-contrast, 255 255 255));
     }
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary:hover {
@@ -704,7 +700,7 @@ html.dark[data-crm-workspace-skin='indigo'] {
     }
 
     html.dark[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-primary {
-        color: rgb(var(--crm-accent));
+        color: rgb(var(--crm-accent-contrast, 9 9 11));
     }
 
     html[data-crm-workspace-skin]:not([data-crm-workspace-skin='classic']) .crm-btn-secondary {

@@ -125,7 +125,18 @@ class LeadCarrierMatchingController extends Controller
     public function sendQuote(Request $request, Lead $lead): JsonResponse
     {
         $user = $this->assertStaffLeadAccess($request);
-        $updated = $this->matching->sendQuoteToClient($lead, $user);
+
+        $validated = $request->validate([
+            'quoted_price' => ['nullable', 'numeric', 'min:0.01'],
+            'quoted_currency' => ['nullable', 'string', 'size:3'],
+        ]);
+
+        $updated = $this->matching->sendQuoteToClient(
+            $lead,
+            $user,
+            $validated['quoted_price'] ?? null,
+            $validated['quoted_currency'] ?? null,
+        );
 
         return response()->json(['lead' => $this->matching->presentQuoteForStaff($updated)]);
     }
