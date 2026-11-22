@@ -2,6 +2,14 @@
 
 **Обновлено:** 2026-11-22 · **Фаза:** Phase 4 + ADR-024 P1 + ADR-025 P0 shipped · **Ветка:** `cursor/traklo-session-integrate-9d42`
 
+## Deploy — quote/messenger/ADR-025 (2026-11-22)
+
+**Commit:** `3245ef9` — *Ship quote-to-cabinet flow, messenger UX, and ADR-025 working-capital gates.*  
+**Path:** `pwsh -File scripts/deploy-prod.ps1` (no maintenance). Local `npm run build` OK; remote `npm ci` + `vite build` also OK.  
+**Prod HEAD:** `3245ef9`. Migrate ran: `2026_11_18_220000_adr023_p0_thin_cash_opening_balance`.  
+**Smoke:** `/up` 200; `platform.*/login` 200; `/` 200; `orientum.*/login` 200; `mobile/messenger` + `/finance` → 302 auth (expected).  
+**Note:** `supervisorctl restart` PermissionError (best-effort); queue may need manual restart if jobs stall.
+
 ## Lab QA — Traklo invite button «disabled» for Василий (2026-11-22)
 
 **Not a carrier-only / plan gate.** Invite enables when `contact.id` (saved) **and** `contact.email` (Contacts tab field). Easy trap: email on «Общее» (`contact_person_email` / contractor email) does not enable the button; unsaved contact (no id) keeps it disabled even with typed email.
@@ -12,7 +20,7 @@
 
 **Invite for QA (renew):** `http://saas.local/external/invite/nrsgcz1qdyl6lz1qrw2avlcbjx1yqxkaemt9p0atlqybpoyb?renew=1` — or Contractor → Contacts → «Новая ссылка». Alt: `http://saas.local/mobile/login` as `ved@orientum.pro` if password known.
 
-**Tests:** `php artisan test --filter=ExternalUserProvisionTest` (carrier + customer invite). No deploy / no commit unless asked.
+**Tests:** `php artisan test --filter=ExternalUserProvisionTest` (carrier + customer invite). Deployed in `3245ef9`.
 
 ## Fix — CRM quote reply missing in client cabinet (2026-11-22)
 
@@ -22,7 +30,7 @@
 
 **Re-test without burning invite:** after activate, login at mobile with password; or Contractor → Contacts → «Новая ссылка» (renew resets password).
 
-**Tests:** `php artisan test --filter="ClientLeadQuoteLifecycleTest|ExternalUserProvisionTest"`. No deploy / no commit unless asked.
+**Tests:** `php artisan test --filter="ClientLeadQuoteLifecycleTest|ExternalUserProvisionTest"`. Deployed in `3245ef9`.
 
 ## ADR-025 P0 shipped — gates + «Баланс» / «Оборотный капитал» (2026-11-21)
 

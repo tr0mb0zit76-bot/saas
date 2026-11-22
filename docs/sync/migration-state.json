@@ -1,8 +1,14 @@
 {
   "version": 1,
-  "updated_at": "2026-11-20T10:15:00Z",
+  "updated_at": "2026-11-22T11:26:00Z",
   "current_phase": "P4",
   "lab_note": "2026-11-20: demo.saas.local hosts+Apache aliases fixed; users NOT wiped (admin@saas.local/password works on demo + saas.local).",
+  "last_prod_deploy": {
+    "commit": "3245ef9",
+    "at": "2026-11-22T11:26:00Z",
+    "branch": "cursor/traklo-session-integrate-9d42",
+    "method": "deploy-prod.ps1"
+  },
   "product_backlog": "docs/architecture/saas-refinement-backlog.md",
   "phases": {
     "M0": {
