@@ -55,7 +55,7 @@ function syncFormFromUser() {
     const resolved = resolveCrmAppearance(authUser.value);
     form.workspace_skin = resolved.workspace_skin;
     form.button_radius = resolved.button_radius;
-    form.primary_accent = resolved.primary_accent;
+    form.primary_accent = primaryAccentForSkin(resolved.workspace_skin);
     form.tab_style = resolved.tab_style;
     form.nav_icon_style = resolved.nav_icon_style;
     form.theme_colors = resolved.theme_colors;
@@ -73,8 +73,13 @@ function preview() {
     applyCrmAppearanceToDocument(form);
 }
 
+function primaryAccentForSkin(skin) {
+    return skin === 'emerald' ? 'emerald' : 'sky';
+}
+
 function setSkin(skin) {
     form.workspace_skin = skin;
+    form.primary_accent = primaryAccentForSkin(skin);
     form.theme_colors = null;
     preview();
 }
@@ -120,11 +125,6 @@ function save() {
 const radiusOptions = [
     { value: 'rounded', label: 'Скруглённые', hint: 'Кнопки и поля с мягкими углами' },
     { value: 'sharp', label: 'Прямые углы', hint: 'Строгий вид, как в таблицах' },
-];
-
-const accentOptions = [
-    { value: 'emerald', label: 'Зелёные', sampleClass: 'border-emerald-200/90 bg-emerald-50 text-emerald-900 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-50' },
-    { value: 'sky', label: 'Голубые', sampleClass: 'border-sky-200/90 bg-sky-50 text-sky-900 dark:border-sky-800/70 dark:bg-sky-950/50 dark:text-sky-50' },
 ];
 
 const tabOptions = [
@@ -250,30 +250,6 @@ const selectedSkin = computed(() => (
                         >
                             <div class="font-medium">{{ option.label }}</div>
                             <div class="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{{ option.hint }}</div>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">Цвет кнопок «Сохранить» и «Добавить»</div>
-                    <div class="grid gap-2 sm:grid-cols-2">
-                        <button
-                            v-for="option in accentOptions"
-                            :key="option.value"
-                            type="button"
-                            class="rounded-xl border px-3 py-3 text-left transition"
-                            :class="form.primary_accent === option.value
-                                ? 'border-zinc-900 ring-1 ring-zinc-900 dark:border-zinc-100 dark:ring-zinc-100'
-                                : 'border-zinc-200 dark:border-zinc-700'"
-                            @click="form.primary_accent = option.value; preview()"
-                        >
-                            <span
-                                class="inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium"
-                                :class="[option.sampleClass, form.button_radius === 'rounded' ? 'rounded-lg' : 'rounded-none']"
-                            >
-                                Пример
-                            </span>
-                            <div class="mt-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">{{ option.label }}</div>
                         </button>
                     </div>
                 </div>

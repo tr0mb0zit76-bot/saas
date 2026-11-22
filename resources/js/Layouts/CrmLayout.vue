@@ -229,43 +229,21 @@
                 collapsed ? 'w-20' : 'w-64',
             ]"
         >
-            <div class="flex h-14 items-center justify-between gap-2 border-b border-zinc-200 px-2 dark:border-zinc-800 sm:px-3">
-                <div class="flex min-w-0 flex-1 items-center justify-start">
-                    <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
-                        :title="collapsed ? 'Traklo Pro' : false"
+            <div
+                class="flex h-14 shrink-0 items-center border-b border-zinc-200 px-2 dark:border-zinc-800 sm:px-3"
+                :class="collapsed ? 'justify-center' : 'justify-start'"
+            >
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                    :title="collapsed ? 'Traklo Pro' : false"
+                >
+                    <img
+                        :src="companyLogoSrc"
+                        alt="Traklo Pro"
+                        class="h-10 w-10 object-cover"
+                        width="40"
+                        height="40"
                     >
-                        <img
-                            :src="companyLogoSrc"
-                            alt="Traklo Pro"
-                            class="h-10 w-10 object-cover"
-                            width="40"
-                            height="40"
-                        >
-                    </div>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-1">
-                    <button
-                        v-if="!collapsed"
-                        type="button"
-                        class="crm-layout-icon-button flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                        title="Внешний вид"
-                        @click="appearanceModalOpen = true"
-                    >
-                        <Palette class="h-4 w-4" />
-                    </button>
-                    <ThemeToggle v-if="!collapsed" />
-
-                    <button
-                        type="button"
-                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                        :title="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
-                        @click="collapsed = !collapsed"
-                    >
-                        <PanelLeftClose v-if="!collapsed" class="h-4 w-4" />
-                        <PanelLeftOpen v-else class="h-4 w-4" />
-                    </button>
                 </div>
             </div>
 
@@ -427,21 +405,33 @@
                 </div>
             </nav>
 
-            <div class="border-t border-zinc-200 p-4 dark:border-zinc-800">
+            <div class="shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-800 sm:p-4">
                 <div
-                    v-if="collapsed"
-                    class="mb-3 flex flex-col items-center gap-2"
+                    class="mb-3 flex gap-1"
+                    :class="collapsed
+                        ? 'flex-col items-center'
+                        : 'flex-row items-center'"
                 >
                     <button
                         type="button"
-                        class="crm-layout-icon-button flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        class="crm-layout-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
                         title="Внешний вид"
                         @click="appearanceModalOpen = true"
                     >
                         <Palette class="h-4 w-4" />
                     </button>
                     <ThemeToggle />
+                    <button
+                        type="button"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        :title="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
+                        @click="collapsed = !collapsed"
+                    >
+                        <PanelLeftClose v-if="!collapsed" class="h-4 w-4" />
+                        <PanelLeftOpen v-else class="h-4 w-4" />
+                    </button>
                 </div>
+
                 <div v-if="!collapsed" class="flex items-center gap-3">
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 font-medium dark:bg-zinc-800">
                         {{ authUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
