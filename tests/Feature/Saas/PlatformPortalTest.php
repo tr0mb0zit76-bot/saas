@@ -63,12 +63,18 @@ class PlatformPortalTest extends SaasTestCase
 
     public function test_platform_login_page_uses_platform_host_for_urls(): void
     {
-        $platformOrigin = 'http://platform.test';
+        config([
+            'app.showcase_hosts' => ['traklo.pro'],
+            'app.url' => 'https://traklo.pro',
+        ]);
 
         $this->get($this->platformUrl('/login'))
             ->assertOk()
-            ->assertSee('"url":"http:\/\/platform.test"', false)
-            ->assertSee('name="app-base-url" content="'.$platformOrigin.'"', false);
+            ->assertSee('name="app-base-url" content="https://platform.test"', false)
+            ->assertInertia(fn ($page) => $page
+                ->component('Platform/Auth/Login')
+                ->where('showcase_home_url', 'https://traklo.pro/')
+            );
     }
 
     public function test_platform_admin_can_log_in_via_platform_portal(): void

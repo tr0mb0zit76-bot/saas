@@ -5,6 +5,24 @@ import { computed } from 'vue';
 const page = usePage();
 const showcaseHomeUrl = computed(() => page.props.showcase_home_url ?? '/');
 const tenantName = computed(() => page.props.tenant?.name ?? null);
+
+/** Cross-host (platform → apex): force full navigation; never Inertia-visit platform `/`. */
+function goShowcaseHome(event) {
+    const url = showcaseHomeUrl.value;
+    if (typeof url !== 'string' || url === '' || url === '/') {
+        return;
+    }
+
+    try {
+        const target = new URL(url, window.location.origin);
+        if (target.origin !== window.location.origin) {
+            event.preventDefault();
+            window.location.assign(target.href);
+        }
+    } catch {
+        // relative / same-host — let the browser handle href
+    }
+}
 </script>
 
 <template>
@@ -14,6 +32,7 @@ const tenantName = computed(() => page.props.tenant?.name ?? null);
                 <a
                     :href="showcaseHomeUrl"
                     class="group inline-flex items-center gap-2 rounded-lg text-sm font-medium text-slate-300 transition hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    @click="goShowcaseHome"
                 >
                     <span class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-blue-600/20 ring-1 ring-blue-500/30">
                         <img src="/assets/favicon/favicon-96x96.png" alt="" class="h-7 w-7 object-contain" width="28" height="28">

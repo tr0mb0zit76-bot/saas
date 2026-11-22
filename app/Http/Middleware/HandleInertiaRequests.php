@@ -85,6 +85,8 @@ class HandleInertiaRequests extends Middleware
                 'document_title_suffix' => Inertia::always(fn () => InertiaAppSurface::Platform->documentTitleSuffix()),
                 'flash' => fn () => $request->session()->get('flash'),
                 'auth' => Inertia::always(fn () => $this->sharedPlatformAuth($request)),
+                // Logo on platform login must leave the operator host for the marketing apex.
+                'showcase_home_url' => Inertia::always(fn () => ShowcaseUrl::home($request)),
             ];
         }
 
