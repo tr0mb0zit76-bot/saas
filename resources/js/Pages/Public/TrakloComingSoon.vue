@@ -2,14 +2,9 @@
 import { Head, usePage } from '@inertiajs/vue3';
 
 const props = defineProps({
-    canLogin: Boolean,
     texts: {
         type: Object,
         default: () => ({}),
-    },
-    crmLoginUrl: {
-        type: String,
-        default: '/login',
     },
 });
 
@@ -42,7 +37,7 @@ const t = (key, fallback = '') => {
         </Head>
 
         <header class="border-b border-white/5">
-            <div class="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+            <div class="mx-auto flex max-w-3xl items-center gap-4 px-4 py-4 sm:px-6">
                 <div class="inline-flex items-center gap-2 font-semibold text-white">
                     <img
                         src="/downloads/traklo-icon.png"
@@ -51,13 +46,6 @@ const t = (key, fallback = '') => {
                     >
                     <span class="traklo-display">{{ t('brand', 'Traklo Pro') }}</span>
                 </div>
-                <a
-                    v-if="canLogin !== false"
-                    :href="crmLoginUrl"
-                    class="rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-                >
-                    {{ t('nav_login', 'Вход') }}
-                </a>
             </div>
         </header>
 
@@ -80,13 +68,6 @@ const t = (key, fallback = '') => {
                         class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 hover:bg-blue-500"
                     >
                         {{ t('coming_soon_cta', 'Написать нам') }}
-                    </a>
-                    <a
-                        v-if="canLogin !== false"
-                        :href="crmLoginUrl"
-                        class="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white hover:bg-white/10"
-                    >
-                        {{ t('nav_login', 'Вход') }}
                     </a>
                 </div>
                 <p class="text-sm text-slate-500">

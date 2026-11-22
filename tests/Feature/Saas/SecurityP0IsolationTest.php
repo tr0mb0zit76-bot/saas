@@ -68,24 +68,16 @@ class SecurityP0IsolationTest extends SaasTestCase
                     ->where('comingSoon', true)
                     ->missing('plans'));
 
-            // Apex /login is a public tenant picker — never platform admin login.
-            $this->get('http://'.$apex.'/login')
-                ->assertOk()
-                ->assertInertia(fn ($page) => $page->component('Public/TenantLogin'));
-            $this->get('http://www.'.$apex.'/login')
-                ->assertOk()
-                ->assertInertia(fn ($page) => $page->component('Public/TenantLogin'));
+            // Apex /login is not advertised; bookmarks go home (never platform admin).
+            $this->get('http://'.$apex.'/login')->assertRedirect('/');
+            $this->get('http://www.'.$apex.'/login')->assertRedirect('/');
 
             config([
                 'app.showcase_hosts' => ['traklo.pro', 'www.traklo.pro'],
                 'app.crm_domain' => 'traklo.pro',
             ]);
-            $this->get('http://traklo.pro/login')
-                ->assertOk()
-                ->assertInertia(fn ($page) => $page->component('Public/TenantLogin'));
-            $this->get('http://www.traklo.pro/login')
-                ->assertOk()
-                ->assertInertia(fn ($page) => $page->component('Public/TenantLogin'));
+            $this->get('http://traklo.pro/login')->assertRedirect('/');
+            $this->get('http://www.traklo.pro/login')->assertRedirect('/');
 
             // Unknown CRM subdomain stays fail-closed.
             $this->get('http://unknown-tenant.'.$apex.'/login')->assertNotFound();

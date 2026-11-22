@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +63,8 @@ class PublicLandingPageTest extends TestCase
                 ->component('Public/TrakloComingSoon')
                 ->where('comingSoon', true)
                 ->where('texts.coming_soon_banner', 'Мы работаем над созданием Traklo Pro')
+                ->where('canLogin', false)
+                ->missing('crmLoginUrl')
                 ->missing('plans')
                 ->missing('planMatrix')
                 ->missing('demoSignupUrl')
@@ -159,14 +160,16 @@ class PublicLandingPageTest extends TestCase
             );
     }
 
-    public function test_traklo_pro_landing_points_login_cta_to_apex_tenant_picker(): void
+    public function test_coming_soon_hides_login_and_apex_login_goes_home(): void
     {
+        $apex = config('app.showcase_hosts')[0] ?? 'saas.local';
+
         config([
             'showcase.mode' => 'traklo_pro',
             'showcase.coming_soon' => true,
             'app.same_showcase_and_crm_host' => true,
-            'app.platform_domain' => 'platform.traklo.pro',
-            'app.url' => 'https://traklo.pro',
+            'app.platform_domain' => 'platform.'.$apex,
+            'app.crm_domain' => $apex,
         ]);
 
         $previous = $this->app->make('env');
@@ -177,74 +180,15 @@ class PublicLandingPageTest extends TestCase
                 ->assertOk()
                 ->assertInertia(fn (Assert $page) => $page
                     ->component('Public/TrakloComingSoon')
-                    ->where('comingSoon', true)
-                    ->where('crmLoginUrl', '/login')
-                    ->where('publicSite.crm_login_url', '/login')
+                    ->where('canLogin', false)
+                    ->missing('crmLoginUrl')
                     ->missing('plans')
                 );
-        } finally {
-            $this->app->instance('env', $previous);
-        }
-    }
 
-    public function test_apex_login_shows_tenant_picker_not_platform(): void
-    {
-        $apex = config('app.showcase_hosts')[0] ?? 'saas.local';
-
-        config([
-            'app.platform_domain' => 'platform.'.$apex,
-            'app.same_showcase_and_crm_host' => true,
-            'app.crm_domain' => $apex,
-        ]);
-
-        $previous = $this->app->make('env');
-        $this->app->instance('env', 'production');
-
-        try {
             $this->get($this->showcaseUrl('/login'))
-                ->assertOk()
-                ->assertInertia(fn (Assert $page) => $page
-                    ->component('Public/TenantLogin')
-                    ->where('crmDomain', $apex)
-                );
+                ->assertRedirect('/');
         } finally {
             $this->app->instance('env', $previous);
-        }
-    }
-
-    public function test_apex_tenant_picker_redirects_to_tenant_login_host(): void
-    {
-        $apex = 'traklo.pro';
-
-        Tenant::query()->create([
-            'slug' => 'orientum',
-            'name' => 'Orientum',
-            'status' => 'active',
-            'plan' => 'pro',
-        ]);
-
-        config([
-            'app.url' => 'https://traklo.pro',
-            'app.crm_domain' => $apex,
-            'app.showcase_hosts' => [$apex, 'www.'.$apex],
-            'app.platform_domain' => 'platform.'.$apex,
-            'app.same_showcase_and_crm_host' => true,
-        ]);
-
-        $controller = $this->app->make(\App\Http\Controllers\Auth\AuthenticatedSessionController::class);
-
-        $ok = $controller->redirectToTenant(
-            \Illuminate\Http\Request::create('/login/tenant', 'POST', ['slug' => 'orientum'])
-        );
-        $this->assertSame('https://orientum.traklo.pro/login', $ok->getTargetUrl());
-
-        try {
-            $controller->redirectToTenant(
-                \Illuminate\Http\Request::create('/login/tenant', 'POST', ['slug' => 'missing-co'])
-            );
-            $this->fail('Expected validation exception for unknown slug');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            $this->assertArrayHasKey('slug', $e->errors());
         }
     }
 

@@ -215,23 +215,20 @@ class PublicSiteController extends Controller
     protected function trakloProComingSoonProps(): array
     {
         $texts = $this->trakloProTexts();
-        $crmLoginUrl = $this->resolveCrmLoginUrl();
         $closedTexts = array_intersect_key($texts, array_flip([
             'brand',
-            'nav_login',
             'coming_soon_banner',
             'coming_soon_text',
             'coming_soon_cta',
         ]));
 
+        // Closed витрина: no «Вход» — CRM login is only on {slug}.{CRM_DOMAIN}.
         return [
-            'canLogin' => \Route::has('login'),
+            'canLogin' => false,
             'comingSoon' => true,
             'texts' => $closedTexts,
-            'crmLoginUrl' => $crmLoginUrl,
             'publicSite' => [
                 'texts' => $closedTexts,
-                'crm_login_url' => $crmLoginUrl,
             ],
         ];
     }

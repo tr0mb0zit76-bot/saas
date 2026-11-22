@@ -36,13 +36,11 @@ class IdentifyTenant
                 return $next($request);
             }
 
-            // Apex /login|/register|/forgot-password: public CTA goes to tenant picker,
-            // never to platform admin login (platform stays unadvertised).
+            // Apex auth has no tenant — do not send guests to platform admin.
+            // Login lives on {slug}.{CRM_DOMAIN}; bookmarks of /login go home.
             if ($this->isApexAuthEntrypoint($request)
                 && (app()->environment('production') || ! config('app.same_showcase_and_crm_host'))) {
-                TenantContext::bypass(true);
-
-                return $next($request);
+                return redirect('/');
             }
 
             // Lab apex (localhost / saas.local) may fall back to SAAS_DEFAULT_TENANT_SLUG.
@@ -89,7 +87,7 @@ class IdentifyTenant
     {
         $path = trim($request->path(), '/');
 
-        return in_array($path, ['login', 'login/tenant', 'register', 'forgot-password'], true)
+        return in_array($path, ['login', 'register', 'forgot-password'], true)
             || str_starts_with($path, 'forgot-password/')
             || str_starts_with($path, 'reset-password');
     }
