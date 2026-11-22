@@ -33,19 +33,16 @@ class IdentifyTenant
             if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Showcase) {
                 TenantContext::bypass(true);
 
-                // Showcase «Вход» bookmarks /login — never leave guests on CRM apex 404.
-                if ($this->isApexAuthEntrypoint($request)) {
-                    return redirect()->away(PlatformHost::url('/login'));
-                }
-
                 return $next($request);
             }
 
-            // Apex CRM /login was never a valid tenant login in production (no default tenant).
-            // Lab same-host keeps relative /login via SAAS_DEFAULT_TENANT_SLUG below.
+            // Apex /login|/register|/forgot-password: public CTA goes to tenant picker,
+            // never to platform admin login (platform stays unadvertised).
             if ($this->isApexAuthEntrypoint($request)
                 && (app()->environment('production') || ! config('app.same_showcase_and_crm_host'))) {
-                return redirect()->away(PlatformHost::url('/login'));
+                TenantContext::bypass(true);
+
+                return $next($request);
             }
 
             // Lab apex (localhost / saas.local) may fall back to SAAS_DEFAULT_TENANT_SLUG.
@@ -92,6 +89,8 @@ class IdentifyTenant
     {
         $path = trim($request->path(), '/');
 
-        return in_array($path, ['login', 'register', 'forgot-password'], true);
+        return in_array($path, ['login', 'login/tenant', 'register', 'forgot-password'], true)
+            || str_starts_with($path, 'forgot-password/')
+            || str_starts_with($path, 'reset-password');
     }
 }

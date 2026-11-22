@@ -17,6 +17,10 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+    Route::post('login/tenant', [AuthenticatedSessionController::class, 'redirectToTenant'])
+        ->middleware('throttle:20,1')
+        ->name('login.tenant');
+
     Route::get('demo/signup', [\App\Http\Controllers\DemoSignupController::class, 'create'])
         ->name('demo.signup');
     Route::post('demo/signup', [\App\Http\Controllers\DemoSignupController::class, 'store'])
