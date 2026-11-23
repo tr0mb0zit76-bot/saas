@@ -26,13 +26,51 @@ final class TenantConnectorService
      */
     public function listForPlatform(Tenant $tenant): array
     {
-        return array_map(function (array $row): array {
+        return $this->listSafe($tenant);
+    }
+
+    /**
+     * Safe DTO for Platform Ops and tenant Settings (no secret values).
+     *
+     * @return list<array{
+     *     id: string,
+     *     adapter_key: string,
+     *     label: string,
+     *     enabled: bool,
+     *     managed_by: string,
+     *     runtime_status: string,
+     *     endpoints: array<string, mixed>,
+     *     mapping: array<string, mixed>,
+     *     has_secrets: bool,
+     *     secret_keys: list<string>
+     * }>
+     */
+    public function listSafe(Tenant $tenant): array
+    {
+        $catalog = [];
+        foreach (IntegrationConnectorRegistry::adapterOptions() as $option) {
+            $catalog[$option['key']] = $option;
+        }
+
+        $metaByKey = [];
+        foreach (config('saas-connectors.adapters', []) as $key => $meta) {
+            if (is_string($key) && is_array($meta)) {
+                $metaByKey[$key] = $meta;
+            }
+        }
+
+        return array_map(function (array $row) use ($catalog, $metaByKey): array {
             $secrets = is_array($row['secrets'] ?? null) ? $row['secrets'] : [];
+            $adapterKey = (string) ($row['adapter_key'] ?? '');
+            $meta = $metaByKey[$adapterKey] ?? [];
 
             return [
                 'id' => (string) ($row['id'] ?? ''),
-                'adapter_key' => (string) ($row['adapter_key'] ?? ''),
+                'adapter_key' => $adapterKey,
+                'label' => (string) ($catalog[$adapterKey]['label'] ?? $adapterKey),
                 'enabled' => (bool) ($row['enabled'] ?? false),
+                'managed_by' => (string) ($row['managed_by'] ?? 'tenant'),
+                'runtime_status' => (string) ($meta['runtime_status'] ?? 'stub'),
                 'endpoints' => is_array($row['endpoints'] ?? null) ? $row['endpoints'] : [],
                 'mapping' => is_array($row['mapping'] ?? null) ? $row['mapping'] : [],
                 'has_secrets' => $secrets !== [],
@@ -54,8 +92,14 @@ final class TenantConnectorService
         array $secrets = [],
         bool $enabled = true,
         ?string $connectorId = null,
+        bool $tenantSelfServe = false,
+        string $managedBy = 'platform',
     ): array {
         IntegrationConnectorRegistry::assertAllowed($adapterKey);
+
+        if ($tenantSelfServe) {
+            IntegrationConnectorRegistry::assertTenantBindable($adapterKey);
+        }
 
         if (! $tenant->featureEnabled('integrations')) {
             throw new RuntimeException('feature:integrations is off for this tenant; settings cannot elevate.');
@@ -64,6 +108,10 @@ final class TenantConnectorService
         $list = $this->rawList($tenant);
         $id = $connectorId ?: (string) Str::uuid();
         $index = $this->indexOf($list, $id);
+
+        if ($index !== null && ($list[$index]['managed_by'] ?? 'tenant') === 'platform' && $tenantSelfServe) {
+            throw new RuntimeException('Connector is managed by platform and cannot be changed by the tenant.');
+        }
 
         $existingSecrets = $index !== null && is_array($list[$index]['secrets'] ?? null)
             ? $list[$index]['secrets']
@@ -81,10 +129,15 @@ final class TenantConnectorService
             $mergedSecrets[$key] = $this->encrypt($plain);
         }
 
+        $existingManagedBy = $index !== null
+            ? (string) ($list[$index]['managed_by'] ?? $managedBy)
+            : $managedBy;
+
         $row = [
             'id' => $id,
             'adapter_key' => $adapterKey,
             'enabled' => $enabled,
+            'managed_by' => $tenantSelfServe ? 'tenant' : $existingManagedBy,
             'endpoints' => $endpoints,
             'mapping' => $mapping,
             'secrets' => $mergedSecrets,
@@ -98,18 +151,120 @@ final class TenantConnectorService
 
         $this->persist($tenant, $list);
 
-        $safe = collect($this->listForPlatform($tenant->fresh()))
+        $safe = collect($this->listSafe($tenant->fresh()))
             ->first(fn (array $item): bool => $item['id'] === $id);
 
         return is_array($safe) ? $safe : [
             'id' => $id,
             'adapter_key' => $adapterKey,
+            'label' => $adapterKey,
             'enabled' => $enabled,
+            'managed_by' => $row['managed_by'],
+            'runtime_status' => 'stub',
             'endpoints' => $endpoints,
             'mapping' => $mapping,
             'has_secrets' => $mergedSecrets !== [],
             'secret_keys' => array_values(array_filter(array_keys($mergedSecrets), 'is_string')),
         ];
+    }
+
+    public function setEnabled(Tenant $tenant, string $connectorId, bool $enabled, bool $tenantSelfServe = false): array
+    {
+        if (! $tenant->featureEnabled('integrations')) {
+            throw new RuntimeException('feature:integrations is off for this tenant; settings cannot elevate.');
+        }
+
+        $list = $this->rawList($tenant);
+        $index = $this->indexOf($list, $connectorId);
+        if ($index === null) {
+            throw new InvalidArgumentException('Connector not found.');
+        }
+
+        if ($tenantSelfServe && ($list[$index]['managed_by'] ?? 'tenant') === 'platform') {
+            throw new RuntimeException('Connector is managed by platform and cannot be changed by the tenant.');
+        }
+
+        $list[$index]['enabled'] = $enabled;
+        $this->persist($tenant, $list);
+
+        $safe = collect($this->listSafe($tenant->fresh()))
+            ->first(fn (array $item): bool => $item['id'] === $connectorId);
+
+        if (! is_array($safe)) {
+            throw new InvalidArgumentException('Connector not found after update.');
+        }
+
+        return $safe;
+    }
+
+    public function unbind(Tenant $tenant, string $connectorId, bool $tenantSelfServe = false): void
+    {
+        if (! $tenant->featureEnabled('integrations')) {
+            throw new RuntimeException('feature:integrations is off for this tenant; settings cannot elevate.');
+        }
+
+        $list = $this->rawList($tenant);
+        $index = $this->indexOf($list, $connectorId);
+        if ($index === null) {
+            throw new InvalidArgumentException('Connector not found.');
+        }
+
+        if ($tenantSelfServe && ($list[$index]['managed_by'] ?? 'tenant') === 'platform') {
+            throw new RuntimeException('Connector is managed by platform and cannot be changed by the tenant.');
+        }
+
+        array_splice($list, $index, 1);
+        $this->persist($tenant, $list);
+    }
+
+    /**
+     * P0: validate required config without live network call.
+     *
+     * @return array{status: string, message: string}
+     */
+    public function configCheck(Tenant $tenant, string $connectorId): array
+    {
+        $safe = collect($this->listSafe($tenant))
+            ->first(fn (array $item): bool => $item['id'] === $connectorId);
+
+        if (! is_array($safe)) {
+            return ['status' => 'config_incomplete', 'message' => 'Коннектор не найден.'];
+        }
+
+        $adapterKey = $safe['adapter_key'];
+        $endpoints = $safe['endpoints'];
+        $hasSecrets = $safe['has_secrets'];
+        $runtime = $safe['runtime_status'];
+
+        if (in_array($adapterKey, ['t_bank', 'tochka', 'sber', 'alfa'], true) && ! $hasSecrets) {
+            return ['status' => 'config_incomplete', 'message' => 'Нужен токен / OAuth-секрет.'];
+        }
+
+        if ($adapterKey === 'one_c_bp') {
+            $base = (string) ($endpoints['base_url'] ?? data_get($endpoints, 'publications.*.base_url.0') ?? '');
+            if ($base === '' && empty($endpoints['publications'])) {
+                return ['status' => 'config_incomplete', 'message' => 'Укажите URL публикации OData.'];
+            }
+            if (! $hasSecrets) {
+                return ['status' => 'config_incomplete', 'message' => 'Укажите логин и пароль OData.'];
+            }
+        }
+
+        if ($adapterKey === 'vtb_bank') {
+            $checklist = data_get($endpoints, 'onboarding', []);
+            if (! is_array($checklist) || $checklist === []) {
+                return ['status' => 'config_incomplete', 'message' => 'Заполните чеклист онбординга ИБК.'];
+            }
+        }
+
+        if ($runtime === 'stub') {
+            return [
+                'status' => 'stub_not_live',
+                'message' => 'Конфигурация сохранена. Живой ping пока недоступен (stub).',
+            ];
+        }
+
+        return ['status' => 'config_ok', 'message' => 'Конфигурация выглядит полной.'];
     }
 
     /**

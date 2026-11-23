@@ -739,7 +739,7 @@ function requiredExpandedGroupKeys(activeKey, activeSubKey, activeLeafKey) {
         if (['system', 'order-numbering'].includes(leaf)) {
             keys.push('system');
         }
-        if (['table-presets', 'dictionaries', 'templates', 'mcp-integrations'].includes(leaf)) {
+        if (['table-presets', 'dictionaries', 'templates', 'mcp-integrations', 'integrations'].includes(leaf)) {
             keys.push('configuration');
         }
         if (activeSubKey === 'motivation' || ['kpi-settings', 'salary-settings'].includes(leaf)) {
@@ -1007,6 +1007,7 @@ const MENU_ROUTES = {
     dictionaries: '/settings/dictionaries',
     templates: '/settings/templates',
     'mcp-integrations': '/settings/mcp-integrations',
+    'integrations': '/settings/integrations',
     motivation: '/settings/motivation',
     'kpi-settings': '/settings/motivation/kpi',
     'salary-settings': '/settings/motivation/salary',
@@ -1467,6 +1468,7 @@ const menuItems = computed(() => {
                             { key: 'dictionaries', label: 'Справочники' },
                             { key: 'templates', label: 'Шаблоны' },
                             { key: 'mcp-integrations', label: 'Связи MCP' },
+                            { key: 'integrations', label: 'Интеграция' },
                         ],
                     });
                 }

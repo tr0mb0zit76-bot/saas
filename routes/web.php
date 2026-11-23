@@ -71,6 +71,7 @@ use App\Http\Controllers\SettingsBusinessProcessController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SettingsDictionariesController;
 use App\Http\Controllers\SettingsKpiController;
+use App\Http\Controllers\SettingsIntegrationsController;
 use App\Http\Controllers\SettingsMcpIntegrationController;
 use App\Http\Controllers\SettingsSystemController;
 use App\Http\Controllers\SettingsTableManagementController;
@@ -562,6 +563,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::controller(SettingsMcpIntegrationController::class)->middleware(['visibility.area:settings', 'feature:mcp_read'])->group(function () {
         Route::get('/settings/mcp-integrations', 'index')->name('settings.mcp-integrations.index');
         Route::put('/settings/mcp-integrations', 'update')->name('settings.mcp-integrations.update');
+    });
+
+    // ADR-026: GET visible with lock when feature off; mutations require feature + admin (controller).
+    Route::controller(SettingsIntegrationsController::class)->middleware('visibility.area:settings')->group(function () {
+        Route::get('/settings/integrations', 'index')->name('settings.integrations.index');
+        Route::post('/settings/integrations', 'store')->middleware('feature:integrations')->name('settings.integrations.store');
+        Route::put('/settings/integrations/{connector}', 'update')->middleware('feature:integrations')->name('settings.integrations.update');
+        Route::delete('/settings/integrations/{connector}', 'destroy')->middleware('feature:integrations')->name('settings.integrations.destroy');
+        Route::post('/settings/integrations/{connector}/test', 'test')->middleware('feature:integrations')->name('settings.integrations.test');
     });
 
     Route::controller(SettingsTemplateController::class)->middleware(['visibility.area:settings', 'feature:print'])->group(function () {
