@@ -1,11 +1,11 @@
 # ADR-022: Per-tenant integration connectors (1C and peers)
 
-**Status:** Accepted  
+**Status:** Accepted — **Amended by [ADR-026](ADR-026-tenant-self-serve-catalog-connectors.md)** (2026-11-23: tenant self-serve for allowlisted catalog adapters only)  
 **Date:** 2026-11-14  
 **PO lock:** 2026-11-14 (Orientum clone now; **platform admin UI** ops MVP — Q2 overridden; single `integrations` SKU)  
 **Amends:** ADR-015 (integrations MCP + custom adapters) — adds connector packaging, secrets, jobs/webhooks  
 **Extends:** ADR-021 (fine-grained settings / content packs) — fifth layer: **Connector instance**  
-**Related:** ADR-006 (feature gating), ADR-010 (fail-closed tenant scope), ADR-009 (billing)  
+**Related:** ADR-006 (feature gating), ADR-010 (fail-closed tenant scope), ADR-009 (billing), ADR-026 (tenant Settings → Интеграция catalog)  
 **Team input:** saas-security · saas-qa · saas-privacy (2026-11-14; billing/ops follow-up same day)
 
 ## Context

@@ -1,6 +1,35 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-22 · **Фаза:** Phase 4 + ADR-024 P1 + ADR-025 P0 shipped · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-23 · **Фаза:** Phase 4 + ADR-024/025 shipped · ADR-026 catalog stubs · **Ветка:** `cursor/traklo-session-integrate-9d42`
+
+## ADR-026 — Settings → Интеграция catalog stubs (2026-11-23)
+
+**Canon:** [`ADR-026`](../architecture/decisions/ADR-026-tenant-self-serve-catalog-connectors.md) (amends ADR-022).  
+**Config:** `config/saas-connectors.php` + `IntegrationConnectorRegistry::catalogForTenant()`.
+
+Self-serve stubs (`tenant_self_serve: true`, `runtime_status: stub`):
+
+| key | Notes |
+| --- | --- |
+| `one_c_bp` | Standard single-pub OData (AA multi-pub template Ops-only) |
+| `t_bank` | Public T-API / Bearer |
+| `tochka` | Public Точка.API / OAuth-JWT + sandbox |
+| `sber` | Public Sber API / OAuth |
+| `alfa` | Public Alfa API / Bearer-ApiKey |
+| `vtb_bank` | ИБК SOAP+ГОСТ; `docs_open=false` + onboarding checklist |
+
+**Next:** Settings UI `/settings/integrations` (admin + feature lock), Test=config check. Not done yet.
+
+## Ops — shorten pilot tenant slugs (2026-11-22)
+
+Renamed on **prod** (wildcard DNS, no deploy needed):
+
+| Tenant | Was | Now | Admin email | Login |
+| --- | --- | --- | --- | --- |
+| Успешный партнёр | `successful_partner` | `up` | `bavari08@mail.ru` | https://up.traklo.pro/login |
+| Аквила Прайм | `akvila_prime` | `ap` | `aquilaprime888@mail.ru` | https://ap.traklo.pro/login |
+
+Welcome mail resent with **rename notice** (old URL dead → new short subdomain) + new temp password + admin guide attachment. SMTP accept OK for both.
 
 ## Deploy — quote/messenger/ADR-025 (2026-11-22)
 
