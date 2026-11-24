@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ContractorRiskAssessment extends Model
 {
+    use BelongsToTenant;
+
     public const STATUS_DRAFT = 'draft';
 
     public const STATUS_PENDING_APPROVAL = 'pending_approval';
@@ -25,6 +28,7 @@ class ContractorRiskAssessment extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'tenant_id',
         'contractor_id',
         'contractor_risk_snapshot_id',
         'model_version',

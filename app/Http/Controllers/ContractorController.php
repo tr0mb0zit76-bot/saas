@@ -592,15 +592,16 @@ class ContractorController extends Controller
                 $orderSelect[] = 'carrier_rate';
             }
 
-            $orderRows = DB::table('orders')
+            $ordersQuery = DB::table('orders')
                 ->select($orderSelect)
                 ->where(function ($query) use ($selectedContractor): void {
                     $query->where('customer_id', $selectedContractor->id)
                         ->orWhere('carrier_id', $selectedContractor->id);
                 })
                 ->orderByDesc('order_date')
-                ->limit(20)
-                ->get();
+                ->limit(20);
+            TenantContext::restrict($ordersQuery, 'orders.tenant_id');
+            $orderRows = $ordersQuery->get();
 
             $carrierRateByOrderId = CarrierRateFromFinancialTerms::sumsByOrderId(
                 $orderRows->pluck('id')->map(fn ($id): int => (int) $id)->all(),
@@ -634,7 +635,7 @@ class ContractorController extends Controller
             if ($hasOrderDocumentsTable) {
                 $documentDateColumn = Schema::hasColumn('order_documents', 'document_date');
 
-                $relatedOrderDocuments = DB::table('order_documents')
+                $relatedDocumentsQuery = DB::table('order_documents')
                     ->join('orders', 'orders.id', '=', 'order_documents.order_id')
                     ->select(
                         'order_documents.id',
@@ -661,7 +662,9 @@ class ContractorController extends Controller
                     ->when(
                         Schema::hasColumn('orders', 'deleted_at'),
                         fn ($query) => $query->whereNull('orders.deleted_at')
-                    )
+                    );
+                TenantContext::restrict($relatedDocumentsQuery, 'orders.tenant_id');
+                $relatedOrderDocuments = $relatedDocumentsQuery
                     ->when(
                         $documentDateColumn,
                         fn ($query) => $query->orderByDesc('order_documents.document_date')

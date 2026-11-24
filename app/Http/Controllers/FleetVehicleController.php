@@ -100,6 +100,7 @@ class FleetVehicleController extends Controller
         abort_unless(Schema::hasTable('fleet_vehicle_documents'), 404);
         abort_unless($fleetVehicleDocument->fleet_vehicle_id === $fleetVehicle->id, 404);
 
+        TenantStorage::assertOwnedObjectKey((string) $fleetVehicleDocument->path);
         Storage::disk($fleetVehicleDocument->disk)->delete($fleetVehicleDocument->path);
         $fleetVehicleDocument->delete();
 
@@ -110,6 +111,7 @@ class FleetVehicleController extends Controller
     {
         abort_unless(Schema::hasTable('fleet_vehicle_documents'), 404);
         abort_unless($fleetVehicleDocument->fleet_vehicle_id === $fleetVehicle->id, 404);
+        TenantStorage::assertOwnedObjectKey((string) $fleetVehicleDocument->path);
 
         return Storage::disk($fleetVehicleDocument->disk)->download($fleetVehicleDocument->path, $fleetVehicleDocument->original_name);
     }
@@ -118,6 +120,7 @@ class FleetVehicleController extends Controller
     {
         abort_unless(Schema::hasTable('fleet_vehicle_documents'), 404);
         abort_unless($fleetVehicleDocument->fleet_vehicle_id === $fleetVehicle->id, 404);
+        TenantStorage::assertOwnedObjectKey((string) $fleetVehicleDocument->path);
 
         return InlineStoredFileResponse::fromDisk(
             $fleetVehicleDocument->disk,

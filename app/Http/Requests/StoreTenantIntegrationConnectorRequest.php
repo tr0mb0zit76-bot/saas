@@ -3,9 +3,11 @@
 namespace App\Http\Requests;
 
 use App\Support\IntegrationConnectorRegistry;
+use App\Support\IntegrationEndpointUrl;
 use App\Support\RoleAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 class StoreTenantIntegrationConnectorRequest extends FormRequest
 {
@@ -25,7 +27,21 @@ class StoreTenantIntegrationConnectorRequest extends FormRequest
             'adapter_key' => ['required', 'string', Rule::in($selfServeKeys)],
             'enabled' => ['sometimes', 'boolean'],
             'endpoints' => ['sometimes', 'array'],
-            'endpoints.base_url' => ['nullable', 'string', 'max:500'],
+            'endpoints.base_url' => [
+                'nullable',
+                'string',
+                'max:500',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || $value === '') {
+                        return;
+                    }
+                    try {
+                        IntegrationEndpointUrl::assertPublicHttpUrl($value);
+                    } catch (InvalidArgumentException $e) {
+                        $fail($e->getMessage());
+                    }
+                },
+            ],
             'mapping' => ['sometimes', 'array'],
             'secrets' => ['sometimes', 'array'],
             'secrets.token' => ['nullable', 'string', 'max:2000'],

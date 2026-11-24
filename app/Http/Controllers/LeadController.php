@@ -957,6 +957,8 @@ class LeadController extends Controller
             ->where('roles.name', 'manager')
             ->orderBy('users.name');
 
+        TenantContext::restrict($usersQuery, 'users.tenant_id');
+
         if (Schema::hasColumn('users', 'is_active')) {
             $usersQuery->where('users.is_active', true);
         }

@@ -83,13 +83,8 @@ class LoginRequest extends FormRequest
             }
         }
 
-        if ($user instanceof User && ($user->mail_sync_enabled ?? true)) {
-            $user->applyMailImapPassword($this->string('password')->toString());
-
-            if ($user->isDirty('mail_imap_secret')) {
-                $user->save();
-            }
-        }
+        // Do not overwrite mail_imap_secret from the CRM login password (secret concentration).
+        // IMAP credentials are set explicitly in mail settings / app-password flows.
 
         RateLimiter::clear($this->throttleKey());
     }

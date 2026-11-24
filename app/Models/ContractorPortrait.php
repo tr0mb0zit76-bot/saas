@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ContractorPortrait extends Model
 {
+    use BelongsToTenant;
+
     protected $primaryKey = 'contractor_id';
 
     public $incrementing = false;
@@ -15,6 +18,7 @@ class ContractorPortrait extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'tenant_id',
         'contractor_id',
         'communication_style',
         'price_sensitivity',

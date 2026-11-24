@@ -16,6 +16,12 @@ class SetTenantFromJob
         $tenantId = $job->tenantId ?? $job->tenant_id ?? null;
 
         if ($tenantId === null) {
+            // Fail closed: business jobs must declare tenant context (ADR-010).
+            // Opt out only via explicit public bool $allowWithoutTenant = true on the job.
+            if (! (property_exists($job, 'allowWithoutTenant') && $job->allowWithoutTenant === true)) {
+                throw new \RuntimeException('Job is missing tenantId; refusing to run without tenant context.');
+            }
+
             return $next($job);
         }
 

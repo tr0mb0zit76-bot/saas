@@ -43,8 +43,29 @@ final class TenantStorage
     public static function path(string $relativePath): string
     {
         $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        self::assertSafeRelativePath($relativePath);
 
         return 'tenants/'.self::tenantId().'/'.$relativePath;
+    }
+
+    /**
+     * Defense-in-depth: stored object keys must stay under tenants/{current}/.
+     */
+    public static function assertOwnedObjectKey(string $objectKey): void
+    {
+        $normalized = ltrim(str_replace('\\', '/', $objectKey), '/');
+        $prefix = 'tenants/'.self::tenantId().'/';
+
+        if ($normalized === '' || str_contains($normalized, '..') || ! str_starts_with($normalized, $prefix)) {
+            throw new InvalidArgumentException('Stored object key is outside the current tenant prefix.');
+        }
+    }
+
+    private static function assertSafeRelativePath(string $relativePath): void
+    {
+        if ($relativePath === '' || str_starts_with($relativePath, '/') || preg_match('#(^|/)\.\.(/|$)#', $relativePath) === 1) {
+            throw new InvalidArgumentException('Tenant storage path must be relative and must not contain .. segments.');
+        }
     }
 
     public static function put(string $relativePath, mixed $contents): bool

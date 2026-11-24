@@ -28,6 +28,7 @@ use App\Support\LeadViewAuthorization;
 use App\Support\RoleAccess;
 use App\Support\TaskStatus;
 use App\Support\TaskViewAuthorization;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -902,9 +903,10 @@ class TaskController extends Controller
     private function nextTaskNumber(): string
     {
         $prefix = 'TSK-'.now()->format('ymd');
-        $sequence = DB::table('tasks')
-            ->where('number', 'like', $prefix.'-%')
-            ->count() + 1;
+        $sequenceQuery = DB::table('tasks')
+            ->where('number', 'like', $prefix.'-%');
+        TenantContext::restrict($sequenceQuery, 'tasks.tenant_id');
+        $sequence = $sequenceQuery->count() + 1;
 
         return sprintf('%s-%03d', $prefix, $sequence);
     }
@@ -920,18 +922,16 @@ class TaskController extends Controller
             return;
         }
 
-        $leadStatus = DB::table('leads')->where('id', $task->lead_id)->value('status');
-        if (! is_string($leadStatus) || LeadStatus::isClosed($leadStatus)) {
+        // Eloquent Lead uses TenantScope — never update cross-tenant leads via raw id.
+        $lead = Lead::query()->find($task->lead_id);
+        if ($lead === null || LeadStatus::isClosed((string) $lead->status)) {
             return;
         }
 
-        DB::table('leads')
-            ->where('id', $task->lead_id)
-            ->update([
-                'status' => $targetLeadStatus,
-                'updated_by' => $userId,
-                'updated_at' => now(),
-            ]);
+        $lead->forceFill([
+            'status' => $targetLeadStatus,
+            'updated_by' => $userId,
+        ])->save();
     }
 
     private function canAccessTaskRow(Request $request, Task $task): bool

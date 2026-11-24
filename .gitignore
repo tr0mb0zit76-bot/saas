@@ -22,3 +22,15 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Local HTTP session dumps — never commit
+cookies.txt
+cookies2.txt
+cookies3.txt
+headers.txt
+login.html
+login3.html
+post.out
+scripts/*.cookies
+scripts/cli.cookies
+scripts/test*.cookies

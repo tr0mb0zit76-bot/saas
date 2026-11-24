@@ -4,6 +4,7 @@ namespace App\Services\Saas;
 
 use App\Models\Tenant;
 use App\Support\IntegrationConnectorRegistry;
+use App\Support\IntegrationEndpointUrl;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -104,6 +105,8 @@ final class TenantConnectorService
         if (! $tenant->featureEnabled('integrations')) {
             throw new RuntimeException('feature:integrations is off for this tenant; settings cannot elevate.');
         }
+
+        IntegrationEndpointUrl::assertEndpointsSafe($endpoints);
 
         $list = $this->rawList($tenant);
         $id = $connectorId ?: (string) Str::uuid();

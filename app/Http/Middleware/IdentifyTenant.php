@@ -29,10 +29,10 @@ class IdentifyTenant
 
         if ($slug === null || $slug === '') {
             // Marketing витрина on apex/www (and dedicated SHOWCASE_DOMAIN) has no tenant.
-            // CRM paths on the same host stay fail-closed below.
+            // Do NOT bypass TenantScope here — sticky bypass + shared SESSION_DOMAIN leaked
+            // CRM data across tenants. Showcase pages must not query tenant-scoped models;
+            // fail-closed 0=1 is correct if they accidentally do.
             if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Showcase) {
-                TenantContext::bypass(true);
-
                 return $next($request);
             }
 

@@ -14,6 +14,10 @@ final class TenantContext
     public static function set(?Tenant $tenant): void
     {
         self::$tenant = $tenant;
+        // Tenant-scoped work must never inherit sticky bypass from showcase/platform hosts.
+        if ($tenant !== null) {
+            self::$bypass = false;
+        }
     }
 
     public static function get(): ?Tenant

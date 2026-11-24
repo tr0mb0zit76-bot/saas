@@ -351,7 +351,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
         });
 
-        Route::middleware('visibility.area:sales_assistant_counter')->group(function () {
+        Route::middleware(['visibility.area:sales_assistant_counter', 'feature:how_much_fits'])->group(function () {
             Route::controller(SalesAssistantController::class)->prefix('counter')->name('counter.')->group(function () {
                 Route::get('/', 'counter')->name('index');
                 Route::post('/calculate', 'calculateCounter')->name('calculate');
@@ -664,7 +664,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/fleet/containers', function () {
         return Inertia::render('Fleet/Containers');
-    })->middleware('visibility.area:drivers')->name('fleet.containers.index');
+    })->middleware(['visibility.area:drivers', 'feature:fleet'])->name('fleet.containers.index');
 
     Route::controller(FleetVehicleController::class)->middleware(['visibility.area:drivers', 'feature:fleet'])->group(function () {
         Route::get('/fleet/vehicles', 'index')->name('fleet.vehicles.index');
@@ -774,8 +774,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/documents/optimize-pdf', DocumentOptimizeController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.optimize-pdf');
     Route::post('/documents/estimate-upload-budget', DocumentUploadBudgetEstimateController::class)->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.estimate-upload-budget');
     Route::patch('/documents/{document}', [DocumentRegistryController::class, 'update'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.update');
-    Route::patch('/documents/orders/{order}/track-received', [DocumentRegistryController::class, 'updateTrackReceived'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.track-received');
-    Route::patch('/documents/orders/{order}/edo-acknowledgement', [DocumentRegistryController::class, 'updateEdoAcknowledgement'])->middleware('visibility.area.any:documents|orders')->name('documents.orders.edo-acknowledgement');
+    Route::patch('/documents/orders/{order}/track-received', [DocumentRegistryController::class, 'updateTrackReceived'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.orders.track-received');
+    Route::patch('/documents/orders/{order}/edo-acknowledgement', [DocumentRegistryController::class, 'updateEdoAcknowledgement'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.orders.edo-acknowledgement');
     Route::delete('/documents/{document}', [DocumentRegistryController::class, 'destroy'])->middleware(['visibility.area.any:documents|orders', 'feature:documents'])->name('documents.destroy');
     Route::post('/finance/documents', [FinanceDocumentController::class, 'store'])->middleware(['visibility.area:documents', 'feature:documents'])->name('finance.documents.store');
     Route::patch('/finance/documents/{financeDocument}', [FinanceDocumentController::class, 'update'])->middleware(['visibility.area:documents', 'feature:documents'])->name('finance.documents.update');

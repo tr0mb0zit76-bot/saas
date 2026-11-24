@@ -19,6 +19,7 @@ use App\Support\CurrencyDictionary;
 use App\Support\OrderDocumentWorkflowStatus;
 use App\Support\PaymentFormDictionary;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -666,6 +667,8 @@ class OrderWizardPagePresenter
             ->join('roles', 'roles.id', '=', 'users.role_id')
             ->where('roles.name', 'manager')
             ->orderBy('users.name');
+
+        TenantContext::restrict($usersQuery, 'users.tenant_id');
 
         if (Schema::hasColumn('users', 'is_active')) {
             $usersQuery->where('users.is_active', true);

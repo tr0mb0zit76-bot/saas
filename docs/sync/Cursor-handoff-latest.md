@@ -1,24 +1,18 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-23 · **Фаза:** Phase 4 + ADR-024/025 shipped · ADR-026 catalog stubs · **Ветка:** `cursor/traklo-session-integrate-9d42`
+**Обновлено:** 2026-11-24 · **Фаза:** Phase 4 + isolation hardening · **Ветка:** `cursor/traklo-session-integrate-9d42` · **Prod HEAD:** `504354e` (isolation fixes pending deploy)
 
-## ADR-026 — Settings → Интеграция catalog stubs (2026-11-23)
+## Isolation hardening — whole-project review fixes (2026-11-24)
 
-**Canon:** [`ADR-026`](../architecture/decisions/ADR-026-tenant-self-serve-catalog-connectors.md) (amends ADR-022).  
-**Config:** `config/saas-connectors.php` + `IntegrationConnectorRegistry::catalogForTenant()`.
+Closed CRITICAL→LOW from project code-review: `TenantContext::set` clears bypass; showcase no longer sticky-bypasses; `TenantContext::restrict` on Finance/Dashboard/Contractor/Lead/Wizard/SalesScript raw SQL; `TenantStorage` rejects `..` + fleet path assert; SSRF guard `IntegrationEndpointUrl`; `SetTenantFromJob` fail-closed; BelongsToTenant + migration for child PII; billing models scoped; login no longer overwrites IMAP secret; cookies gitignored; ADR-026 HTTP Feature gates added. **Lab MySQL was down — Feature suite not re-run locally; deploy after OSPanel up + `php artisan test tests/Feature/Saas`.**
 
-Self-serve stubs (`tenant_self_serve: true`, `runtime_status: stub`):
+## ADR-026 — Settings → Интеграция UI (2026-11-23)
 
-| key | Notes |
-| --- | --- |
-| `one_c_bp` | Standard single-pub OData (AA multi-pub template Ops-only) |
-| `t_bank` | Public T-API / Bearer |
-| `tochka` | Public Точка.API / OAuth-JWT + sandbox |
-| `sber` | Public Sber API / OAuth |
-| `alfa` | Public Alfa API / Bearer-ApiKey |
-| `vtb_bank` | ИБК SOAP+ГОСТ; `docs_open=false` + onboarding checklist |
+**Canon:** [`ADR-026`](../architecture/decisions/ADR-026-tenant-self-serve-catalog-connectors.md).  
+**Shipped:** `504354e` — menu Настройки → Конфигурация → **Интеграция**, page `/settings/integrations`, self-serve bind/unbind/test (config check), Enterprise lock when `feature:integrations` off.  
+**Tests:** `TenantSettingsIntegrationsTest` + registry/isolation suite green. Deploy `DEPLOY_OK` HTTP 200.
 
-**Next:** Settings UI `/settings/integrations` (admin + feature lock), Test=config check. Not done yet.
+Self-serve stubs: `one_c_bp`, `t_bank`, `tochka`, `sber`, `alfa`, `vtb_bank` (AA multi-pub Ops-only).
 
 ## Ops — shorten pilot tenant slugs (2026-11-22)
 

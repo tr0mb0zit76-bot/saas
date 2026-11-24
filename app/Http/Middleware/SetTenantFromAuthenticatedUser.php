@@ -69,6 +69,7 @@ class SetTenantFromAuthenticatedUser
             abort(403, 'Tenant context does not match authenticated user.');
         }
 
+        TenantContext::bypass(false);
         TenantContext::set($user->tenant);
 
         return $next($request);
