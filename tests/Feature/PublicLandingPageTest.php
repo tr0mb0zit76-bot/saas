@@ -34,7 +34,10 @@ class PublicLandingPageTest extends TestCase
 
     public function test_guest_can_open_traklo_pro_landing_page(): void
     {
-        config(['showcase.mode' => 'traklo_pro']);
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+        ]);
 
         $this->get($this->showcaseUrl('/'))
             ->assertOk()
@@ -43,6 +46,48 @@ class PublicLandingPageTest extends TestCase
                 ->where('canLogin', Route::has('login'))
                 ->has('texts.brand')
                 ->has('plans')
+            );
+    }
+
+    public function test_traklo_pro_landing_closed_when_coming_soon(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'saas.demo_signup_enabled' => true,
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloComingSoon')
+                ->where('comingSoon', true)
+                ->where('texts.coming_soon_banner', 'Мы работаем над созданием Traklo Pro')
+                ->where('canLogin', false)
+                ->missing('crmLoginUrl')
+                ->missing('plans')
+                ->missing('planMatrix')
+                ->missing('demoSignupUrl')
+                ->missing('texts.hero_title')
+                ->missing('texts.feature_orders_title')
+            );
+    }
+
+    public function test_traklo_pro_landing_exposes_demo_signup_when_open(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+            'saas.demo_signup_enabled' => true,
+            'app.crm_domain' => 'crm.test',
+        ]);
+
+        $this->get($this->showcaseUrl('/'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('comingSoon', false)
+                ->where('demoSignupUrl', 'http://crm.test/demo/signup')
             );
     }
 
@@ -95,16 +140,74 @@ class PublicLandingPageTest extends TestCase
         }
     }
 
+    public function test_traklo_pro_landing_uses_relative_login_on_single_host_lab(): void
+    {
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => false,
+            'app.crm_domain' => 'saas.local',
+            'app.showcase_hosts' => ['saas.local'],
+            'app.same_showcase_and_crm_host' => true,
+            'app.platform_domain' => 'platform.saas.local',
+        ]);
+
+        $this->get('http://saas.local/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/TrakloLanding')
+                ->where('crmLoginUrl', '/login')
+                ->where('publicSite.crm_login_url', '/login')
+            );
+    }
+
+    public function test_coming_soon_hides_login_and_apex_login_goes_home(): void
+    {
+        $apex = config('app.showcase_hosts')[0] ?? 'saas.local';
+
+        config([
+            'showcase.mode' => 'traklo_pro',
+            'showcase.coming_soon' => true,
+            'app.same_showcase_and_crm_host' => true,
+            'app.platform_domain' => 'platform.'.$apex,
+            'app.crm_domain' => $apex,
+        ]);
+
+        $previous = $this->app->make('env');
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->get($this->showcaseUrl('/'))
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->component('Public/TrakloComingSoon')
+                    ->where('canLogin', false)
+                    ->missing('crmLoginUrl')
+                    ->missing('plans')
+                );
+
+            $this->get($this->showcaseUrl('/login'))
+                ->assertRedirect('/');
+        } finally {
+            $this->app->instance('env', $previous);
+        }
+    }
+
     public function test_authenticated_user_is_redirected_from_root_to_dashboard(): void
     {
         $user = new User;
         $user->id = 1;
+        $user->tenant_id = 1;
         $user->name = 'Admin User';
         $user->email = 'admin@example.com';
         $user->exists = true;
 
         $response = $this->actingAs($user)->get('/');
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $this->assertTrue(
+            str_contains($location, '/dashboard') || str_contains($location, '/onboarding'),
+            "Expected cabinet redirect, got {$location}"
+        );
     }
 }

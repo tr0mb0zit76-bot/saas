@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderDocument;
 use App\Models\PrintFormTemplate;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Pdf\PdfDocumentCertificationService;
 use App\Services\Pdf\PdfVerificationQrStampService;
@@ -12,6 +13,7 @@ use App\Services\Saas\TenantAuditLogger;
 use App\Support\OrderDocumentWorkflowStatus;
 use App\Support\OrderPrintFormContext;
 use App\Support\PrintFormVerificationCode;
+use App\Support\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -69,13 +71,17 @@ class OrderPrintDocumentWorkflowService
             ], fn (mixed $value): bool => $value !== null && $value !== false && $value !== ''),
         ]);
 
-        $verificationCode = PrintFormVerificationCode::forOrderDocument($document);
-        $contextWithCode = $this->printContextWithVerificationCode(
-            $this->printContextWithOrderDocumentId($context, (int) $document->id),
-            $verificationCode,
-        );
+        $verificationEnabled = $this->documentVerificationEnabled($order);
+        $contextWithDocId = $this->printContextWithOrderDocumentId($context, (int) $document->id);
+        $verificationCode = null;
+        $generateContext = $contextWithDocId;
 
-        $generated = $this->draftService->generate($template, $order, false, $contextWithCode);
+        if ($verificationEnabled) {
+            $verificationCode = PrintFormVerificationCode::forOrderDocument($document);
+            $generateContext = $this->printContextWithVerificationCode($contextWithDocId, $verificationCode);
+        }
+
+        $generated = $this->draftService->generate($template, $order, false, $generateContext);
 
         $permanentPath = $this->documentStorage->resolveOrderDocumentPath(
             $order->id,
@@ -86,9 +92,11 @@ class OrderPrintDocumentWorkflowService
         Storage::disk($generated['disk'])->delete($generated['path']);
 
         $metadata = is_array($document->metadata) ? $document->metadata : [];
-        $metadata['pdf_verification_code'] = $verificationCode;
-        $metadata['pdf_verification_qr'] = true;
-        $metadata['pdf_verification_qr_in_docx'] = (bool) ($generated['verification_qr_injected'] ?? false);
+        if ($verificationEnabled && $verificationCode !== null) {
+            $metadata['pdf_verification_code'] = $verificationCode;
+            $metadata['pdf_verification_qr'] = true;
+            $metadata['pdf_verification_qr_in_docx'] = (bool) ($generated['verification_qr_injected'] ?? false);
+        }
 
         $document->update([
             'original_name' => $generated['download_name'],
@@ -523,6 +531,22 @@ class OrderPrintDocumentWorkflowService
      */
     private function stampVerificationQr(string $pdfContents, OrderDocument $document, array &$metadata): string
     {
+        $order = $document->relationLoaded('order')
+            ? $document->order
+            : Order::query()->find($document->order_id);
+
+        if ($order === null || ! $this->documentVerificationEnabled($order)) {
+            unset(
+                $metadata['pdf_verification_url'],
+                $metadata['pdf_verification_qr'],
+                $metadata['pdf_verification_qr_in_docx'],
+                $metadata['pdf_verification_code'],
+                $metadata['pdf_verification_stamped_sha256'],
+            );
+
+            return $pdfContents;
+        }
+
         if (! empty($metadata['pdf_verification_qr_in_docx'])) {
             $code = (string) ($metadata['pdf_verification_code'] ?? '');
             if ($code !== '') {
@@ -546,6 +570,20 @@ class OrderPrintDocumentWorkflowService
         $metadata['pdf_verification_stamped_sha256'] = $stamped['stamped_sha256'];
 
         return $stamped['pdf'];
+    }
+
+    private function documentVerificationEnabled(Order $order): bool
+    {
+        $tenant = TenantContext::get();
+        if ($tenant !== null && (int) $tenant->id === (int) $order->tenant_id) {
+            return $tenant->settingBool('print.document_verification', false);
+        }
+
+        if ($order->tenant_id === null) {
+            return false;
+        }
+
+        return Tenant::query()->find($order->tenant_id)?->settingBool('print.document_verification', false) ?? false;
     }
 
     /**
@@ -696,6 +734,13 @@ class OrderPrintDocumentWorkflowService
         $verificationCode = isset($metadata['pdf_verification_code']) && is_string($metadata['pdf_verification_code'])
             ? trim($metadata['pdf_verification_code'])
             : null;
+
+        $order = $document->relationLoaded('order')
+            ? $document->order
+            : Order::query()->find($document->order_id);
+        if ($order === null || ! $this->documentVerificationEnabled($order)) {
+            $verificationCode = null;
+        }
 
         if (($legStage === null || $legStage === '') && $carrierId === null && ! $routeLegsAsTableRows && ($verificationCode === null || $verificationCode === '')) {
             return null;

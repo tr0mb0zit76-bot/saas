@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ManagementExpenseCategory;
 use App\Support\RoleAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreManagementManualEntryRequest extends FormRequest
 {
@@ -26,9 +28,43 @@ class StoreManagementManualEntryRequest extends FormRequest
             'currency' => ['nullable', 'string', 'size:3'],
             'description' => ['required', 'string', 'max:2000'],
             'allocation_type' => ['required', Rule::in(['operational', 'payroll', 'category'])],
-            'category_id' => ['nullable', 'integer', 'exists:management_expense_categories,id'],
+            'category_id' => [
+                Rule::requiredIf(fn (): bool => $this->input('allocation_type') === 'category'),
+                'nullable',
+                'integer',
+                'exists:management_expense_categories,id',
+            ],
             'payment_schedule_id' => ['nullable', 'integer', 'exists:payment_schedules,id'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($this->input('allocation_type') !== 'category') {
+                return;
+            }
+
+            $categoryId = $this->input('category_id');
+            if ($categoryId === null || $categoryId === '') {
+                return;
+            }
+
+            $category = ManagementExpenseCategory::query()->find((int) $categoryId);
+            if ($category === null) {
+                return;
+            }
+
+            $direction = (string) $this->input('direction');
+            $flow = (string) ($category->flow ?? 'out');
+
+            if ($flow !== $direction) {
+                $validator->errors()->add(
+                    'category_id',
+                    'Статья не соответствует направлению операции (приход/расход).',
+                );
+            }
+        });
     }
 }

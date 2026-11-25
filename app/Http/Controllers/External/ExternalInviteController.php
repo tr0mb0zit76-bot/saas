@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ExternalInviteController extends Controller
 {
@@ -47,24 +46,15 @@ class ExternalInviteController extends Controller
 
     public function store(ActivateExternalInviteRequest $request, string $token): RedirectResponse
     {
-        $invite = $this->inviteService->resolveByToken($token);
-
-        if ($invite === null || ! $invite->isOpen()) {
-            abort(HttpResponse::HTTP_GONE, 'Ссылка недействительна или истекла.');
-        }
-
-        $user = $invite->user;
-
-        if (! $user instanceof User) {
-            abort(HttpResponse::HTTP_GONE, 'Пользователь не найден.');
-        }
-
-        $user->forceFill([
-            'password' => Hash::make($request->validated('password')),
-            'is_active' => true,
-        ])->save();
-
-        $invite->forceFill(['consumed_at' => now()])->save();
+        $user = $this->inviteService->consumeOpenInvite(
+            $token,
+            function (User $inviteUser) use ($request): void {
+                $inviteUser->forceFill([
+                    'password' => Hash::make($request->validated('password')),
+                    'is_active' => true,
+                ])->save();
+            },
+        );
 
         Auth::login($user);
         $request->session()->regenerate();

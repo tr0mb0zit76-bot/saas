@@ -33,9 +33,9 @@
                     <h2 class="font-medium">{{ plan.label }}</h2>
                     <Link
                         :href="route('platform.plans.edit', plan.key)"
-                        class="rounded-lg border border-zinc-200 px-2 py-1 text-xs text-sky-700 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-800 hover:bg-sky-100 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200 dark:hover:bg-sky-900"
                     >
-                        Модули
+                        Чекбоксы модулей
                     </Link>
                 </div>
                 <dl class="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">

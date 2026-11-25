@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\OrderViewAuthorization;
 use App\Support\PaymentScheduleSettlementStatus;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +42,8 @@ class FinanceOverviewService
         if ($user !== null) {
             OrderViewAuthorization::applyOrdersVisibilityScopeToQuery($journalQuery, $user, $area);
         }
+
+        TenantContext::restrict($journalQuery, 'orders.tenant_id');
 
         $journalQuery
             ->when(
@@ -321,6 +324,8 @@ class FinanceOverviewService
         if ($user !== null) {
             OrderViewAuthorization::applyOrdersVisibilityScopeToQuery($query, $user, $area);
         }
+
+        TenantContext::restrict($query, 'orders.tenant_id');
 
         $query
             ->when(

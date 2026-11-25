@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BudgetPlanSnapshot extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */
@@ -19,6 +22,7 @@ class BudgetPlanSnapshot extends Model
         'approved_at',
         'approved_by_user_id',
         'notes',
+        'formula_version',
     ];
 
     /**

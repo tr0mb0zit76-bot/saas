@@ -38,6 +38,7 @@ alwaysApply: true
 ## 5. Архитектурные решения
 
 - Для планирования — субагент `saas-architect`
+- Ревью дыр и допуск пилота: архитектор плюс `saas-security`, `saas-qa`, `saas-privacy`. Staging-хост — `saas-migration-orchestrator`
 - ADR: `docs/architecture/decisions/`
 
 ## 6. После заметной работы

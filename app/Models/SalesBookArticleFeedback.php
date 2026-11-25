@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\SalesBookArticleFeedbackRating;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesBookArticleFeedback extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'sales_book_article_feedback';
 
     protected $fillable = [

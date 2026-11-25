@@ -14,8 +14,8 @@ CRM v5 содержит ~20 модулей. Не все нужны внешни�
 | Tier | Модули | Лимиты |
 | --- | --- | --- |
 | **Start** | leads, orders, contractors, tasks, RBAC | 5 users, 100 orders/mo, 1 GB |
-| **Pro** | Start + documents, payment_schedules, print, mail, sales_scripts, MCP read | 25 users, 500 orders/mo, 10 GB |
-| **Enterprise** | Pro + management_accounting, load_board, integrations, custom domain, Traklo | custom |
+| **Pro** | Start + documents, payment_schedules, print, mail, sales_scripts, MCP read (+ **dashboard на Графике оплат** plan\|факт/gauges — [ADR-024](ADR-024-payment-calendar-directions-pro-lite-pnl.md); не полный УУ) | 25 users, 500 orders/mo, 10 GB |
+| **Enterprise** | Pro + management_accounting, budgeting, load_board, integrations, custom domain, Traklo (+ bank fact join / thin cash / упр. ОПиУ — ADR-024) | custom |
 
 ### Реализация
 

@@ -87,14 +87,14 @@
                             <Palette class="h-4 w-4" />
                         </button>
                         <ThemeToggle />
-                        <Link
-                            :href="route('logout')"
-                            method="post"
-                            as="button"
+                        <button
+                            type="button"
                             class="flex h-10 w-10 items-center justify-center rounded-2xl border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                            title="Выйти"
+                            @click="postLogout()"
                         >
                             <LogOut class="h-4 w-4" />
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </header>
@@ -229,43 +229,21 @@
                 collapsed ? 'w-20' : 'w-64',
             ]"
         >
-            <div class="flex h-14 items-center justify-between gap-2 border-b border-zinc-200 px-2 dark:border-zinc-800 sm:px-3">
-                <div class="flex min-w-0 flex-1 items-center justify-start">
-                    <div
-                        v-if="!collapsed"
-                        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-900 dark:bg-white"
+            <div
+                class="flex h-14 shrink-0 items-center border-b border-zinc-200 px-2 dark:border-zinc-800 sm:px-3"
+                :class="collapsed ? 'justify-center' : 'justify-start'"
+            >
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                    :title="collapsed ? 'Traklo Pro' : false"
+                >
+                    <img
+                        :src="companyLogoSrc"
+                        alt="Traklo Pro"
+                        class="h-10 w-10 object-cover"
+                        width="40"
+                        height="40"
                     >
-                        <img
-                            :src="companyLogoSrc"
-                            alt=""
-                            class="h-8 w-8 object-contain"
-                            width="32"
-                            height="32"
-                        >
-                    </div>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-1">
-                    <button
-                        v-if="!collapsed"
-                        type="button"
-                        class="crm-layout-icon-button flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                        title="Внешний вид"
-                        @click="appearanceModalOpen = true"
-                    >
-                        <Palette class="h-4 w-4" />
-                    </button>
-                    <ThemeToggle v-if="!collapsed" />
-
-                    <button
-                        type="button"
-                        class="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                        :title="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
-                        @click="collapsed = !collapsed"
-                    >
-                        <PanelLeftClose v-if="!collapsed" class="h-4 w-4" />
-                        <PanelLeftOpen v-else class="h-4 w-4" />
-                    </button>
                 </div>
             </div>
 
@@ -285,7 +263,10 @@
                             :title="collapsed ? item.label : false"
                             @click="handleMenuSelect(item.key, $event)"
                         >
-                            <span class="relative inline-flex shrink-0">
+                            <span
+                                class="relative inline-flex shrink-0"
+                                :class="crmNavIconWrapClass(item.key)"
+                            >
                                 <component :is="item.icon" class="h-5 w-5" />
                                 <span
                                     v-if="menuBadgeFor(item.key) > 0"
@@ -424,21 +405,33 @@
                 </div>
             </nav>
 
-            <div class="border-t border-zinc-200 p-4 dark:border-zinc-800">
+            <div class="shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-800 sm:p-4">
                 <div
-                    v-if="collapsed"
-                    class="mb-3 flex flex-col items-center gap-2"
+                    class="mb-3 flex gap-1"
+                    :class="collapsed
+                        ? 'flex-col items-center'
+                        : 'flex-row items-center'"
                 >
                     <button
                         type="button"
-                        class="crm-layout-icon-button flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        class="crm-layout-icon-button flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
                         title="Внешний вид"
                         @click="appearanceModalOpen = true"
                     >
                         <Palette class="h-4 w-4" />
                     </button>
                     <ThemeToggle />
+                    <button
+                        type="button"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-200 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                        :title="collapsed ? 'Развернуть меню' : 'Свернуть меню'"
+                        @click="collapsed = !collapsed"
+                    >
+                        <PanelLeftClose v-if="!collapsed" class="h-4 w-4" />
+                        <PanelLeftOpen v-else class="h-4 w-4" />
+                    </button>
                 </div>
+
                 <div v-if="!collapsed" class="flex items-center gap-3">
                     <div class="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 font-medium dark:bg-zinc-800">
                         {{ authUser?.name?.charAt(0)?.toUpperCase() || 'U' }}
@@ -455,17 +448,16 @@
                 </div>
 
                 <div class="mt-3">
-                    <Link
-                        :href="route('logout')"
-                        method="post"
-                        as="button"
+                    <button
+                        type="button"
                         class="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                         :class="collapsed ? 'px-2' : ''"
                         :title="collapsed ? 'Выйти' : false"
+                        @click="postLogout()"
                     >
                         <LogOut class="h-4 w-4 shrink-0" />
                         <span v-if="!collapsed">Выйти</span>
-                    </Link>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -643,7 +635,9 @@ import {
     applyCrmAppearanceToDocument,
     resolveCrmAppearance,
 } from '@/support/crmAppearance.js';
+import { crmNavIconWrapClass } from '@/support/crmNavIconStyle.js';
 import { visitInertiaPath } from '@/support/inertiaHttpsVisit.js';
+import { postLogout } from '@/support/sessionLogout.js';
 import {
     clearAgentThread as clearPersistedAgentThread,
     historyForAgentRequest,
@@ -699,7 +693,7 @@ const flashBanner = computed(() => {
 });
 const menuStateStorageKey = 'crm-sidebar-expanded-groups';
 const sidebarCollapsedStorageKey = 'crm-sidebar-collapsed';
-const companyLogoSrc = '/assets/favicon/favicon-96x96.png';
+const companyLogoSrc = '/assets/favicon/sidebar-48.png';
 
 function readSidebarCollapsedFromStorage() {
     if (typeof window === 'undefined') {
@@ -745,7 +739,7 @@ function requiredExpandedGroupKeys(activeKey, activeSubKey, activeLeafKey) {
         if (['system', 'order-numbering'].includes(leaf)) {
             keys.push('system');
         }
-        if (['table-presets', 'dictionaries', 'templates', 'mcp-integrations'].includes(leaf)) {
+        if (['table-presets', 'dictionaries', 'templates', 'mcp-integrations', 'integrations'].includes(leaf)) {
             keys.push('configuration');
         }
         if (activeSubKey === 'motivation' || ['kpi-settings', 'salary-settings'].includes(leaf)) {
@@ -854,7 +848,15 @@ const MENU_SAAS_FEATURES = {
     'modules-import-cost': 'import_cost',
     'modules-proposal-templates': 'proposals_html',
     'mcp-integrations': 'mcp_read',
+    'templates': 'print',
     'finance-management-accounting': 'management_accounting',
+    'finance-working-capital': 'management_accounting',
+    'finance-balance': 'management_accounting',
+    'finance-budgeting': 'budgeting',
+    disposition: 'disposition',
+    'company-planning': 'company_planning',
+    'modules-how-much-fits': 'how_much_fits',
+    'ai-analytics': 'ai_analytics',
     'finance-cashflow': 'payment_schedules',
     'finance-reconciliation': 'payment_schedules',
 };
@@ -977,6 +979,8 @@ const MENU_ROUTES = {
     mail: '/mail',
     finance: '/finance',
     'finance-cashflow': '/finance?section=cashflow',
+    'finance-working-capital': '/finance/working-capital',
+    'finance-balance': '/finance/balance',
     'finance-reconciliation': '/finance/reconciliation',
     'finance-salary': '/finance/salary',
     'finance-budgeting': '/budgeting',
@@ -1003,6 +1007,7 @@ const MENU_ROUTES = {
     dictionaries: '/settings/dictionaries',
     templates: '/settings/templates',
     'mcp-integrations': '/settings/mcp-integrations',
+    'integrations': '/settings/integrations',
     motivation: '/settings/motivation',
     'kpi-settings': '/settings/motivation/kpi',
     'salary-settings': '/settings/motivation/salary',
@@ -1346,6 +1351,10 @@ const menuItems = computed(() => {
 
                 if (visibleAreas.value.includes('documents') || visibleAreas.value.includes('payment_schedules')) {
                     children.push({ key: 'finance-cashflow', label: 'График оплат' });
+                    if (hasManagementAccountingAccess.value) {
+                        children.push({ key: 'finance-working-capital', label: 'Оборотный капитал' });
+                        children.push({ key: 'finance-balance', label: 'Баланс' });
+                    }
                     children.push({ key: 'finance-reconciliation', label: 'Акты сверок' });
                 }
 
@@ -1459,6 +1468,7 @@ const menuItems = computed(() => {
                             { key: 'dictionaries', label: 'Справочники' },
                             { key: 'templates', label: 'Шаблоны' },
                             { key: 'mcp-integrations', label: 'Связи MCP' },
+                            { key: 'integrations', label: 'Интеграция' },
                         ],
                     });
                 }

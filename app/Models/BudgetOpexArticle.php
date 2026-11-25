@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BudgetOpexArticle extends Model
 {
+    use BelongsToTenant;
+
     public const COST_FIXED_MONTHLY = 'fixed_monthly';
 
     public const COST_PERCENT_OF_MARGIN = 'percent_of_margin';
+
+    public const AMOUNT_BASIS_TOTAL = 'total';
+
+    public const AMOUNT_BASIS_PER_HEAD = 'per_head';
 
     /**
      * @var list<string>
@@ -17,6 +24,7 @@ class BudgetOpexArticle extends Model
     protected $fillable = [
         'name',
         'cost_type',
+        'amount_basis',
         'amount_monthly',
         'percent_of_margin',
         'ramp_months',
@@ -40,6 +48,11 @@ class BudgetOpexArticle extends Model
     public function isPercentOfMargin(): bool
     {
         return $this->cost_type === self::COST_PERCENT_OF_MARGIN;
+    }
+
+    public function isPerHead(): bool
+    {
+        return ($this->amount_basis ?? self::AMOUNT_BASIS_TOTAL) === self::AMOUNT_BASIS_PER_HEAD;
     }
 
     /**

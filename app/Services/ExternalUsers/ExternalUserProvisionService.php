@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\CounterpartyPartyResolver;
 use App\Support\ExternalParty;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -114,11 +115,18 @@ class ExternalUserProvisionService
             $user,
         );
 
+        // Re-issue for existing Traklo user: ?renew=1 opens activate (password reset)
+        // instead of bouncing to login. First invite stays without renew.
+        $url = $invitePayload['url'];
+        if (! $created) {
+            $url .= (str_contains($url, '?') ? '&' : '?').'renew=1';
+        }
+
         return [
             'user' => $user->fresh(['role']),
             'invite' => $invitePayload['invite'],
             'token' => $invitePayload['token'],
-            'url' => $invitePayload['url'],
+            'url' => $url,
             'created' => $created,
         ];
     }
@@ -166,6 +174,16 @@ class ExternalUserProvisionService
             ]);
         }
 
+        // Fail-closed: never rebind an external user onto another contractor.
+        if (
+            $user->contractor_id !== null
+            && (int) $user->contractor_id !== (int) $contractor->id
+        ) {
+            throw ValidationException::withMessages([
+                'email' => 'Email уже привязан к другому контрагенту Traklo.',
+            ]);
+        }
+
         if (
             $user->contractor_contact_id !== null
             && (int) $user->contractor_contact_id !== (int) $contact->id
@@ -191,12 +209,40 @@ class ExternalUserProvisionService
 
         $role = Role::query()->where('name', $roleName)->first();
 
-        if ($role === null) {
+        if ($role !== null) {
+            return $role;
+        }
+
+        $tenantId = TenantContext::id();
+        if ($tenantId === null) {
             throw ValidationException::withMessages([
                 'role' => 'Роль '.$roleName.' не найдена. Выполните миграции.',
             ]);
         }
 
-        return $role;
+        $counterpartyAreas = [
+            'counterparty_orders',
+            'counterparty_documents',
+            'counterparty_portal',
+        ];
+
+        return Role::query()->updateOrCreate(
+            ['tenant_id' => $tenantId, 'name' => $roleName],
+            [
+                'tenant_id' => $tenantId,
+                'display_name' => $party === ExternalParty::Carrier
+                    ? 'Контакт перевозчика (Traklo)'
+                    : 'Контакт заказчика (Traklo)',
+                'description' => 'Внешний пользователь Traklo',
+                'permissions' => [],
+                'visibility_areas' => $counterpartyAreas,
+                'visibility_scopes' => [],
+                'columns_config' => [],
+                'has_signing_authority' => false,
+                'default_mobile_nav_keys' => $party === ExternalParty::Carrier
+                    ? ['counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal']
+                    : ['cargo_requests', 'counterparty_orders', 'counterparty_documents', 'chats'],
+            ],
+        );
     }
 }

@@ -29,6 +29,7 @@ export function useMobileShell() {
     const documentContractorOrders = ref([]);
     const orderDocumentChecklist = ref(null);
     const trakloLeads = ref([]);
+    const cargoRequests = ref([]);
     const overdueTaskCount = ref(0);
     const tasksLoading = ref(false);
     const ordersLoading = ref(false);
@@ -37,6 +38,7 @@ export function useMobileShell() {
     const documentContractorOrdersLoading = ref(false);
     const orderDocumentChecklistLoading = ref(false);
     const trakloLeadsLoading = ref(false);
+    const cargoRequestsLoading = ref(false);
     const shellError = ref('');
 
     async function loadTasks(search = '') {
@@ -169,6 +171,71 @@ export function useMobileShell() {
         }
     }
 
+    async function loadCargoRequests() {
+        cargoRequestsLoading.value = true;
+        shellError.value = '';
+
+        try {
+            const { data } = await axios.get(route('mobile.shell.counterparty.cargo-requests.index'), {
+                headers: { Accept: 'application/json' },
+            });
+            cargoRequests.value = data.leads ?? [];
+        } catch (exception) {
+            shellError.value = exception.response?.data?.message ?? 'Не удалось загрузить просчёты.';
+            cargoRequests.value = [];
+        } finally {
+            cargoRequestsLoading.value = false;
+        }
+    }
+
+    async function createCargoRequest(payload) {
+        const { data } = await axios.post(route('mobile.shell.counterparty.cargo-requests.store'), payload, {
+            headers: { Accept: 'application/json' },
+        });
+
+        const lead = data.lead ?? null;
+
+        if (lead) {
+            cargoRequests.value = [lead, ...cargoRequests.value.filter((item) => Number(item.id) !== Number(lead.id))];
+        }
+
+        return lead;
+    }
+
+    async function updateCargoRequest(leadId, payload) {
+        const { data } = await axios.put(route('mobile.shell.counterparty.cargo-requests.update', leadId), payload, {
+            headers: { Accept: 'application/json' },
+        });
+
+        const lead = data.lead ?? null;
+
+        if (lead) {
+            cargoRequests.value = cargoRequests.value.map((item) => (
+                Number(item.id) === Number(lead.id) ? lead : item
+            ));
+        }
+
+        return lead;
+    }
+
+    async function parseCargoRequest({ message = null, file = null } = {}) {
+        const formData = new FormData();
+
+        if (message && String(message).trim() !== '') {
+            formData.append('message', String(message).trim());
+        }
+
+        if (file) {
+            formData.append('file', file);
+        }
+
+        const { data } = await axios.post(route('mobile.shell.counterparty.cargo-requests.parse'), formData, {
+            headers: { Accept: 'application/json' },
+        });
+
+        return data;
+    }
+
     async function loadOrderSummary(orderId) {
         const { data } = await axios.get(orderSummaryRoute(orderId), {
             headers: { Accept: 'application/json' },
@@ -229,6 +296,10 @@ export function useMobileShell() {
             return loadTrakloLeads(search);
         }
 
+        if (tab === 'cargo_requests') {
+            return loadCargoRequests();
+        }
+
         return Promise.resolve();
     }
 
@@ -249,6 +320,7 @@ export function useMobileShell() {
         documentContractorOrders,
         orderDocumentChecklist,
         trakloLeads,
+        cargoRequests,
         overdueTaskCount,
         tasksLoading,
         ordersLoading,
@@ -257,6 +329,7 @@ export function useMobileShell() {
         documentContractorOrdersLoading,
         orderDocumentChecklistLoading,
         trakloLeadsLoading,
+        cargoRequestsLoading,
         shellError,
         loadTasks,
         loadOrders,
@@ -265,6 +338,10 @@ export function useMobileShell() {
         loadDocumentContractorOrders,
         loadOrderDocumentChecklist,
         loadTrakloLeads,
+        loadCargoRequests,
+        createCargoRequest,
+        updateCargoRequest,
+        parseCargoRequest,
         loadTab,
         loadOrderSummary,
         loadLeadSummary,

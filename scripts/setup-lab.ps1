@@ -15,6 +15,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
+. (Join-Path $repoRoot 'scripts\ospanel-mysql.ps1')
+$labDbHost = Get-OspanelMySqlBindHost
+if (-not $labDbHost) { $labDbHost = '127.0.1.21' }
 
 function Update-MigrationStep {
     param([string]$StepId, [string]$Status = 'done', [string]$Note = '')
@@ -73,7 +76,7 @@ if (Test-Path $envFile) {
         'APP_ENV'                  = 'local'
         'APP_DEBUG'                = 'true'
         'DB_CONNECTION'            = 'mysql'
-        'DB_HOST'                  = '127.0.1.21'
+        'DB_HOST'                  = $labDbHost
         'DB_PORT'                  = '3306'
         'DB_DATABASE'              = 'saas_crm'
         'DB_USERNAME'              = 'root'
@@ -140,6 +143,7 @@ if (Test-Path (Join-Path $repoRoot 'artisan')) {
         $p = Join-Path $repoRoot ($sub -replace '/', '\')
         if (-not (Test-Path $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null }
     }
+    Add-OspanelMySqlToPath | Out-Null
     php artisan migrate --force --schema-path=database/schema/.skip-mysql-cli-load
     Update-MigrationStep 'M3.1'
 

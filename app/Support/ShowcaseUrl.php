@@ -5,32 +5,40 @@ declare(strict_types=1);
 namespace App\Support;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
 /**
- * Абсолютный URL главной витрины (другой хост, чем CRM).
+ * Абсолютный URL главной витрины.
+ *
+ * On tenant hosts ({slug}.{CRM_DOMAIN}) this must never be relative `/` —
+ * that would open the tenant root instead of the marketing apex.
  */
 final class ShowcaseUrl
 {
     public static function home(?Request $request = null): string
     {
-        if (config('app.same_showcase_and_crm_host', false) && Route::has('public.home')) {
-            return route('public.home');
-        }
+        $request ??= request();
 
         /** @var list<string> $hosts */
         $hosts = config('app.showcase_hosts', []);
-        $host = trim($hosts[0] ?? '');
+        $hosts = array_values(array_filter(array_map(
+            static fn (string $h): string => strtolower(trim($h)),
+            is_array($hosts) ? $hosts : [],
+        )));
 
-        if ($host === '') {
-            return Route::has('public.home') ? route('public.home') : '/';
+        $primary = $hosts[0] ?? strtolower(trim((string) config('app.crm_domain', '')));
+
+        // Bare local loopback without a configured host — relative is fine.
+        if ($primary === '' || in_array($primary, ['localhost', '127.0.0.1'], true)) {
+            return '/';
         }
 
-        $request ??= request();
-        $secure = $request?->isSecure()
-            ?? str_starts_with(strtolower((string) config('app.url')), 'https://');
+        $secure = $request instanceof Request
+            ? $request->isSecure()
+            : str_starts_with(strtolower((string) config('app.url')), 'https://');
         $scheme = $secure ? 'https' : 'http';
 
-        return sprintf('%s://%s/', $scheme, $host);
+        // Always absolute apex (incl. saas.local / traklo.pro) so tenant
+        // subdomains never resolve the logo to their own `/`.
+        return sprintf('%s://%s/', $scheme, $primary);
     }
 }

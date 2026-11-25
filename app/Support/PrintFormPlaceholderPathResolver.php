@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\PrintForm\TenantPrintPlaceholderAliasService;
+
 /**
  * Единая логика: куда смотреть в снимке данных при подстановке плейсхолдера DOCX.
  * Должна совпадать с OrderPrintFormDraftService / LeadPrintFormDraftService при генерации.
@@ -55,6 +57,11 @@ class PrintFormPlaceholderPathResolver
             if ($this->normalizeLegacyPlaceholderKey($explicit) !== $this->normalizeLegacyPlaceholderKey($placeholder)) {
                 return $explicit;
             }
+        }
+
+        $tenantAlias = $this->tenantAliasPath($placeholder);
+        if ($tenantAlias !== null) {
+            return $tenantAlias;
         }
 
         if ($entityType === 'lead') {
@@ -131,6 +138,27 @@ class PrintFormPlaceholderPathResolver
         usort($entries, static fn (array $left, array $right): int => strcmp($left['macro'], $right['macro']));
 
         return $entries;
+    }
+
+    private function tenantAliasPath(string $placeholder): ?string
+    {
+        if (! app()->bound(TenantPrintPlaceholderAliasService::class)) {
+            return null;
+        }
+
+        $map = app(TenantPrintPlaceholderAliasService::class)->mapForCurrentTenant();
+        if ($map === []) {
+            return null;
+        }
+
+        $normalized = $this->normalizeLegacyPlaceholderKey($placeholder);
+        foreach ($map as $macro => $path) {
+            if ($this->normalizeLegacyPlaceholderKey((string) $macro) === $normalized) {
+                return is_string($path) && $path !== '' ? $path : null;
+            }
+        }
+
+        return null;
     }
 
     private function normalizeLegacyPlaceholderKey(string $placeholder): string

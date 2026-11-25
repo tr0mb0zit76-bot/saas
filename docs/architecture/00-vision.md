@@ -54,4 +54,5 @@ Vertical SaaS на базе проверенной внутренней CRM:
 | 6 мес | 2–3 пилотных paying customers |
 | 12 мес | 10–20 tenants, Pro tier stable |
 
-*См. также: `docs/sync/architecture-plan.md`*
+*См. также: `docs/sync/architecture-plan.md`*  
+*Коммерция / финплан продаж (SaaS + on‑prem): [`commercial-sales-pricing-baseline.md`](commercial-sales-pricing-baseline.md)*

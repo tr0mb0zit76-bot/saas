@@ -5,49 +5,69 @@ namespace App\Http\Controllers;
 use App\Models\Contractor;
 use App\Models\Order;
 use App\Models\OrderDocument;
+use App\Models\Tenant;
 use App\Support\PrintFormVerificationCode;
 use App\Support\PrintVerificationPageScope;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
 class PublicOrderDocumentVerificationController extends Controller
 {
-    public function show(Request $request, OrderDocument $orderDocument): Response
+    public function show(Request $request, int $orderDocument): Response
     {
+        // Public QR may hit showcase apex without tenant context — resolve under a
+        // scoped runAs(owner), never sticky global bypass (ADR-010).
+        $document = TenantContext::runWithoutScope(
+            static fn (): ?OrderDocument => OrderDocument::query()->find($orderDocument),
+        );
+        abort_unless($document instanceof OrderDocument, 404);
+
+        $owner = $document->tenant_id
+            ? Tenant::query()->find($document->tenant_id)
+            : TenantContext::get();
+
         abort_unless(
-            PrintFormVerificationCode::matchesOrderDocument($orderDocument, (string) $request->query('code')),
+            $owner !== null && $owner->settingBool('print.document_verification', false),
             404
         );
 
-        $metadata = is_array($orderDocument->metadata) ? $orderDocument->metadata : [];
-        $party = PrintVerificationPageScope::partyFromMetadata($metadata);
+        abort_unless(
+            PrintFormVerificationCode::matchesOrderDocument($document, (string) $request->query('code')),
+            404
+        );
 
-        $orderDocument->loadMissing(['order']);
-        $order = $orderDocument->order;
+        return TenantContext::runAs($owner, function () use ($request, $document): Response {
+            $metadata = is_array($document->metadata) ? $document->metadata : [];
+            $party = PrintVerificationPageScope::partyFromMetadata($metadata);
 
-        $customer = $party === PrintVerificationPageScope::PARTY_CUSTOMER
-            ? $this->resolveCustomer($order)
-            : null;
-        $carrier = $party === PrintVerificationPageScope::PARTY_CARRIER
-            ? $this->resolveCarrier($order, $metadata)
-            : null;
+            $document->loadMissing(['order']);
+            $order = $document->order;
 
-        $sha256 = (string) ($metadata['pdf_certified_sha256'] ?? $metadata['pdf_verification_stamped_sha256'] ?? '');
-        $certifiedAt = (string) ($metadata['pdf_certified_at'] ?? '');
+            $customer = $party === PrintVerificationPageScope::PARTY_CUSTOMER
+                ? $this->resolveCustomer($order)
+                : null;
+            $carrier = $party === PrintVerificationPageScope::PARTY_CARRIER
+                ? $this->resolveCarrier($order, $metadata)
+                : null;
 
-        $signatureStatus = $this->signatureStatusLabel($orderDocument);
+            $sha256 = (string) ($metadata['pdf_certified_sha256'] ?? $metadata['pdf_verification_stamped_sha256'] ?? '');
+            $certifiedAt = (string) ($metadata['pdf_certified_at'] ?? '');
 
-        return response($this->html(
-            $order,
-            PrintVerificationPageScope::counterpartyRows($party, $customer, $carrier),
-            $sha256,
-            $certifiedAt,
-            $signatureStatus,
-        ), 200, [
-            'Content-Type' => 'text/html; charset=UTF-8',
-            'Cache-Control' => 'no-store, private',
-        ]);
+            $signatureStatus = $this->signatureStatusLabel($document);
+
+            return response($this->html(
+                $order,
+                PrintVerificationPageScope::counterpartyRows($party, $customer, $carrier),
+                $sha256,
+                $certifiedAt,
+                $signatureStatus,
+            ), 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+                'Cache-Control' => 'no-store, private',
+            ]);
+        });
     }
 
     private function resolveCustomer(?Order $order): ?Contractor

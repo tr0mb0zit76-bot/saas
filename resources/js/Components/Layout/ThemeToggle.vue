@@ -1,7 +1,9 @@
 <template>
     <button
+        type="button"
         @click="toggleTheme"
-        class="h-10 w-10 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        class="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
     >
         <Sun v-if="isDark" class="h-5 w-5" />
         <Moon v-else class="h-5 w-5" />
@@ -9,9 +11,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { Sun, Moon } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { Moon, Sun } from 'lucide-vue-next';
+import {
+    applyCrmAppearanceToDocument,
+    readLocalCrmAppearance,
+    resolveCrmAppearance,
+} from '@/support/crmAppearance.js';
 
+const page = usePage();
 const isDark = ref(false);
 
 onMounted(() => {
@@ -30,5 +39,10 @@ function toggleTheme() {
         localStorage.setItem('theme', 'dark');
         isDark.value = true;
     }
+
+    // Re-paint --crm-* tokens for the new color-scheme (light/dark palettes).
+    applyCrmAppearanceToDocument(resolveCrmAppearance(page.props.auth?.user ?? {
+        ui_preferences: readLocalCrmAppearance(),
+    }));
 }
 </script>

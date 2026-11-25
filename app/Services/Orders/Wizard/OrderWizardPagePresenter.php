@@ -19,6 +19,7 @@ use App\Support\CurrencyDictionary;
 use App\Support\OrderDocumentWorkflowStatus;
 use App\Support\PaymentFormDictionary;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -609,8 +610,8 @@ class OrderWizardPagePresenter
     private function printWorkflowDocumentStorageMeta(): array
     {
         $driver = $this->documentStorageService->configuredDriver();
-        $label = $driver === DocumentStorageService::DRIVER_NEXTCLOUD
-            ? 'Nextcloud (WebDAV)'
+        $label = str_starts_with($driver, 'tenant')
+            ? 'хранилище арендатора (TenantStorage)'
             : 'локальное хранилище приложения';
 
         return [
@@ -622,16 +623,8 @@ class OrderWizardPagePresenter
 
     private function printWorkflowStorageFolderHint(string $driver): string
     {
-        if ($driver === DocumentStorageService::DRIVER_NEXTCLOUD) {
-            $root = trim(str_replace('\\', '/', (string) config('document_storage.nextcloud.webdav_root', '')), '/');
-            $parts = array_values(array_filter(explode('/', $root), static fn (string $part): bool => $part !== ''));
-            $filesIndex = array_search('files', $parts, true);
-            $tail = $filesIndex !== false
-                ? array_slice($parts, $filesIndex + 2)
-                : [];
-            $prefix = $tail !== [] ? implode('/', $tail).'/' : '';
-
-            return $prefix.'order_documents/{номер_заказа}/';
+        if (str_starts_with($driver, 'tenant')) {
+            return 'tenants/{tenant_id}/order_documents/{номер_заказа}/';
         }
 
         return 'storage/app/private/order_documents/{номер_заказа}/';
@@ -674,6 +667,8 @@ class OrderWizardPagePresenter
             ->join('roles', 'roles.id', '=', 'users.role_id')
             ->where('roles.name', 'manager')
             ->orderBy('users.name');
+
+        TenantContext::restrict($usersQuery, 'users.tenant_id');
 
         if (Schema::hasColumn('users', 'is_active')) {
             $usersQuery->where('users.is_active', true);

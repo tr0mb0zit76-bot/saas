@@ -3,13 +3,16 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                    Отклонение от плана
+                    План | факт | Δ
                 </h2>
-                <p v-if="planSnapshot" class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Снимок «{{ planSnapshot.period_label }}» от {{ formatDateTime(planSnapshot.approved_at) }}
+                <p v-if="planOfficial && planSnapshot" class="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                    Официально · снимок «{{ planSnapshot.period_label }}» от {{ formatDateTime(planSnapshot.approved_at) }}
                 </p>
                 <p v-else-if="planSource === 'live'" class="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                    Снимок плана не зафиксирован — показан черновой план из бюджетирования.
+                    Черновик (live) — не официальные отклонения. Freeze = официальный план.
+                </p>
+                <p v-if="!softMapReady" class="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                    Soft-map неполный ({{ softMapUnmappedCount }} без категории УУ) — variance для пилота не готов.
                 </p>
             </div>
         </div>
@@ -86,6 +89,9 @@ defineProps({
     payrollVariance: { type: Object, default: null },
     planSnapshot: { type: Object, default: null },
     planSource: { type: String, default: 'none' },
+    planOfficial: { type: Boolean, default: false },
+    softMapReady: { type: Boolean, default: true },
+    softMapUnmappedCount: { type: Number, default: 0 },
 });
 
 function formatMoney(value) {

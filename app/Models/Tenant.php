@@ -171,6 +171,34 @@ class Tenant extends Model
     }
 
     /**
+     * Behavior toggle under tenants.settings (never elevates plan features).
+     */
+    public function settingBool(string $dotPath, bool $default = false): bool
+    {
+        $value = data_get($this->settings, $dotPath);
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOL);
+    }
+
+    /**
+     * ADR-025 §6 parked default for упр. ОПиУ recognition (not cash).
+     * Settings key: finance.pnl_recognition_basis
+     */
+    public function pnlRecognitionBasis(): string
+    {
+        $value = data_get($this->settings, 'finance.pnl_recognition_basis');
+        $allowed = ['execution_or_closed', 'loading', 'closed', 'execution'];
+
+        return is_string($value) && in_array($value, $allowed, true)
+            ? $value
+            : 'execution_or_closed';
+    }
+
+    /**
      * @return list<string>
      */
     public function enabledFeatures(): array

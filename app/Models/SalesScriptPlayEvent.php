@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use App\Enums\SalesPlayEventType;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesScriptPlayEvent extends Model
 {
+    use BelongsToTenant;
+
     public $timestamps = false;
 
     protected $table = 'sales_script_play_events';

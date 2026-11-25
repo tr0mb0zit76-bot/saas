@@ -34,6 +34,7 @@ use App\Support\MailSync\MailContractorAllowlist;
 use App\Support\OwnFleetCatalog;
 use App\Support\PartyNormsPenalties;
 use App\Support\PaymentFormDictionary;
+use App\Support\TenantContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -591,15 +592,16 @@ class ContractorController extends Controller
                 $orderSelect[] = 'carrier_rate';
             }
 
-            $orderRows = DB::table('orders')
+            $ordersQuery = DB::table('orders')
                 ->select($orderSelect)
                 ->where(function ($query) use ($selectedContractor): void {
                     $query->where('customer_id', $selectedContractor->id)
                         ->orWhere('carrier_id', $selectedContractor->id);
                 })
                 ->orderByDesc('order_date')
-                ->limit(20)
-                ->get();
+                ->limit(20);
+            TenantContext::restrict($ordersQuery, 'orders.tenant_id');
+            $orderRows = $ordersQuery->get();
 
             $carrierRateByOrderId = CarrierRateFromFinancialTerms::sumsByOrderId(
                 $orderRows->pluck('id')->map(fn ($id): int => (int) $id)->all(),
@@ -633,7 +635,7 @@ class ContractorController extends Controller
             if ($hasOrderDocumentsTable) {
                 $documentDateColumn = Schema::hasColumn('order_documents', 'document_date');
 
-                $relatedOrderDocuments = DB::table('order_documents')
+                $relatedDocumentsQuery = DB::table('order_documents')
                     ->join('orders', 'orders.id', '=', 'order_documents.order_id')
                     ->select(
                         'order_documents.id',
@@ -660,7 +662,9 @@ class ContractorController extends Controller
                     ->when(
                         Schema::hasColumn('orders', 'deleted_at'),
                         fn ($query) => $query->whereNull('orders.deleted_at')
-                    )
+                    );
+                TenantContext::restrict($relatedDocumentsQuery, 'orders.tenant_id');
+                $relatedOrderDocuments = $relatedDocumentsQuery
                     ->when(
                         $documentDateColumn,
                         fn ($query) => $query->orderByDesc('order_documents.document_date')
@@ -1360,9 +1364,20 @@ class ContractorController extends Controller
         if (Schema::hasTable('contractor_contacts')
             && array_key_exists('contacts', $validated)
             && is_array($validated['contacts'])) {
-            $contractor->contacts()->delete();
+            $keepIds = [];
 
             foreach ($validated['contacts'] as $contact) {
+                if (! is_array($contact)) {
+                    continue;
+                }
+
+                $contactId = isset($contact['id']) ? (int) $contact['id'] : 0;
+                unset(
+                    $contact['id'],
+                    $contact['has_traklo_user'],
+                    $contact['role_in_deal_label'],
+                );
+
                 if (! Schema::hasColumn('contractor_contacts', 'is_decision_maker')) {
                     unset($contact['is_decision_maker']);
                 }
@@ -1376,8 +1391,29 @@ class ContractorController extends Controller
                     unset($contact['role_in_deal'], $contact['communication_notes']);
                 }
 
-                $contractor->contacts()->create($contact);
+                if (! Schema::hasColumn('contractor_contacts', 'is_traklo_primary')) {
+                    unset($contact['is_traklo_primary']);
+                }
+
+                if ($contactId > 0) {
+                    $existing = $contractor->contacts()->whereKey($contactId)->first();
+                    if ($existing !== null) {
+                        $existing->fill($contact)->save();
+                        $keepIds[] = $existing->id;
+
+                        continue;
+                    }
+                }
+
+                $created = $contractor->contacts()->create($contact);
+                $keepIds[] = (int) $created->id;
             }
+
+            $deleteQuery = $contractor->contacts();
+            if ($keepIds !== []) {
+                $deleteQuery->whereNotIn('id', $keepIds);
+            }
+            $deleteQuery->delete();
         }
 
         if (Schema::hasTable('contractor_interactions')
@@ -1474,6 +1510,7 @@ class ContractorController extends Controller
                 $query->where('customer_id', $contractor->id)
                     ->orWhere('carrier_id', $contractor->id);
             });
+        TenantContext::restrict($ordersQuery, 'orders.tenant_id');
 
         if (Schema::hasColumn('orders', 'deleted_at')) {
             $ordersQuery->whereNull('deleted_at');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\PlatformAdmin;
 use App\Support\PlatformHost;
 use App\Support\TenantContext;
 use Closure;
@@ -17,7 +18,13 @@ class EnsureTenantWritable
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (PlatformHost::matchesRequest($request) || ! $request->user()) {
+        $user = $request->user();
+
+        if (! $user) {
+            return $next($request);
+        }
+
+        if (PlatformHost::matchesRequest($request) && PlatformAdmin::isPlatformAdmin($user)) {
             return $next($request);
         }
 

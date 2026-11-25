@@ -74,7 +74,8 @@
                     </Link>
                     <h1 :class="crmPageTitle">График оплат</h1>
                     <p :class="crmPageLead">
-                        План и факт по строкам графика заказов; разнос банковских выписок — отдельной вкладкой.
+                        Контроль плана vs факт по графику; три линзы денег без смешения с упр. ОПиУ.
+                        Разнос выписки — отдельной вкладкой (Enterprise).
                     </p>
                 </div>
             </div>
@@ -102,6 +103,11 @@
             />
 
             <template v-else>
+
+            <CashFlowControlDashboard
+                v-if="cashflow_dashboard"
+                :dashboard="cashflow_dashboard"
+            />
 
             <!-- Блоки статистики ПЕРЕД таблицей - ФИНАЛЬНАЯ ОПТИМИЗАЦИЯ -->
             <div class="grid shrink-0 gap-4 lg:grid-cols-3">
@@ -221,6 +227,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import { AlertTriangle, ArrowLeft, BarChart3, Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-vue-next';
 import CrmLayout from '@/Layouts/CrmLayout.vue';
 import { crmModuleCard, crmPageLead, crmPageTitle, crmPanel } from '@/support/crmUi.js';
+import CashFlowControlDashboard from '@/Components/Finance/CashFlowControlDashboard.vue';
 import CashFlowGrid from '@/Components/Finance/CashFlowGrid.vue';
 import ManagementAccountingStatementImports from '@/Components/Finance/ManagementAccountingStatementImports.vue';
 import { crmTabButtonClasses } from '@/support/crmAppearance.js';
@@ -270,6 +277,10 @@ const props = defineProps({
     cashflow_tab: {
         type: String,
         default: 'schedule',
+    },
+    cashflow_dashboard: {
+        type: Object,
+        default: null,
     },
     statement_imports: {
         type: Array,
@@ -422,6 +433,24 @@ const submoduleTiles = computed(() => {
     }
 
     if (props.can_access_management_accounting) {
+        tiles.push({
+            key: 'working-capital',
+            title: 'Оборотный капитал',
+            description: 'ДЗ заказчиков и КЗ перевозчиков по графику оплат',
+            icon: 'Wallet',
+            accent: 'sky',
+            group: 'Учёт',
+            href: '/finance/working-capital',
+        });
+        tiles.push({
+            key: 'balance',
+            title: 'Баланс',
+            description: 'Управленческий срез оборотного капитала (не бух. баланс)',
+            icon: 'Wallet',
+            accent: 'amber',
+            group: 'Учёт',
+            href: '/finance/balance',
+        });
         tiles.push({
             key: 'management-accounting',
             title: 'Управленческий учёт',

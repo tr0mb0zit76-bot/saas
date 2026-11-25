@@ -36,6 +36,7 @@ use App\Services\Commercial\ManagerSalesCoachingInsightsService;
 use App\Services\Contractor\ContractorPortraitService;
 use App\Services\DaDataService;
 use App\Services\ImportCostCalculatorService;
+use App\Services\CarrierMatching\CarrierMatchingService;
 use App\Services\LeadBusinessProcessService;
 use App\Services\LeadConversionService;
 use App\Services\LeadLinkedTaskService;
@@ -68,6 +69,7 @@ use App\Support\PaymentFormDictionary;
 use App\Support\RoleAccess;
 use App\Support\TaskStatus;
 use App\Support\TaskViewAuthorization;
+use App\Support\TenantContext;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -118,8 +120,21 @@ class LeadController extends Controller
     {
         abort_unless($this->hasLeadsFeatureTables(), 404);
 
+        $payload = $request->validated();
+        $goodsLines = is_array($payload['goods_lines'] ?? null) ? $payload['goods_lines'] : [];
+
+        // ADR-019: goods/TN VED path requires import_cost; transport (service_lines) stays available.
+        if ($goodsLines !== []) {
+            $tenant = TenantContext::get();
+            abort_unless(
+                $tenant !== null && $tenant->featureEnabled('import_cost'),
+                403,
+                'Customs precalculation requires the import_cost feature.',
+            );
+        }
+
         return response()->json(
-            $this->leadPrecalculationService->calculate($request->validated()),
+            $this->leadPrecalculationService->calculate($payload),
         );
     }
 
@@ -346,7 +361,11 @@ class LeadController extends Controller
 
             $lead->update([
                 'status' => $newStatus,
-                'source' => $request->string('source')->toString() ?: null,
+                // Keep traklo cabinet source when wizard select only offers "inbound".
+                'source' => CarrierMatchingService::resolveStaffSourceUpdate(
+                    $lead,
+                    $request->string('source')->toString() ?: null,
+                ),
                 'counterparty_id' => $request->input('counterparty_id'),
                 'responsible_id' => $responsibleId,
                 'title' => $request->string('title')->toString(),
@@ -938,6 +957,8 @@ class LeadController extends Controller
             ->where('roles.name', 'manager')
             ->orderBy('users.name');
 
+        TenantContext::restrict($usersQuery, 'users.tenant_id');
+
         if (Schema::hasColumn('users', 'is_active')) {
             $usersQuery->where('users.is_active', true);
         }
@@ -1425,6 +1446,11 @@ class LeadController extends Controller
             'planned_shipping_date' => optional($lead->planned_shipping_date)->toDateString(),
             'target_price' => $lead->target_price,
             'target_currency' => $lead->target_currency,
+            'quoted_price' => $lead->quoted_price,
+            'quoted_currency' => $lead->quoted_currency ?: 'RUB',
+            'quote_status' => $lead->quote_status ?: 'none',
+            'quote_sent_at' => optional($lead->quote_sent_at)?->toIso8601String(),
+            'quote_agreed_at' => optional($lead->quote_agreed_at)?->toIso8601String(),
             'customer_payment_form' => $lead->customer_payment_form,
             'carrier_payment_form' => $lead->carrier_payment_form,
             'calculated_cost' => $lead->calculated_cost,

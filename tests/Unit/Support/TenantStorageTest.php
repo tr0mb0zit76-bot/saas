@@ -58,4 +58,36 @@ class TenantStorageTest extends SaasTestCase
         $this->expectException(\InvalidArgumentException::class);
         TenantStorage::path('any/file.txt');
     }
+
+    public function test_rejects_parent_directory_segments(): void
+    {
+        TenantContext::bypass(true);
+        $tenant = Tenant::query()->create([
+            'slug' => 'trav-'.uniqid(),
+            'name' => 'Traversal test',
+            'status' => 'active',
+            'plan' => 'start',
+        ]);
+        TenantContext::bypass(false);
+        TenantContext::set($tenant);
+
+        $this->expectException(\InvalidArgumentException::class);
+        TenantStorage::path('../other/secret.txt');
+    }
+
+    public function test_assert_owned_object_key_rejects_foreign_prefix(): void
+    {
+        TenantContext::bypass(true);
+        $tenant = Tenant::query()->create([
+            'slug' => 'own-'.uniqid(),
+            'name' => 'Own key test',
+            'status' => 'active',
+            'plan' => 'start',
+        ]);
+        TenantContext::bypass(false);
+        TenantContext::set($tenant);
+
+        $this->expectException(\InvalidArgumentException::class);
+        TenantStorage::assertOwnedObjectKey('tenants/999/order_documents/x.pdf');
+    }
 }

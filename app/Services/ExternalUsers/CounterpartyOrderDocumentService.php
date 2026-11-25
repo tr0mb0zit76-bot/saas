@@ -69,12 +69,18 @@ class CounterpartyOrderDocumentService
             ];
         }
 
+        $orderPayload = [
+            'id' => (int) $order->id,
+            'order_number' => $order->order_number ?: '#'.$order->id,
+        ];
+
+        // Carriers must not see the customer legal name in the cabinet DTO.
+        if ($party !== ExternalParty::Carrier->value) {
+            $orderPayload['customer_name'] = $order->client?->name;
+        }
+
         return [
-            'order' => [
-                'id' => (int) $order->id,
-                'order_number' => $order->order_number ?: '#'.$order->id,
-                'customer_name' => $order->client?->name,
-            ],
+            'order' => $orderPayload,
             'slots' => $slots,
         ];
     }

@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     ) {}
 
     /**
-     * Display the login view.
+     * Display the login view (tenant host only).
      */
     public function create(): Response
     {

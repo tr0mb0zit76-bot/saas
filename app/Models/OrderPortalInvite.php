@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderPortalInvite extends Model
 {
+    use BelongsToTenant;
+
     public const PURPOSE_CARRIER_FLEET = 'carrier_fleet';
 
     public const PURPOSE_CUSTOMER_DOCUMENTS = 'customer_documents';

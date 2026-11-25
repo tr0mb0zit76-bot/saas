@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\ExternalUsers\CounterpartyOrderDocumentService;
 use App\Support\CounterpartyOrderAccess;
+use App\Support\ExternalParty;
 use App\Support\RoleAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -117,13 +118,16 @@ class MobileCounterpartyShellController extends Controller
             'order_number' => $order->order_number,
             'status' => $order->status,
             'updated_at' => $order->updated_at?->toIso8601String(),
-            'customer_name' => $order->client?->name,
         ];
 
-        if ($user->externalParty()?->value === 'carrier') {
-            $payload['route_summary'] = $this->routeSummary($order);
-        } else {
-            $payload['route_summary'] = $this->routeSummary($order);
+        // H5: carriers must not receive customer legal name in cabinet payloads.
+        if ($user->externalParty() !== ExternalParty::Carrier) {
+            $payload['customer_name'] = $order->client?->name;
+        }
+
+        $payload['route_summary'] = $this->routeSummary($order);
+
+        if ($user->externalParty() !== ExternalParty::Carrier) {
             $payload['carrier_name'] = null;
         }
 

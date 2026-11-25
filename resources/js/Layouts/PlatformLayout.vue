@@ -7,7 +7,7 @@
                         <div class="text-xs uppercase tracking-wide text-sky-600">Traklo Pro</div>
                         <div class="text-sm font-semibold">Platform Admin</div>
                     </div>
-                    <nav class="hidden items-center gap-1 sm:flex">
+                    <nav class="flex max-w-full flex-wrap items-center gap-1">
                         <Link
                             v-for="item in navItems"
                             :key="item.key"

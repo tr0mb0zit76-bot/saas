@@ -386,7 +386,13 @@ function sourceLabel(value) {
     return '—';
   }
 
-  return sourceLabels.value[value] ?? value;
+  const raw = String(value);
+  // Traklo cabinet: DB keeps traklo_customer_request[ · contact]; grid/filter show as inbound.
+  if (raw === 'traklo_customer_request' || raw.startsWith('traklo_customer_request · ')) {
+    return sourceLabels.value.inbound ?? 'Входящий';
+  }
+
+  return sourceLabels.value[raw] ?? raw;
 }
 
 const emit = defineEmits(['create', 'create-from', 'row-dblclick', 'columns-changed', 'delete-request', 'grid-updated']);

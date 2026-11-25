@@ -1,0 +1,33 @@
+{
+    "size": 720,
+    "frames": 24,
+    "duration_ms": 1700,
+    "final": "/downloads/traklo-icon.png",
+    "files": [
+        "/downloads/traklo-login-frames/frame-00.webp",
+        "/downloads/traklo-login-frames/frame-01.webp",
+        "/downloads/traklo-login-frames/frame-02.webp",
+        "/downloads/traklo-login-frames/frame-03.webp",
+        "/downloads/traklo-login-frames/frame-04.webp",
+        "/downloads/traklo-login-frames/frame-05.webp",
+        "/downloads/traklo-login-frames/frame-06.webp",
+        "/downloads/traklo-login-frames/frame-07.webp",
+        "/downloads/traklo-login-frames/frame-08.webp",
+        "/downloads/traklo-login-frames/frame-09.webp",
+        "/downloads/traklo-login-frames/frame-10.webp",
+        "/downloads/traklo-login-frames/frame-11.webp",
+        "/downloads/traklo-login-frames/frame-12.webp",
+        "/downloads/traklo-login-frames/frame-13.webp",
+        "/downloads/traklo-login-frames/frame-14.webp",
+        "/downloads/traklo-login-frames/frame-15.webp",
+        "/downloads/traklo-login-frames/frame-16.webp",
+        "/downloads/traklo-login-frames/frame-17.webp",
+        "/downloads/traklo-login-frames/frame-18.webp",
+        "/downloads/traklo-login-frames/frame-19.webp",
+        "/downloads/traklo-login-frames/frame-20.webp",
+        "/downloads/traklo-login-frames/frame-21.webp",
+        "/downloads/traklo-login-frames/frame-22.webp",
+        "/downloads/traklo-login-frames/frame-23.webp"
+    ],
+    "empty": "/downloads/traklo-login-frames/empty.webp"
+}

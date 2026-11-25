@@ -175,12 +175,19 @@ export function ensureCargoAllocation(item, stage, carrierSlot) {
 
 /** Вес одного места по строке груза (кг). */
 export function cargoLinePerPlaceWeightKg(item) {
-    const perPlace = Number(item.weight_value ?? item.weight_kg ?? 0);
-    if (!Number.isFinite(perPlace) || perPlace <= 0) {
+    const entered = Number(item.weight_value ?? item.weight_kg ?? 0);
+    if (!Number.isFinite(entered) || entered <= 0) {
         return 0;
     }
 
-    return item.weight_unit === 't' ? perPlace * 1000 : perPlace;
+    const kg = item.weight_unit === 't' ? entered * 1000 : entered;
+    if (item?.weight_is_total) {
+        const places = cargoLineTotalPackages(item);
+
+        return places > 0 ? kg / places : kg;
+    }
+
+    return kg;
 }
 
 export function cargoLineTotalPackages(item) {
@@ -190,10 +197,22 @@ export function cargoLineTotalPackages(item) {
 }
 
 export function cargoLineExpectedWeightKg(item) {
-    const perPlaceKg = cargoLinePerPlaceWeightKg(item);
     const places = cargoLineTotalPackages(item);
+    if (places <= 0) {
+        return 0;
+    }
 
-    if (perPlaceKg <= 0 || places <= 0) {
+    if (item?.weight_is_total) {
+        const entered = Number(item.weight_value ?? item.weight_kg ?? 0);
+        if (!Number.isFinite(entered) || entered <= 0) {
+            return 0;
+        }
+
+        return item.weight_unit === 't' ? entered * 1000 : entered;
+    }
+
+    const perPlaceKg = cargoLinePerPlaceWeightKg(item);
+    if (perPlaceKg <= 0) {
         return 0;
     }
 

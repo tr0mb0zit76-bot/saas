@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Support\InertiaAppSurface;
 use App\Support\PlatformHost;
 use App\Support\TenantContext;
 use Closure;
@@ -13,15 +14,43 @@ class IdentifyTenant
 {
     public function handle(Request $request, Closure $next): Response
     {
+        TenantContext::clear();
+
         if (PlatformHost::matchesRequest($request)) {
+            // Auth retrieves User by id under TenantScope; without bypass the
+            // session user (esp. tenant_id null) never loads and login "fails".
             TenantContext::bypass(true);
 
             return $next($request);
         }
 
         $slug = $request->header('X-Tenant-Slug')
-            ?? $this->resolveSubdomain($request->getHost())
-            ?? config('saas.default_tenant_slug');
+            ?? $this->resolveSubdomain($request->getHost());
+
+        if ($slug === null || $slug === '') {
+            // Marketing витрина on apex/www (and dedicated SHOWCASE_DOMAIN) has no tenant.
+            // Do NOT bypass TenantScope here — sticky bypass + shared SESSION_DOMAIN leaked
+            // CRM data across tenants. Showcase pages must not query tenant-scoped models;
+            // fail-closed 0=1 is correct if they accidentally do.
+            if (InertiaAppSurface::fromRequest($request) === InertiaAppSurface::Showcase) {
+                return $next($request);
+            }
+
+            // Apex auth has no tenant — do not send guests to platform admin.
+            // Login lives on {slug}.{CRM_DOMAIN}; bookmarks of /login go home.
+            if ($this->isApexAuthEntrypoint($request)
+                && (app()->environment('production') || ! config('app.same_showcase_and_crm_host'))) {
+                return redirect('/');
+            }
+
+            // Lab apex (localhost / saas.local) may fall back to SAAS_DEFAULT_TENANT_SLUG.
+            // Production apex/www must not silently resolve to demo.
+            if (app()->environment('production')) {
+                abort(404, 'Tenant not found or inactive.');
+            }
+
+            $slug = config('saas.default_tenant_slug');
+        }
 
         $tenant = Tenant::query()
             ->where('slug', $slug)
@@ -52,5 +81,14 @@ class IdentifyTenant
         }
 
         return $parts[0] !== 'www' ? $parts[0] : null;
+    }
+
+    private function isApexAuthEntrypoint(Request $request): bool
+    {
+        $path = trim($request->path(), '/');
+
+        return in_array($path, ['login', 'register', 'forgot-password'], true)
+            || str_starts_with($path, 'forgot-password/')
+            || str_starts_with($path, 'reset-password');
     }
 }

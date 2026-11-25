@@ -18,4 +18,14 @@ return [
      * Public demo signup (trial tenant, Start plan). Not for paid self-service.
      */
     'demo_signup_enabled' => filter_var(env('SAAS_DEMO_SIGNUP_ENABLED', false), FILTER_VALIDATE_BOOL),
+
+    /**
+     * AA-shaped Astral EPD / 1C-Fresh HTTP endpoints (product quarantine).
+     * Default off — Enterprise custom adapters are built per deal, not via these stubs.
+     * See docs/architecture/saas-refinement-backlog.md · ADR-015.
+     */
+    'legacy_aa_integrations_enabled' => filter_var(
+        env('SAAS_LEGACY_AA_INTEGRATIONS', false),
+        FILTER_VALIDATE_BOOL,
+    ),
 ];

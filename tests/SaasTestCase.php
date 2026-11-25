@@ -2,11 +2,20 @@
 
 namespace Tests;
 
+use App\Support\TenantContext;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 
 abstract class SaasTestCase extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        TenantContext::clear();
+    }
+
     use RefreshDatabase {
         refreshTestDatabase as baseRefreshTestDatabase;
     }
@@ -16,9 +25,10 @@ abstract class SaasTestCase extends TestCase
      */
     protected function migrateFreshUsing(): array
     {
-        return [
-            '--schema-path' => database_path('schema/.skip-mysql-cli-load'),
-        ];
+        // Do not pass --schema-path=.skip-mysql-cli-load: an empty dump makes
+        // migrate:fresh drop the migrations table after "schema load" (Windows/MySQL).
+        // Full migration replay is ~30–60s and is the reliable path for Feature/Saas.
+        return [];
     }
 
     protected function refreshTestDatabase(): void
@@ -33,6 +43,6 @@ abstract class SaasTestCase extends TestCase
             $this->migrateFreshUsing(),
         ));
 
-        $this->app->make(\Illuminate\Contracts\Console\Kernel::class)->setArtisan(null);
+        $this->app->make(Kernel::class)->setArtisan(null);
     }
 }

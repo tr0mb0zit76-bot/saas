@@ -4,9 +4,11 @@ namespace App\Services\SalesScripts;
 
 use App\Enums\SalesPlayEventType;
 use App\Enums\SalesPlaySessionOutcome;
+use App\Support\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 final class SalesScriptAnalyticsService
 {
@@ -138,7 +140,7 @@ final class SalesScriptAnalyticsService
         $successOutcomes = $this->successOutcomes();
         $successPlaceholders = implode(',', array_fill(0, count($successOutcomes), '?'));
 
-        $rows = DB::table('sales_script_play_events as e')
+        $rowsQuery = DB::table('sales_script_play_events as e')
             ->join('sales_script_play_sessions as s', 's.id', '=', 'e.sales_script_play_session_id')
             ->leftJoin('sales_script_nodes as n', 'n.id', '=', 'e.sales_script_node_id')
             ->leftJoin('sales_script_reaction_classes as rc', 'rc.id', '=', 'e.sales_script_reaction_class_id')
@@ -146,7 +148,13 @@ final class SalesScriptAnalyticsService
             ->where('s.is_trainer', false)
             ->where('s.sales_script_version_id', $versionId)
             ->where('s.created_at', '>=', $since)
-            ->whereNotNull('e.sales_script_reaction_class_id')
+            ->whereNotNull('e.sales_script_reaction_class_id');
+
+        if (Schema::hasColumn('sales_script_play_sessions', 'tenant_id')) {
+            TenantContext::restrict($rowsQuery, 's.tenant_id');
+        }
+
+        $rows = $rowsQuery
             ->groupBy(
                 'e.sales_script_node_id',
                 'e.sales_script_reaction_class_id',

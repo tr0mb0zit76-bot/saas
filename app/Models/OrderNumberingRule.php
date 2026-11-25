@@ -4,11 +4,14 @@ namespace App\Models;
 
 use App\Enums\OrderNumberSegmentType;
 use App\Enums\OrderNumberSequenceScope;
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderNumberingRule extends Model
 {
+    use BelongsToTenant;
+
     /**
      * @var list<string>
      */

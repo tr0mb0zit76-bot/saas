@@ -222,7 +222,13 @@ const CLOSING_EDO_COLUMNS = new Set([
     'carrier_invoice_factura',
 ]);
 
-const fallbackColumns = [
+const AA_INTEGRATION_DOC_FIELDS = new Set([
+    'entered_in_1c',
+    'etrn_status',
+    'etrn_external_id',
+]);
+
+const allFallbackColumns = [
     { field: 'order_number', headerName: 'Номер заказа', width: 160, minWidth: 140 },
     { field: 'entered_in_1c', headerName: 'Внесено в 1С', width: 140, minWidth: 120, kind: 'entered-in-1c' },
     { field: 'track_received_date_customer', headerName: 'Оригиналы заказчика', width: 180, minWidth: 150, kind: 'track-received-date' },
@@ -244,6 +250,15 @@ const fallbackColumns = [
     { field: 'etrn_external_id', headerName: 'External ID ЭТрН', width: 220, minWidth: 190, kind: 'text' },
     { field: 'other_docs', headerName: 'Прочее', width: 220, minWidth: 180 },
 ];
+
+const tenantFeatures = computed(() => page.props.tenant?.features ?? []);
+const integrationsEnabled = computed(() => Array.isArray(tenantFeatures.value) && tenantFeatures.value.includes('integrations'));
+
+const fallbackColumns = computed(() => (
+    integrationsEnabled.value
+        ? allFallbackColumns
+        : allFallbackColumns.filter((column) => !AA_INTEGRATION_DOC_FIELDS.has(column.field))
+));
 
 const agGrid = ref(null);
 const gridApi = ref(null);
@@ -352,9 +367,9 @@ function onCellContextMenu(params) {
     openContextMenu(ev, items);
 }
 
-const documentColumnFields = fallbackColumns
+const documentColumnFields = computed(() => fallbackColumns.value
     .filter((column) => column.field !== 'order_number' && !column.kind)
-    .map((column) => column.field);
+    .map((column) => column.field));
 
 function isDocumentColumnNotRequired(row, field) {
     return row?.column_applicable?.[field] === false;
@@ -375,7 +390,7 @@ function maxDocumentItemsInRow(row) {
 
     return Math.max(
         1,
-        ...documentColumnFields.map((field) => normalizeItems(row[field]).length),
+        ...documentColumnFields.value.map((field) => normalizeItems(row[field]).length),
     );
 }
 
@@ -485,7 +500,7 @@ const columnDefs = computed(() => {
     void gridViewsRevision.value;
     const saved = readPersistedAgGridColumnState(storageKey.value);
 
-    const baseColumns = fallbackColumns.map((column) => {
+    const baseColumns = fallbackColumns.value.map((column) => {
         const colDef = {
             field: column.field,
             headerName: column.headerName,
@@ -749,11 +764,11 @@ function orderCellRenderer(params) {
 
 function syncModalColumnsWithGrid() {
     if (!gridApi.value) {
-        modalColumns.value = fallbackColumns.map((column) => ({ ...column, visible: true }));
+        modalColumns.value = fallbackColumns.value.map((column) => ({ ...column, visible: true }));
         return;
     }
 
-    const available = new Map(fallbackColumns.map((column) => [column.field, column]));
+    const available = new Map(fallbackColumns.value.map((column) => [column.field, column]));
     modalColumns.value = gridApi.value
         .getAllGridColumns()
         .map((column) => {

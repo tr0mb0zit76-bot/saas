@@ -17,6 +17,8 @@
 
 На home-pc **не обязательно** поднимать S3. Layout путей **тот же**, что в prod — переключение одной переменной в `.env`.
 
+Nextcloud **вырезан** из saas.local. При `TenantContext` файлы только в `TenantStorage`. Старые метаданные `storage_driver=nextcloud` мапятся на tenant/local через `resolveStoredDriver()` (самих байтов в NC этот репозиторий больше не читает).
+
 ---
 
 ## Как устроены пути (lab = prod)

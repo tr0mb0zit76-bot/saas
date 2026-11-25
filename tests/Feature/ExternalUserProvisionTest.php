@@ -45,6 +45,7 @@ class ExternalUserProvisionTest extends TestCase
 
         $this->assertTrue($payload['created']);
         $this->assertStringContainsString('/external/invite/', $payload['url']);
+        $this->assertStringNotContainsString('renew=1', $payload['url']);
 
         $this->assertDatabaseHas('users', [
             'email' => 'carrier@example.test',
@@ -53,6 +54,64 @@ class ExternalUserProvisionTest extends TestCase
             'contractor_contact_id' => $contact->id,
             'external_party' => 'carrier',
         ]);
+
+        // Re-issue: staff «Новая ссылка» — renew so QA can reset password without burning only-login redirect.
+        $reissue = app(ExternalUserProvisionService::class)->provisionInvite(
+            $contractor,
+            $contact,
+            $staff,
+        );
+        $this->assertFalse($reissue['created']);
+        $this->assertStringContainsString('renew=1', $reissue['url']);
+    }
+
+    public function test_staff_can_create_invite_for_customer_contact(): void
+    {
+        if (! Schema::hasTable('external_user_invites')) {
+            $this->markTestSkipped('external_user_invites migration is not applied.');
+        }
+
+        $staff = User::factory()->create();
+        $customerRole = Role::query()->where('name', 'counterparty_customer')->first();
+        $this->assertNotNull($customerRole);
+
+        $contractor = Contractor::query()->create([
+            'type' => 'customer',
+            'name' => 'ООО Заказчик',
+        ]);
+        $contact = ContractorContact::query()->create([
+            'contractor_id' => $contractor->id,
+            'full_name' => 'Василий',
+            'email' => 'customer-cabinet@example.test',
+            'phone' => '+79005554433',
+            'is_primary' => true,
+        ]);
+
+        $payload = app(ExternalUserProvisionService::class)->provisionInvite(
+            $contractor,
+            $contact,
+            $staff,
+        );
+
+        $this->assertTrue($payload['created']);
+        $this->assertStringContainsString('/external/invite/', $payload['url']);
+        $this->assertStringNotContainsString('renew=1', $payload['url']);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'customer-cabinet@example.test',
+            'is_external' => true,
+            'contractor_id' => $contractor->id,
+            'contractor_contact_id' => $contact->id,
+            'external_party' => 'customer',
+        ]);
+
+        $reissue = app(ExternalUserProvisionService::class)->provisionInvite(
+            $contractor,
+            $contact,
+            $staff,
+        );
+        $this->assertFalse($reissue['created']);
+        $this->assertStringContainsString('renew=1', $reissue['url']);
     }
 
     public function test_set_traklo_primary_clears_other_contacts(): void

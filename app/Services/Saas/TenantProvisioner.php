@@ -5,12 +5,17 @@ namespace App\Services\Saas;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Services\ContentPacks\SalesBookContentPackInstaller;
 use App\Support\RoleAccess;
 use App\Support\TenantContext;
 use App\Support\TenantStorage;
 
 final class TenantProvisioner
 {
+    public function __construct(
+        private readonly SalesBookContentPackInstaller $salesBookPacks,
+    ) {}
+
     /**
      * @var list<array{name: string, display_name: string}>
      */
@@ -24,6 +29,22 @@ final class TenantProvisioner
         ['name' => 'viewer', 'display_name' => 'Наблюдатель'],
     ];
 
+    /**
+     * @var list<array{name: string, display_name: string, external_party: string}>
+     */
+    private const EXTERNAL_ROLES = [
+        [
+            'name' => 'counterparty_carrier',
+            'display_name' => 'Контакт перевозчика (Traklo)',
+            'external_party' => 'carrier',
+        ],
+        [
+            'name' => 'counterparty_customer',
+            'display_name' => 'Контакт заказчика (Traklo)',
+            'external_party' => 'customer',
+        ],
+    ];
+
     public function provision(Tenant $tenant): Tenant
     {
         TenantContext::runAs($tenant, function () use ($tenant): void {
@@ -32,8 +53,35 @@ final class TenantProvisioner
         });
 
         $this->syncSubscription($tenant);
+        $this->applyClassBDefaults($tenant);
 
         return $tenant->fresh(['subscription']);
+    }
+
+    /**
+     * ADR-021 class B: verification off; only crm-user-guide when sales_book is on.
+     * Class A (Orientum) is handled by cutover migration / platform ops.
+     */
+    public function applyClassBDefaults(Tenant $tenant): void
+    {
+        $settings = is_array($tenant->settings) ? $tenant->settings : [];
+        if (! array_key_exists('document_verification', data_get($settings, 'print', []) ?: [])) {
+            data_set($settings, 'print.document_verification', false);
+            $tenant->forceFill(['settings' => $settings])->save();
+        }
+
+        $tenant->refresh();
+
+        if (! $tenant->featureEnabled('sales_book')) {
+            return;
+        }
+
+        $installed = data_get($tenant->settings, 'content_packs.sales_book', []);
+        if (is_array($installed) && $installed !== []) {
+            return;
+        }
+
+        $this->salesBookPacks->installMany($tenant, SalesBookContentPackInstaller::classBDefaultPacks());
     }
 
     /**
@@ -55,6 +103,34 @@ final class TenantProvisioner
                     'permissions' => RoleAccess::permissionKeys(),
                     'visibility_areas' => RoleAccess::defaultVisibilityAreas($name),
                     'visibility_scopes' => RoleAccess::defaultVisibilityScopes($name),
+                ],
+            );
+        }
+
+        $counterpartyAreas = [
+            'counterparty_orders',
+            'counterparty_documents',
+            'counterparty_portal',
+        ];
+
+        foreach (self::EXTERNAL_ROLES as $definition) {
+            $name = $definition['name'];
+            $party = $definition['external_party'];
+
+            $roles[$name] = Role::query()->updateOrCreate(
+                ['tenant_id' => $tenant->id, 'name' => $name],
+                [
+                    'tenant_id' => $tenant->id,
+                    'display_name' => $definition['display_name'],
+                    'description' => 'Внешний пользователь Traklo',
+                    'permissions' => [],
+                    'visibility_areas' => $counterpartyAreas,
+                    'visibility_scopes' => [],
+                    'columns_config' => [],
+                    'has_signing_authority' => false,
+                    'default_mobile_nav_keys' => $party === 'carrier'
+                        ? ['counterparty_orders', 'counterparty_documents', 'chats', 'counterparty_portal']
+                        : ['cargo_requests', 'counterparty_orders', 'counterparty_documents', 'chats'],
                 ],
             );
         }

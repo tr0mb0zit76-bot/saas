@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Disposition\DispositionKpiService;
 use App\Support\PaymentScheduleSettlementStatus;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use App\Support\UserDashboardDepartmentScope;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -462,6 +463,8 @@ class DashboardMetricsService
             ->join('orders', 'orders.id', '=', 'payment_schedules.order_id')
             ->where('payment_schedules.party', 'customer')
             ->whereIn('payment_schedules.status', ['pending', 'overdue']);
+
+        TenantContext::restrict($query, 'orders.tenant_id');
 
         $this->applyManagerFilter($query, $managerFilter, 'orders.manager_id');
 

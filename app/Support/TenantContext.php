@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Tenant;
+use Illuminate\Database\Query\Builder;
 
 final class TenantContext
 {
@@ -13,6 +14,10 @@ final class TenantContext
     public static function set(?Tenant $tenant): void
     {
         self::$tenant = $tenant;
+        // Tenant-scoped work must never inherit sticky bypass from showcase/platform hosts.
+        if ($tenant !== null) {
+            self::$bypass = false;
+        }
     }
 
     public static function get(): ?Tenant
@@ -39,6 +44,26 @@ final class TenantContext
     {
         self::$tenant = null;
         self::$bypass = false;
+    }
+
+    /**
+     * Raw SQL does not see Eloquent global scopes. Fail closed the same way TenantScope does.
+     */
+    public static function restrict(Builder $query, string $column): void
+    {
+        if (self::isBypassed()) {
+            return;
+        }
+
+        $tenantId = self::id();
+
+        if ($tenantId === null) {
+            $query->whereRaw('0 = 1');
+
+            return;
+        }
+
+        $query->where($column, $tenantId);
     }
 
     /**

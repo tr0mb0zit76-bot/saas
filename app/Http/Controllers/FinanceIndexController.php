@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\ManagementBankAccount;
 use App\Models\ManagementStatementImport;
+use App\Services\Finance\CashFlowControlDashboardService;
 use App\Services\Finance\FinanceOverviewService;
 use App\Services\ManagementAccounting\ManagementBankAccountSyncService;
 use App\Support\PaymentScheduleAutomaticStatus;
 use App\Support\PaymentScheduleTableColumns;
 use App\Support\RoleAccess;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,8 +18,11 @@ use Inertia\Response;
 
 class FinanceIndexController extends Controller
 {
-    public function __invoke(Request $request, FinanceOverviewService $financeOverview): Response|RedirectResponse
-    {
+    public function __invoke(
+        Request $request,
+        FinanceOverviewService $financeOverview,
+        CashFlowControlDashboardService $cashFlowDashboard,
+    ): Response|RedirectResponse {
         if ($request->query('section') === 'documents') {
             return redirect()->route('finance.index');
         }
@@ -29,14 +34,26 @@ class FinanceIndexController extends Controller
             default => 'overview',
         };
 
-        if ($activeSubmodule === 'cashflow' && ! RoleAccess::canViewPaymentSchedules($user)) {
-            return redirect()->route('finance.index');
+        $tenant = TenantContext::get();
+        $paymentSchedulesFeature = (bool) ($tenant?->featureEnabled('payment_schedules'));
+        $canViewSchedules = RoleAccess::canViewPaymentSchedules($user) && $paymentSchedulesFeature;
+
+        if ($activeSubmodule === 'cashflow') {
+            if (! RoleAccess::canViewPaymentSchedules($user)) {
+                return redirect()->route('finance.index');
+            }
+            // ADR-025 P0: Start without payment_schedules must not open cashflow dashboard.
+            abort_unless($paymentSchedulesFeature, 403);
         }
 
         PaymentScheduleAutomaticStatus::refreshForUser($user);
 
-        $cashFlow = $financeOverview->cashFlowJournal($user);
-        $cashFlowStats = $financeOverview->cashFlowStats($user);
+        $cashFlow = $canViewSchedules
+            ? $financeOverview->cashFlowJournal($user)
+            : collect();
+        $cashFlowStats = $canViewSchedules
+            ? $financeOverview->cashFlowStats($user)
+            : $financeOverview->defaultCashFlowStats();
 
         $cashflowTab = (string) $request->query('cashflow_tab', 'schedule');
         if (! in_array($cashflowTab, ['schedule', 'reconcile'], true)) {
@@ -58,15 +75,27 @@ class FinanceIndexController extends Controller
             'todays_cash_flow' => $cashFlowStats['periods']['today'],
             'cash_flow_stats' => $cashFlowStats,
             'can_access_salary_module' => RoleAccess::canAccessFinanceSalary($user),
-            'can_access_management_accounting' => RoleAccess::canAccessManagementAccounting($user),
-            'can_access_payment_reconcile' => RoleAccess::canAccessPaymentReconcile($user),
-            'can_access_payment_schedules' => RoleAccess::canViewPaymentSchedules($user),
-            'can_manage_payment_schedule' => RoleAccess::canManagePaymentSchedules($user),
-            'can_show_payment_schedule_actions' => RoleAccess::canShowPaymentScheduleActionsColumn($user),
-            'can_payment_schedule_record_payment' => RoleAccess::canRecordPaymentOnPaymentSchedule($user),
-            'can_payment_schedule_cancel_row' => RoleAccess::canCancelPaymentScheduleRow($user),
+            'can_access_management_accounting' => RoleAccess::canAccessManagementAccounting($user)
+                && (bool) ($tenant?->featureEnabled('management_accounting')),
+            'can_access_payment_reconcile' => RoleAccess::canAccessPaymentReconcile($user)
+                && $paymentSchedulesFeature,
+            'can_access_payment_schedules' => $canViewSchedules,
+            'can_manage_payment_schedule' => RoleAccess::canManagePaymentSchedules($user) && $paymentSchedulesFeature,
+            'can_show_payment_schedule_actions' => RoleAccess::canShowPaymentScheduleActionsColumn($user) && $paymentSchedulesFeature,
+            'can_payment_schedule_record_payment' => RoleAccess::canRecordPaymentOnPaymentSchedule($user) && $paymentSchedulesFeature,
+            'can_payment_schedule_cancel_row' => RoleAccess::canCancelPaymentScheduleRow($user) && $paymentSchedulesFeature,
             'paymentScheduleColumns' => PaymentScheduleTableColumns::options(),
         ];
+
+        if ($activeSubmodule === 'cashflow' && $cashflowTab === 'schedule') {
+            $payload['cashflow_dashboard'] = $cashFlowDashboard->build($user, [
+                'period' => (string) $request->query('cf_period', 'M'),
+                'flow' => (string) $request->query('cf_flow', 'total'),
+                'overlay' => (string) $request->query('cf_overlay', 'fact_plus_expectations'),
+                'direction' => $request->query('cf_direction'),
+                'anchor' => $request->query('cf_anchor'),
+            ]);
+        }
 
         if ($activeSubmodule === 'cashflow' && $cashflowTab === 'reconcile') {
             $payload = [...$payload, ...$this->statementReconcileProps($request)];
