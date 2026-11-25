@@ -117,7 +117,7 @@
                                 :key="category.id"
                                 :value="category.id"
                             >
-                                {{ category.name }}
+                                {{ category.label }}
                             </option>
                         </select>
                     </div>
@@ -200,16 +200,47 @@ const form = useForm({
     user_id: null,
 });
 
+const categoryById = computed(() => {
+    const map = new Map();
+    props.categories.forEach((category) => {
+        map.set(category.id, category);
+    });
+
+    return map;
+});
+
+/** Как в отчёте: «АУР → Банковские комиссии», без корня «Расходы»/«Доходы». */
+function categoryPathLabel(category) {
+    const parts = [category.name];
+    let parentId = category.parent_id;
+
+    while (parentId != null) {
+        const parent = categoryById.value.get(parentId);
+        if (!parent) {
+            break;
+        }
+
+        if (parent.parent_id == null && parent.kind === 'group') {
+            break;
+        }
+
+        parts.unshift(parent.name);
+        parentId = parent.parent_id;
+    }
+
+    return parts.join(' → ');
+}
+
 const filteredCategories = computed(() => {
     const flow = form.direction === 'in' ? 'in' : 'out';
 
-    return props.categories.filter((category) => {
-        if (category.kind === 'group') {
-            return false;
-        }
-
-        return (category.flow ?? 'out') === flow;
-    });
+    return props.categories
+        .filter((category) => category.kind !== 'group' && (category.flow ?? 'out') === flow)
+        .map((category) => ({
+            ...category,
+            label: categoryPathLabel(category),
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label, 'ru'));
 });
 
 function ensureCategoryForDirection() {
