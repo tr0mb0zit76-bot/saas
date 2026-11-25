@@ -7,6 +7,7 @@ use App\Models\ManagementBankAccount;
 use App\Models\ManagementExpenseCategory;
 use App\Models\ManagementStatementLine;
 use App\Services\ManagementAccounting\ManagementAccountingAnalyticsService;
+use App\Services\ManagementAccounting\ManagementExpenseCategoryHierarchyService;
 use App\Services\ManagementAccounting\ManagementExpenseCategoryTreeService;
 use App\Services\ManagementAccounting\ThinCashBalanceService;
 use App\Support\PlanningWorkbook;
@@ -22,6 +23,7 @@ class ManagementAccountingController extends Controller
     public function __construct(
         private readonly ManagementAccountingAnalyticsService $analyticsService,
         private readonly ManagementExpenseCategoryTreeService $categoryTreeService,
+        private readonly ManagementExpenseCategoryHierarchyService $categoryHierarchyService,
         private readonly ThinCashBalanceService $thinCash,
     ) {}
 
@@ -30,6 +32,7 @@ class ManagementAccountingController extends Controller
         abort_unless(RoleAccess::canAccessManagementAccounting($request->user()), 403);
 
         ManagementBankAccount::ensureManualInstruments();
+        $this->categoryHierarchyService->healSelectableExpenseArticles();
 
         $tab = (string) $request->string('tab');
         if (! in_array($tab, ['ledger', 'categories', 'cash'], true)) {

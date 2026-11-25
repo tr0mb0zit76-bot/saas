@@ -334,7 +334,7 @@ const filteredVarianceRows = computed(() => {
         return rows;
     }
 
-    return rows.filter((row) => (row.kind || '') === kindFilter.value);
+    return rows.filter((row) => rowMatchesKindFilter(row, kindFilter.value));
 });
 
 const filteredPivot = computed(() => {
@@ -350,10 +350,39 @@ const filteredPivot = computed(() => {
                 return true;
             }
 
-            return (row.kind || '') === kindFilter.value;
+            return rowMatchesKindFilter(row, kindFilter.value);
         }),
     };
 });
+
+/** UI filter values (expense/income/…) ≠ DB kind (overhead/payroll_other/…). */
+function rowMatchesKindFilter(row, kind) {
+    const flow = row.flow || 'out';
+    const rowKind = String(row.kind || '');
+    const code = String(row.code || '');
+
+    if (kind === 'expense') {
+        return flow === 'out';
+    }
+
+    if (kind === 'income') {
+        return flow === 'in';
+    }
+
+    if (kind === 'payroll') {
+        return code === 'group_payroll'
+            || code.startsWith('payroll_')
+            || rowKind.includes('payroll');
+    }
+
+    if (kind === 'tax') {
+        return code === 'group_taxes'
+            || code.includes('tax')
+            || rowKind.includes('tax');
+    }
+
+    return true;
+}
 
 function reloadWithFilters(overrides = {}) {
     router.get('/finance/management-accounting', {

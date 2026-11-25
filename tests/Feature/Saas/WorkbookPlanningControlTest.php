@@ -102,6 +102,44 @@ class WorkbookPlanningControlTest extends SaasTestCase
                 ->where('thin_cash.disclaimer', fn ($text): bool => is_string($text) && str_contains($text, 'Не полный ДДС')));
     }
 
+    public function test_second_tenant_gets_own_expense_tree_in_pivot_report(): void
+    {
+        $tenantA = $this->seedStaffTenant('enterprise', 'piva');
+        $this->actingAsTenant($tenantA['tenant'], $tenantA['staff']);
+        $this->get(route('finance.management-accounting.index'))->assertOk();
+
+        $codesA = ManagementExpenseCategory::query()->orderBy('code')->pluck('code')->all();
+        $this->assertContains('group_expense', $codesA);
+        $this->assertContains('group_income', $codesA);
+
+        $tenantB = $this->seedStaffTenant('enterprise', 'pivb');
+        $this->actingAsTenant($tenantB['tenant'], $tenantB['staff']);
+
+        $this->assertSame(0, ManagementExpenseCategory::query()->count());
+
+        $this->get(route('finance.management-accounting.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page): Assert => $page
+                ->component('Finance/ManagementAccounting/Index')
+                ->where('analytics.pivot.rows', function ($rows): bool {
+                    $codes = collect($rows)->pluck('code')->all();
+
+                    return in_array('group_expense', $codes, true)
+                        && in_array('group_income', $codes, true)
+                        && in_array('group_cost', $codes, true)
+                        && in_array('gross_margin', $codes, true);
+                }));
+
+        $this->assertDatabaseHas('management_expense_categories', [
+            'tenant_id' => $tenantB['tenant']->id,
+            'code' => 'group_expense',
+        ]);
+        $this->assertDatabaseHas('management_expense_categories', [
+            'tenant_id' => $tenantA['tenant']->id,
+            'code' => 'group_expense',
+        ]);
+    }
+
     public function test_thin_cash_balance_does_not_leak_cross_tenant(): void
     {
         $tenantA = $this->seedStaffTenant('enterprise', 'casha');

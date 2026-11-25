@@ -1,6 +1,19 @@
 # Cursor handoff — Traklo Pro SaaS
 
-**Обновлено:** 2026-11-24 · **Фаза:** Phase 4 + isolation hardening · **Ветка:** `cursor/traklo-session-integrate-9d42` · **Prod HEAD:** `504354e` (isolation fixes pending deploy)
+**Обновлено:** 2026-11-25 · **Фаза:** Phase 4 + isolation hardening · **Ветка:** `cursor/traklo-session-integrate-9d42` · **Prod HEAD:** `9756a43`
+
+## Fix — пустой «Отчёт по статьям» у пилотных тенантов (2026-11-25)
+
+**Симптом prod:** только «Валовая маржа» / «Прибыль». **Локально:** полное дерево Доходы/Расходы/….
+
+**Root causes:**
+1. `UNIQUE(code)` на `management_expense_categories` (и `account_number` на bank accounts) — sync/ensure падали у 2-го+ тенанта → TenantScope отдавал пустой набор → pivot оставлял только summary.
+2. Старый `deactivateLegacyBudgetDuplicateCategories()` гасил `budget_opex_*` (статьи из дерева).
+3. UI-фильтр «Расходы» сравнивал `kind === 'expense'`, а в БД `overhead`/`payroll_other` → оставались только summary.
+
+**Fix:** migrations `…213000` / `…213100` → unique `(tenant_id, code|account_number)`; heal на index сидит дерево если нет `group_expense`; filter по `flow`/code; без blanket-deactivate.
+
+**Tests:** `WorkbookPlanningControlTest::test_second_tenant_gets_own_expense_tree…` + TreeServiceTest. **Не закоммичено / не задеплоено.**
 
 ## Isolation hardening — whole-project review fixes (2026-11-24)
 
