@@ -11,6 +11,7 @@ class ManagementAccountingSeeder extends Seeder
     public function run(): void
     {
         ManagementBankAccount::consolidated();
+        ManagementBankAccount::ensureManualInstruments();
 
         $accounts = [
             [

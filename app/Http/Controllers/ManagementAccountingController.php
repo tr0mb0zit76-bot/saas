@@ -29,6 +29,8 @@ class ManagementAccountingController extends Controller
     {
         abort_unless(RoleAccess::canAccessManagementAccounting($request->user()), 403);
 
+        ManagementBankAccount::ensureManualInstruments();
+
         $tab = (string) $request->string('tab');
         if (! in_array($tab, ['ledger', 'categories', 'cash'], true)) {
             $tab = 'ledger';
@@ -83,12 +85,13 @@ class ManagementAccountingController extends Controller
             'bank_accounts' => ManagementBankAccount::query()
                 ->where('is_active', true)
                 ->orderBy('sort_order')
-                ->get(['id', 'bank_name', 'account_mask', 'currency', 'opening_balance', 'opening_balance_as_of', 'opening_balance_source'])
+                ->get(['id', 'bank_name', 'account_number', 'account_mask', 'currency', 'opening_balance', 'opening_balance_as_of', 'opening_balance_source'])
                 ->map(static fn (ManagementBankAccount $account): array => [
                     'id' => $account->id,
                     'bank_name' => $account->bank_name,
                     'account_mask' => $account->account_mask,
                     'currency' => $account->currency,
+                    'instrument' => ManagementBankAccount::instrumentFor($account->account_number),
                     'opening_balance' => $account->opening_balance !== null ? (float) $account->opening_balance : null,
                     'opening_balance_as_of' => $account->opening_balance_as_of?->toDateString(),
                     'opening_balance_source' => $account->opening_balance_source,

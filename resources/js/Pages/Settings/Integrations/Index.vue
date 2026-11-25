@@ -23,31 +23,33 @@
             Просмотр доступен. Менять коннекторы может только администратор тенанта.
         </p>
 
-        <section v-if="feature_enabled" :class="`${crmPanel} space-y-3 p-4`">
+        <section v-if="feature_enabled" :class="`${crmPanel} space-y-2 p-3`">
             <h2 class="text-sm font-semibold">Подключённые</h2>
             <p v-if="connectors.length === 0" class="text-sm text-zinc-500">Пока ничего не подключено — выберите карточку каталога ниже.</p>
-            <div v-else class="space-y-2">
+            <div v-else class="space-y-1.5">
                 <div
                     v-for="row in connectors"
                     :key="row.id"
-                    class="flex flex-col gap-2 rounded-xl border border-zinc-200 px-3 py-3 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-between"
+                    class="flex flex-col gap-2 rounded-lg border border-zinc-200 px-2.5 py-2 dark:border-zinc-700 sm:flex-row sm:items-center sm:justify-between"
                 >
-                    <div>
-                        <div class="font-medium">{{ row.label }}</div>
-                        <div class="text-xs text-zinc-500">
-                            {{ row.adapter_key }}
-                            · {{ row.enabled ? 'вкл' : 'выкл' }}
-                            · {{ row.runtime_status }}
-                            · {{ row.managed_by === 'platform' ? 'платформа' : 'тенант' }}
-                            · секреты: {{ row.has_secrets ? 'заданы' : 'нет' }}
+                    <div class="flex min-w-0 items-center gap-2.5">
+                        <IntegrationBrandMark :adapter-key="row.adapter_key" :label="row.label" />
+                        <div class="min-w-0">
+                            <div class="truncate text-sm font-medium">{{ row.label }}</div>
+                            <div class="truncate text-[11px] text-zinc-500">
+                                {{ row.enabled ? 'вкл' : 'выкл' }}
+                                · {{ row.runtime_status }}
+                                · {{ row.managed_by === 'platform' ? 'платформа' : 'тенант' }}
+                                · секреты: {{ row.has_secrets ? 'заданы' : 'нет' }}
+                            </div>
                         </div>
                     </div>
-                    <div v-if="can_manage && row.managed_by !== 'platform'" class="flex flex-wrap gap-2">
-                        <button type="button" :class="crmBtnSecondary" @click="runTest(row)">Проверить</button>
-                        <button type="button" :class="crmBtnSecondary" @click="toggleEnabled(row)">
+                    <div v-if="can_manage && row.managed_by !== 'platform'" class="flex flex-wrap gap-1.5">
+                        <button type="button" :class="crmBtnSecondary" class="!px-2 !py-1 text-xs" @click="runTest(row)">Проверить</button>
+                        <button type="button" :class="crmBtnSecondary" class="!px-2 !py-1 text-xs" @click="toggleEnabled(row)">
                             {{ row.enabled ? 'Выключить' : 'Включить' }}
                         </button>
-                        <button type="button" :class="crmBtnSecondary" class="text-rose-700 dark:text-rose-300" @click="removeConnector(row)">
+                        <button type="button" :class="crmBtnSecondary" class="!px-2 !py-1 text-xs text-rose-700 dark:text-rose-300" @click="removeConnector(row)">
                             Удалить
                         </button>
                     </div>
@@ -56,41 +58,47 @@
             <p v-if="lastTestMessage" class="text-sm text-zinc-600 dark:text-zinc-300">{{ lastTestMessage }}</p>
         </section>
 
-        <section :class="`${crmPanel} space-y-3 p-4`">
+        <section :class="`${crmPanel} space-y-2 p-3`">
             <h2 class="text-sm font-semibold">Каталог</h2>
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 <article
                     v-for="item in catalog"
                     :key="item.key"
-                    class="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700"
+                    class="flex flex-col gap-1.5 rounded-lg border border-zinc-200 p-2.5 dark:border-zinc-700"
                 >
-                    <div class="font-medium">{{ item.label }}</div>
-                    <p class="text-xs text-zinc-500">{{ item.description }}</p>
-                    <div class="text-xs text-zinc-400">
+                    <div class="flex items-start gap-2.5">
+                        <IntegrationBrandMark :adapter-key="item.key" :label="item.label" />
+                        <div class="min-w-0">
+                            <div class="truncate text-sm font-medium leading-tight">{{ item.label }}</div>
+                            <p class="mt-0.5 line-clamp-2 text-[11px] leading-snug text-zinc-500">{{ item.description }}</p>
+                        </div>
+                    </div>
+                    <div class="truncate text-[11px] text-zinc-400">
                         {{ item.auth_model }} · {{ item.runtime_status }}
-                        <span v-if="item.docs_open && item.docs_url"> · </span>
-                        <a
-                            v-if="item.docs_open && item.docs_url"
-                            :href="item.docs_url"
-                            target="_blank"
-                            rel="noopener"
-                            class="underline"
-                        >документация</a>
+                        <template v-if="item.docs_open && item.docs_url">
+                            ·
+                            <a
+                                :href="item.docs_url"
+                                target="_blank"
+                                rel="noopener"
+                                class="underline"
+                            >docs</a>
+                        </template>
                     </div>
                     <button
                         v-if="can_manage"
                         type="button"
                         :class="crmBtnPrimary"
-                        class="mt-auto"
+                        class="mt-auto !px-2 !py-1 text-xs"
                         @click="openAdd(item)"
                     >
                         Подключить
                     </button>
                     <div
                         v-else-if="!feature_enabled"
-                        class="mt-auto inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300"
+                        class="mt-auto inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-300"
                     >
-                        <Lock class="h-3.5 w-3.5" /> Enterprise
+                        <Lock class="h-3 w-3" /> Enterprise
                     </div>
                 </article>
             </div>
@@ -147,6 +155,7 @@ import { Lock } from 'lucide-vue-next';
 import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import CrmPageHeader from '@/Components/Crm/CrmPageHeader.vue';
+import IntegrationBrandMark from '@/Components/Settings/IntegrationBrandMark.vue';
 import CrmLayout from '@/Layouts/CrmLayout.vue';
 import { crmBtnPrimary, crmBtnSecondary, crmFieldFluid, crmPanel } from '@/support/crmUi.js';
 

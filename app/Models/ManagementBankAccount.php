@@ -66,4 +66,53 @@ class ManagementBankAccount extends Model
             ],
         );
     }
+
+    public static function cash(): self
+    {
+        return self::query()->updateOrCreate(
+            ['account_number' => 'CASH'],
+            [
+                'bank_name' => 'Касса (наличные)',
+                'account_mask' => 'нал',
+                'currency' => 'RUB',
+                'is_active' => true,
+                'sort_order' => 1,
+            ],
+        );
+    }
+
+    public static function corporateCard(): self
+    {
+        return self::query()->updateOrCreate(
+            ['account_number' => 'CORP_CARD'],
+            [
+                'bank_name' => 'Корпоративная карта',
+                'account_mask' => 'карта',
+                'currency' => 'RUB',
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
+        );
+    }
+
+    public static function ensureManualInstruments(): void
+    {
+        if (! self::query()->where('account_number', 'CASH')->exists()) {
+            self::cash();
+        }
+
+        if (! self::query()->where('account_number', 'CORP_CARD')->exists()) {
+            self::corporateCard();
+        }
+    }
+
+    public static function instrumentFor(?string $accountNumber): string
+    {
+        return match ((string) $accountNumber) {
+            'CASH' => 'cash',
+            'CORP_CARD' => 'corp_card',
+            'CONSOLIDATED' => 'consolidated',
+            default => 'bank',
+        };
+    }
 }
